@@ -12,28 +12,28 @@ gantt
     title ft_irc 実装タイムライン
     dateFormat  YYYY-MM-DD
     
-    section A層 (torinoue)
-    Server基盤・poll()        :a1, 2026-05-27, 5d
-    Connection・バッファ      :a2, after a1, 3d
-    結合・調整               :a3, after b2, 2d
+    section A層
+    Server基盤 poll           :a1, 2026-05-27, 5d
+    Connection バッファ       :a2, after a1, 3d
+    結合 調整                 :a3, after b2, 2d
     
-    section B層 (torinoue)
-    Parser・Message          :b1, 2026-05-27, 3d
-    CommandDispatcher        :b2, after b1, 5d
-    ReplyBuilder            :b3, after b2, 3d
+    section B層
+    Parser Message            :b1, 2026-05-27, 3d
+    CommandDispatcher         :b2, after b1, 5d
+    ReplyBuilder              :b3, after b2, 3d
     
-    section C1層 (taro)
-    Client                   :c1, 2026-05-27, 3d
-    ServerState             :c2, after c1, 4d
+    section C1層
+    Client                    :c1, 2026-05-27, 3d
+    ServerState               :c2, after c1, 4d
     
-    section C2層 (hanako)
-    Channel                  :c3, 2026-05-27, 3d
-    ChannelModes            :c4, after c3, 3d
+    section C2層
+    Channel                   :c3, 2026-05-27, 3d
+    ChannelModes              :c4, after c3, 3d
     
     section 統合
-    MVP統合テスト           :t1, after a3, 3d
-    コマンド実装            :t2, after t1, 7d
-    最終テスト              :t3, after t2, 3d
+    MVP統合テスト             :t1, after a3, 3d
+    コマンド実装              :t2, after t1, 7d
+    最終テスト                :t3, after t2, 3d
 ```
 
 ---
@@ -78,8 +78,8 @@ flowchart LR
     style B2 fill:#50B878,stroke:#3A8A5A,color:#fff
     style C1_1 fill:#F5A623,stroke:#C4841C,color:#fff
     style C1_2 fill:#F5A623,stroke:#C4841C,color:#fff
-    style C2_1 fill:#F5A623,stroke:#C4841C,color:#fff
-    style C2_2 fill:#F5A623,stroke:#C4841C,color:#fff
+    style C2_1 fill:#795548,stroke:#5D4037,color:#fff
+    style C2_2 fill:#795548,stroke:#5D4037,color:#fff
     style MVP fill:#9C27B0,stroke:#7B1FA2,color:#fff
     style CMD fill:#9C27B0,stroke:#7B1FA2,color:#fff
 ```
@@ -136,11 +136,11 @@ flowchart LR
     style TEST fill:#FF5722,stroke:#E64A19,color:#fff
     
     style PARALLEL_C1 fill:#FFF3E0,stroke:#FFB74D
-    style PARALLEL_C2 fill:#FFF3E0,stroke:#FFB74D
+    style PARALLEL_C2 fill:#EFEBE9,stroke:#A1887F
     style C1_1 fill:#F5A623,stroke:#C4841C,color:#fff
     style C1_2 fill:#F5A623,stroke:#C4841C,color:#fff
-    style C2_1 fill:#F5A623,stroke:#C4841C,color:#fff
-    style C2_2 fill:#F5A623,stroke:#C4841C,color:#fff
+    style C2_1 fill:#795548,stroke:#5D4037,color:#fff
+    style C2_2 fill:#795548,stroke:#5D4037,color:#fff
 ```
 
 ---
@@ -181,7 +181,7 @@ flowchart TB
 
     style B_done fill:#50B878,stroke:#3A8A5A,color:#fff
     style C1_done fill:#F5A623,stroke:#C4841C,color:#fff
-    style C2_done fill:#F5A623,stroke:#C4841C,color:#fff
+    style C2_done fill:#795548,stroke:#5D4037,color:#fff
     style MERGE fill:#9C27B0,stroke:#7B1FA2,color:#fff
 ```
 
@@ -206,7 +206,8 @@ flowchart TB
 
 | 色 | HEX | 意味 |
 |----|-----|------|
-| 🔴 赤 | #FF5722 | クリティカルパス上のタスク（A層・B層・コマンド実装等） |
-| 🟠 オレンジ | #F5A623 | C1/C2層作業（並行パス） |
+| 🔴 赤 | #FF5722 | クリティカルパス上のタスク |
+| 🟠 オレンジ | #F5A623 | C1層作業（並行パス） |
+| 🤎 茶 | #795548 | C2層作業（並行パス） |
 | 🟣 紫 | #9C27B0 | 統合ポイント |
 | 🟢 緑 | #50B878 | B層完了マイルストーン |

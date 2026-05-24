@@ -29,10 +29,23 @@ B担当はIRCプロトコル層を担当。ソケット書籍は**直接関係�
 
 | リソース | 該当箇所 | 内容 |
 |---------|----------|------|
-| RFC 1459 | Section 2 | メッセージフォーマット（prefix, command, params） |
-| RFC 2812 | Section 2 | 詳細なメッセージ仕様 |
+| [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | Section 2 | メッセージフォーマット（prefix, command, params） |
+| [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) | Section 2 | 詳細なメッセージ仕様 |
 | interface.md | Section 6 | Parser, CommandDispatcher, ReplyBuilder の仕様 |
 | design.md | Section 3.2 | Protocol/Command層の責務 |
+
+### コマンド別RFCセクション
+
+| コマンド | [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) |
+|----------|----------|----------|
+| PASS | [4.1.1](https://www.rfc-editor.org/rfc/rfc1459#section-4.1.1) | [3.1.1](https://www.rfc-editor.org/rfc/rfc2812#section-3.1.1) |
+| NICK | [4.1.2](https://www.rfc-editor.org/rfc/rfc1459#section-4.1.2) | [3.1.2](https://www.rfc-editor.org/rfc/rfc2812#section-3.1.2) |
+| USER | [4.1.3](https://www.rfc-editor.org/rfc/rfc1459#section-4.1.3) | [3.1.3](https://www.rfc-editor.org/rfc/rfc2812#section-3.1.3) |
+| PRIVMSG | [4.4.1](https://www.rfc-editor.org/rfc/rfc1459#section-4.4.1) | [3.3.1](https://www.rfc-editor.org/rfc/rfc2812#section-3.3.1) |
+| TOPIC | [4.2.4](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.4) | [3.2.4](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.4) |
+| MODE | [4.2.3](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.3) | [3.2.3](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.3) |
+| KICK | [4.2.8](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.8) | [3.2.8](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.8) |
+| INVITE | [4.2.7](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.7) | [3.2.7](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.7) |
 
 ---
 

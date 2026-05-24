@@ -25,8 +25,19 @@ C2担当はチャンネル管理を担当。
 |---------|----------|------|
 | design.md | Section 3.4, 7 | Channel/ChannelModesの責務 |
 | interface.md | Section 9, 10 | Channel, ChannelModesの関数仕様 |
-| RFC 1459 | Section 1.3, 4.2 | チャンネル仕様、JOIN/PART/KICK等 |
-| RFC 2812 | Section 3.2 | チャンネルコマンド詳細 |
+| [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | Section 1.3, 4.2 | チャンネル仕様、JOIN/PART/KICK等 |
+| [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) | Section 3.2 | チャンネルコマンド詳細 |
+
+### コマンド別RFCセクション
+
+| コマンド | [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) |
+|----------|----------|----------|
+| JOIN | [4.2.1](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.1) | [3.2.1](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.1) |
+| PART | [4.2.2](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.2) | [3.2.2](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.2) |
+| MODE | [4.2.3](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.3) | [3.2.3](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.3) |
+| TOPIC | [4.2.4](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.4) | [3.2.4](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.4) |
+| INVITE | [4.2.7](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.7) | [3.2.7](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.7) |
+| KICK | [4.2.8](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.8) | [3.2.8](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.8) |
 
 ---
 

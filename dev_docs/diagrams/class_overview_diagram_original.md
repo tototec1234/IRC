@@ -112,18 +112,6 @@ classDiagram
     
     Channel "1" *-- "1" ChannelModes : owns
     Channel "*" o-- "*" Client : references
-
-    style Server fill:#4A90D9,stroke:#2E5A8B,color:#fff
-    style Connection fill:#4A90D9,stroke:#2E5A8B,color:#fff
-    style Parser fill:#50B878,stroke:#3A8A5A,color:#fff
-    style Message fill:#50B878,stroke:#3A8A5A,color:#fff
-    style CommandDispatcher fill:#50B878,stroke:#3A8A5A,color:#fff
-    style ReplyBuilder fill:#50B878,stroke:#3A8A5A,color:#fff
-    style CommandResult fill:#50B878,stroke:#3A8A5A,color:#fff
-    style Client fill:#F5A623,stroke:#C4841C,color:#fff
-    style ServerState fill:#F5A623,stroke:#C4841C,color:#fff
-    style Channel fill:#795548,stroke:#5D4037,color:#fff
-    style ChannelModes fill:#795548,stroke:#5D4037,color:#fff
 ```
 
 ---

@@ -73,9 +73,14 @@ flowchart LR
     end
 
     subgraph C_layer["C1/C2層"]
-        client["Client"]
-        state["ServerState"]
-        channel["Channel"]
+        subgraph C1_sub["C1: Client/ServerState"]
+            client["Client"]
+            state["ServerState"]
+        end
+        subgraph C2_sub["C2: Channel"]
+            channel["Channel"]
+            modes["ChannelModes"]
+        end
     end
 
     recv -->|"complete line<br/>(std::string)"| parser
@@ -96,7 +101,10 @@ flowchart LR
     style reply fill:#50B878,stroke:#3A8A5A,color:#fff
     style client fill:#F5A623,stroke:#C4841C,color:#fff
     style state fill:#F5A623,stroke:#C4841C,color:#fff
-    style channel fill:#F5A623,stroke:#C4841C,color:#fff
+    style channel fill:#795548,stroke:#5D4037,color:#fff
+    style modes fill:#795548,stroke:#5D4037,color:#fff
+    style C1_sub fill:#FFF3E0,stroke:#FFB74D
+    style C2_sub fill:#EFEBE9,stroke:#A1887F
 ```
 
 ---
@@ -119,4 +127,5 @@ flowchart LR
 |----|------|
 | 🔵 青 | A層: Network/IO |
 | 🟢 緑 | B層: Protocol/Command |
-| 🟠 オレンジ | C1/C2層: アプリケーション状態 |
+| 🟠 オレンジ | C1層: Client/ServerState |
+| 🤎 茶 | C2層: Channel/ChannelModes |

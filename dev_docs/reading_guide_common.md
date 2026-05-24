@@ -59,7 +59,7 @@ flowchart TB
     style A fill:#E3F2FD,stroke:#64B5F6
     style B fill:#E8F5E9,stroke:#81C784
     style C1 fill:#FFF3E0,stroke:#FFB74D
-    style C2 fill:#FFF3E0,stroke:#FFB74D
+    style C2 fill:#EFEBE9,stroke:#A1887F
     style Poll fill:#4A90D9,stroke:#2E5A8B,color:#fff
     style Server fill:#4A90D9,stroke:#2E5A8B,color:#fff
     style Conn fill:#4A90D9,stroke:#2E5A8B,color:#fff
@@ -68,8 +68,8 @@ flowchart TB
     style Reply fill:#50B878,stroke:#3A8A5A,color:#fff
     style State fill:#F5A623,stroke:#C4841C,color:#fff
     style Client fill:#F5A623,stroke:#C4841C,color:#fff
-    style Channel fill:#F5A623,stroke:#C4841C,color:#fff
-    style Modes fill:#F5A623,stroke:#C4841C,color:#fff
+    style Channel fill:#795548,stroke:#5D4037,color:#fff
+    style Modes fill:#795548,stroke:#5D4037,color:#fff
 ```
 
 ### 3. データの流れ

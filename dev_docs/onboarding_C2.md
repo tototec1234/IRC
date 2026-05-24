@@ -135,15 +135,15 @@ JOIN #newchannel   ← 存在しないチャンネルに入ろうとした
 
 ## 6. C2が関わるコマンド
 
-| コマンド | 動作 | C2の責務 |
-|----------|------|----------|
-| `JOIN #ch` | チャンネル参加 | member追加、+i/+k/+l チェック |
-| `PART #ch` | チャンネル退出 | member削除 |
-| `KICK #ch user` | 強制退出 | オペ権限チェック、member削除 |
-| `INVITE user #ch` | 招待 | オペ権限チェック、invited追加 |
-| `TOPIC #ch :text` | トピック設定 | +t時のオペ権限チェック |
-| `MODE #ch +i` | モード変更 | オペ権限チェック、モード更新 |
-| `PRIVMSG #ch :text` | チャンネル発言 | member一覧取得（配送先特定） |
+| コマンド | 動作 | C2の責務 | [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) |
+|----------|------|----------|----------|----------|
+| `JOIN #ch` | チャンネル参加 | member追加、+i/+k/+l チェック | [4.2.1](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.1) | [3.2.1](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.1) |
+| `PART #ch` | チャンネル退出 | member削除 | [4.2.2](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.2) | [3.2.2](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.2) |
+| `KICK #ch user` | 強制退出 | オペ権限チェック、member削除 | [4.2.8](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.8) | [3.2.8](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.8) |
+| `INVITE user #ch` | 招待 | オペ権限チェック、invited追加 | [4.2.7](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.7) | [3.2.7](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.7) |
+| `TOPIC #ch :text` | トピック設定 | +t時のオペ権限チェック | [4.2.4](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.4) | [3.2.4](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.4) |
+| `MODE #ch +i` | モード変更 | オペ権限チェック、モード更新 | [4.2.3](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.3) | [3.2.3](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.3) |
+| `PRIVMSG #ch :text` | チャンネル発言 | member一覧取得（配送先特定） | [4.4.1](https://www.rfc-editor.org/rfc/rfc1459#section-4.4.1) | [3.3.1](https://www.rfc-editor.org/rfc/rfc2812#section-3.3.1) |
 
 ---
 

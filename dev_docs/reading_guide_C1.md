@@ -25,8 +25,17 @@ C1担当はクライアント状態管理とサーバー全体の辞書管理を
 |---------|----------|------|
 | design.md | Section 3.3, 5, 6 | Client/ServerStateの責務、辞書管理ルール |
 | interface.md | Section 7, 8 | Client, ServerStateの関数仕様 |
-| RFC 1459 | Section 4.1 | PASS/NICK/USER（登録フロー） |
-| RFC 2812 | Section 3.1 | 登録コマンド詳細 |
+| [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | Section 4.1 | PASS/NICK/USER（登録フロー） |
+| [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) | Section 3.1 | 登録コマンド詳細 |
+
+### コマンド別RFCセクション
+
+| コマンド | [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) |
+|----------|----------|----------|
+| PASS | [4.1.1](https://www.rfc-editor.org/rfc/rfc1459#section-4.1.1) | [3.1.1](https://www.rfc-editor.org/rfc/rfc2812#section-3.1.1) |
+| NICK | [4.1.2](https://www.rfc-editor.org/rfc/rfc1459#section-4.1.2) | [3.1.2](https://www.rfc-editor.org/rfc/rfc2812#section-3.1.2) |
+| USER | [4.1.3](https://www.rfc-editor.org/rfc/rfc1459#section-4.1.3) | [3.1.3](https://www.rfc-editor.org/rfc/rfc2812#section-3.1.3) |
+| QUIT | [4.1.6](https://www.rfc-editor.org/rfc/rfc1459#section-4.1.6) | [3.1.7](https://www.rfc-editor.org/rfc/rfc2812#section-3.1.7) |
 
 ---
 

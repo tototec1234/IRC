@@ -31,7 +31,7 @@ flowchart TB
     style A fill:#4A90D9,stroke:#2E5A8B,color:#fff
     style B fill:#50B878,stroke:#3A8A5A,color:#fff
     style C1 fill:#F5A623,stroke:#C4841C,color:#fff
-    style C2 fill:#F5A623,stroke:#C4841C,color:#fff
+    style C2 fill:#795548,stroke:#5D4037,color:#fff
     style APP fill:#FFF3E0,stroke:#FFB74D
     style PROTO fill:#E8F5E9,stroke:#81C784
     style NET fill:#E3F2FD,stroke:#64B5F6
@@ -70,7 +70,7 @@ flowchart LR
     B_work --> PARALLEL
 
     style C1_work fill:#F5A623,stroke:#C4841C,color:#fff
-    style C2_work fill:#F5A623,stroke:#C4841C,color:#fff
+    style C2_work fill:#795548,stroke:#5D4037,color:#fff
     style A_work fill:#4A90D9,stroke:#2E5A8B,color:#fff
     style B_work fill:#50B878,stroke:#3A8A5A,color:#fff
 ```
@@ -81,6 +81,7 @@ flowchart LR
 
 | 色 | 意味 |
 |----|------|
-| 🔵 青 | A層: Network/IO（低レイヤー） |
-| 🟢 緑 | B層: Protocol/Command（中間層） |
-| 🟠 オレンジ | C1/C2層: アプリケーション状態（高レイヤー） |
+| 🔵 青 | A層: Network/IO |
+| 🟢 緑 | B層: Protocol/Command |
+| 🟠 オレンジ | C1層: Client/ServerState |
+| 🤎 茶 | C2層: Channel/ChannelModes |

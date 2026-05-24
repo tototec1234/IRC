@@ -27,11 +27,17 @@
 - [x] `reading_guide_C1.md` - C1担当（Client/ServerState）向け
 - [x] `reading_guide_C2.md` - C2担当（Channel）向け
 
+### bircd 分析・学習カリキュラム
+
+- [x] `bircd_analysis.md` - 課題添付サンプル（bircd/）の構造分析
+- [x] `bircd_learning_curriculum.md` - bircd から Server.cpp 相当を作成するための学習プラン（10-14時間）
+
 ### 発見・確認事項
 
 - [x] 書籍に poll() サンプルがないことを確認
 - [x] myIRCd/src/Server.cpp が poll() の実践教材として使えることを確認
 - [x] select() vs poll() の違いと選定理由の整理
+- [x] bircd は select() ベースで部分データ処理なし → 学習教材としては Server.cpp を優先
 
 ---
 
@@ -157,6 +163,8 @@ flowchart TD
 | reading_guide_B.md | 新規作成 |
 | reading_guide_C1.md | 新規作成 |
 | reading_guide_C2.md | 新規作成 |
+| bircd_analysis.md | 新規作成 - bircd 構造分析 |
+| bircd_learning_curriculum.md | 新規作成 - bircd 学習カリキュラム（Phase 1-5） |
 
 ---
 
@@ -180,6 +188,8 @@ ft_irc課題（42Tokyo）を進めています。
 - myIRCd/docs/interface.md（インターフェース定義）
 - IRC_torinoue/dev_docs/phase_plan.md（全体計画）
 - IRC_torinoue/dev_docs/reading_guide_*.md（担当別読書ガイド）
+- IRC_torinoue/dev_docs/bircd_analysis.md（課題サンプル bircd 分析）
+- IRC_torinoue/dev_docs/bircd_learning_curriculum.md（bircd 学習カリキュラム）
 - IRC_torinoue/session_logs/0003_session_log_ft_irc.md（前回セッションログ）
 
 担当: B（Protocol / Command）
