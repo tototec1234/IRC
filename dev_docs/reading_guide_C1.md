@@ -1,0 +1,101 @@
+# 読書ガイド: C1担当（Client / ServerState）
+
+> 対象: C1担当（Client, ServerState, ClientRegistry）
+> 作成日: 2026-05-23
+> ステータス: **次回セッションで詳細化予定**
+
+---
+
+## 概要
+
+C1担当はクライアント状態管理とサーバー全体の辞書管理を担当。
+ソケット書籍は**直接関係しない**。
+
+---
+
+## 書籍との関係
+
+**ソケット書籍は不要。** design.md と RFC を読むこと。
+
+---
+
+## 主要リソース
+
+| リソース | 該当箇所 | 内容 |
+|---------|----------|------|
+| design.md | Section 3.3, 5, 6 | Client/ServerStateの責務、辞書管理ルール |
+| interface.md | Section 7, 8 | Client, ServerStateの関数仕様 |
+| RFC 1459 | Section 4.1 | PASS/NICK/USER（登録フロー） |
+| RFC 2812 | Section 3.1 | 登録コマンド詳細 |
+
+---
+
+## 担当クラス
+
+```mermaid
+flowchart TB
+    subgraph ServerState
+        FdMap["fd → Client"]
+        NickMap["nick → Client"]
+        ChannelMap["channel → Channel"]
+    end
+    
+    subgraph Client
+        Nick["nick"]
+        Username["username"]
+        Realname["realname"]
+        AuthState["認証状態"]
+        RegState["登録状態"]
+    end
+    
+    ServerState --> Client
+
+    style ServerState fill:#FFF3E0,stroke:#FFB74D
+    style Client fill:#FFF3E0,stroke:#FFB74D
+    style FdMap fill:#F5A623,stroke:#C4841C,color:#fff
+    style NickMap fill:#F5A623,stroke:#C4841C,color:#fff
+    style ChannelMap fill:#F5A623,stroke:#C4841C,color:#fff
+    style Nick fill:#F5A623,stroke:#C4841C,color:#fff
+    style Username fill:#F5A623,stroke:#C4841C,color:#fff
+    style Realname fill:#F5A623,stroke:#C4841C,color:#fff
+    style AuthState fill:#F5A623,stroke:#C4841C,color:#fff
+    style RegState fill:#F5A623,stroke:#C4841C,color:#fff
+```
+
+| クラス | 役割 |
+|--------|------|
+| Client | ユーザー固有情報、認証状態、登録状態 |
+| ServerState | fd/nick/channel辞書の集中管理 |
+| ClientRegistry | （必要に応じて分離）Client辞書管理 |
+
+---
+
+## 重要なルール
+
+### nick変更ルール
+
+```cpp
+// NG: 辞書が更新されない
+client.setNick(newNick);
+
+// OK: ServerState経由で辞書も更新
+state.updateNick(client, newNick);
+```
+
+### Client削除ルール
+
+`ServerState::removeClient()` を通すこと。以下を自動処理：
+- 全Channelからmember登録削除
+- operator集合から削除
+- invited listから削除
+- 空Channelの削除
+- fd/nick辞書の更新
+
+---
+
+## TODO: 次回セッションで詳細化
+
+- [ ] RFC 1459/2812 の C1 関連セクション特定
+- [ ] 登録フロー（PASS → NICK → USER）の詳細整理
+- [ ] 状態遷移図の作成
+- [ ] C1担当向けクイズ作成
