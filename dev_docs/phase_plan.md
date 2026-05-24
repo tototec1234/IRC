@@ -1,8 +1,10 @@
 # ft_irc 課題 学習・実装計画 v1
 
 > 作成日: 2026-05-16
-> チーム: torinoue (30h/week), sohyamaz (10h/week)
-> 合計稼働: 40h/week
+> 更新日: 2026-05-16
+> チーム: torinoue, sohyamaz, atashiro（3名）
+> 担当: A=atashiro, B=torinoue, C1/C2=未定（5/20決定予定）
+> 成果物リポジトリ: [myIRCd](https://github.com/mandakore/myIRCd)
 
 **読み分け:** 本ファイルがメイン計画。進捗の数値・タスク表は本ファイル内で管理。セッションログは `session_logs/` に記録。
 
@@ -111,6 +113,13 @@ PRI^DVMSG #general :te^Dst
 
 ## GitHub 参考実装リスト
 
+### チームメンバー提供（atashiro）
+
+| リソース | 説明 |
+|----------|------|
+| [mandakore/myIRCd](https://github.com/mandakore/myIRCd) | **本プロジェクトの成果物リポジトリ**。atashiro が作成・先行実装中 |
+| [Qiita: 簡易サーバー例](https://qiita.com/gu-chi/items/243fa63e17617bb9ef77) | C言語でのソケットサーバー実装例。基礎理解用 |
+
 ### 主要リポジトリ（概要のみ）
 
 | リポジトリ | 特徴 | 参考度 |
@@ -192,18 +201,40 @@ Inception と同様の Navigator/Driver モデルを採用。
 ### フェーズ 1: ソケットプログラミング学習（25h）
 
 > 教材: 「TCP/IPソケットプログラミング C言語編」（オーム社）
+> - [オーム社 書籍ページ](https://www.ohmsha.co.jp/book/9784274065194/) - 日本語版サンプルコード(CSockets.tar.gz)あり
+> - [原著者サンプルコード](http://cs.baylor.edu/~donahoo/practical/CSockets/textcode.html) - 英語版全サンプル
+li
+| # | タスク | 時間 | 章/節 | 狙い | 備考 |
+|---|--------|------|-------|------|------|
+| 1-1 | 第1章: ネットワークとプロトコルの概要 | 1h | Ch.1 全体 | TCP/UDP/IP/ポートの基本概念 | 軽く読む |
+| 1-2 | 第2章: ソケットの基礎 | 3h | Ch.2 全体 | socket/bind/listen/accept/send/recv | **重要**: TCPサーバー構造の核 |
+| 1-3 | 第3章: メッセージの作成 | 1.5h | 3.1-3.2 | htons/ntohs、バイト順 | 3.3-3.4は軽く |
+| 1-4 | 第5章: ノンブロッキングI/O | 2h | 5.3.1 | fcntl(O_NONBLOCK)、EAGAIN/EWOULDBLOCK | **重要**: 5.3.2(非同期I/O), 5.3.3(タイムアウト)は飛ばす |
+| 1-5 | 第5章: 多重化 | 3h | 5.5 | select()の概念理解 → poll()への読み替え | **最重要**: ft_ircの核心 |
+| 1-6 | 第6章: TCPの挙動 | 2h | 6.1, 6.4 | バッファリング、3-wayハンドシェイク、切断検知 | 6.2-6.3は参考程度 |
+| 1-7 | 実践: poll()エコーサーバー | 4h | - | 学んだ内容を統合 | C++98、myIRCd/src/Server.cpp参照 |
+| 1-8 | クイズ（ペア） | 1.5h | - | 相互確認 | 0100_socket_post_quiz.md |
 
-| # | タスク | 時間 | 章 | 備考 |
-|---|--------|------|-----|------|
-| 1-1 | 第1章: ネットワークとプロトコルの概要 | 2h | Ch.1 | 概念理解 |
-| 1-2 | 第2章: ソケットの基礎 | 4h | Ch.2 | **重要**: TCPクライアント/サーバー |
-| 1-3 | 第3章: メッセージの作成 | 3h | Ch.3 | バイト順、フレーミング |
-| 1-4 | 第5章: ソケットプログラミング | 6h | Ch.5 | **最重要**: ノンブロッキング、多重化 |
-| 1-5 | 第6章: ソケットAPIの舞台裏 | 3h | Ch.6 | TCPの挙動理解 |
-| 1-6 | 実践: エコーサーバー作成 | 5h | - | C++98 で poll() 使用 |
-| 1-7 | クイズ（ペア） | 2h | - | 相互確認 |
+> **スキップする章・節**
+> - 第4章: UDPソケット（全体） - ft_ircはTCPのみ
+> - 5.3.2: 非同期I/O（SIGIO） - poll()を使う
+> - 5.3.3: タイムアウト（setsockopt） - ノンブロッキング+poll()で対応
+> - 5.4.1-5.4.2: fork/thread - ft_ircはfork禁止、poll()で多重化
+> - 5.6: ブロードキャスト/マルチキャスト - IRC不要
+> - 第7章: ドメインネームサービス - 必須ではない（余裕あれば）
+
+> **サンプルコード対応**
+> | 書籍内容 | 読むべきコード | スキップ |
+> |---------|---------------|----------|
+> | Ch.2 TCP基礎 | TCPEchoServer.c, HandleTCPClient.c | - |
+> | 5.5 多重化 | TCPEchoServer-Select.c（概念理解用） | - |
+> | - | - | UDPEcho*.c, *-Fork*.c, *-Thread*.c, *-SIGIO.c, *-Timeout.c, Broadcast*.c, Multicast*.c |
 
 ### フェーズ 2: IRC プロトコル学習（15h）
+
+> **RFC資料**
+> - [RFC 1459 - Internet Relay Chat Protocol](https://datatracker.ietf.org/doc/html/rfc1459) - IRCの基本仕様
+> - [RFC 2812 - Internet Relay Chat: Client Protocol](https://datatracker.ietf.org/doc/html/rfc2812) - クライアントプロトコル詳細
 
 | # | タスク | 時間 | 備考 |
 |---|--------|------|------|
@@ -322,8 +353,9 @@ ft_irc課題（42Tokyo）を進めています。
 
 ## 未解決事項
 
-| 事項 | 確認方法 | タイミング |
-|------|---------|-----------|
-| 評価シートの入手 | Web検索 or 先輩に確認 | フェーズ 5 開始前 |
-| 校舎マシンの C++ バージョン | 校舎で確認 | フェーズ 7 |
-| CAP コマンドの要否 | irssi 接続時に確認 | フェーズ 4-2 |
+| 事項 | 確認方法 | タイミング | 状態 |
+|------|---------|-----------|------|
+| ~~評価シートの入手~~ | ~~Web検索 or 先輩に確認~~ | ~~フェーズ 5 開始前~~ | **解決**: [42evalhub](https://www.42evalhub.com/common/ftirc) から入手済。`docs/eval/evalsheet_42evalhub.md` 参照 |
+| 校舎マシンの C++ バージョン | 校舎で確認 | フェーズ 7 | 未着手 |
+| CAP コマンドの要否 | irssi 接続時に確認 | フェーズ 4-2 | 未着手 |
+| リファレンスIRCクライアント選定 | チームで協議 | フェーズ 2 開始前 | 未着手（irssi仮決定、要確認） |

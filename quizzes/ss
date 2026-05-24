@@ -1,0 +1,21 @@
+cd /Users/toruinoue/IRC/myIRCd && gh pr create \
+  --title "docs: チャンネル種別の注釈追加 & IRC_Server_Overview図の追加" \
+  --body "$(cat <<'EOF'
+## Summary
+
+- **design.md**: RFCに基づくチャンネル先頭文字（`#`, `&`, `+`, `!`）の説明と、本プロジェクトで `#` のみ対応とする理由を追加
+- **IRC_Server_Overview.md**: sohyamazさんが [Discord](https://discord.com/channels/1505111083332141189/1505114298366689351/1505419637293056150) で共有してくれた内部アーキテクチャ図に、torinoueがC2S/S2S通信構成図を追加
+
+## 背景
+
+- RFC 1459 Section 1.3 の原文に欠落があることを発見し、RFC 2812 で確認した結果をドキュメント化
+- 担当者別のアーキテクチャ理解のため、overview図を作成
+
+## 確認してほしいこと
+
+- torinoueが追加した「通信構成（C2S: Client to Server）」の図が正しい理解かどうか確認お願いします
+- ncとirssiが課題提出時のレビューで使用される想定で理解しています
+
+Made with [Cursor](https://cursor.com)
+EOF
+)"

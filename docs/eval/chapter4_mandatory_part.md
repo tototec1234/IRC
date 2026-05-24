@@ -18,6 +18,19 @@
 
 ---
 
+## 実装範囲の制限
+
+C++ 98 標準を使用して IRC サーバーを開発すること。
+
+**禁止事項：**
+
+- IRC クライアントを開発してはいけない
+- サーバー間通信を実装してはいけない
+
+*原文: You are required to develop an IRC server using the C++ 98 standard. You must not develop an IRC client. You must not implement server-to-server communication.*
+
+---
+
 ## 使用可能な外部関数
 
 C++ 98 の全機能に加え、以下の関数が使用可能：

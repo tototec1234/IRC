@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../../IRC_torinoue"
+		},
+		{
+			"path": "../myIRCd"
+		}
+	],
+	"settings": {}
+}
