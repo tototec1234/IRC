@@ -82,6 +82,7 @@ classDiagram
         -string _host
         -bool _passOk
         -bool _registered
+        +getFd() int
         +getNick() string
         +getUsername() string
         +getRealname() string

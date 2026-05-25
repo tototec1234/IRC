@@ -81,6 +81,7 @@ class Client {
 
 public:
     // ゲッター（get prefix統一）
+    int getFd() const;
     std::string getNick() const;
     std::string getUsername() const;
     std::string getRealname() const;

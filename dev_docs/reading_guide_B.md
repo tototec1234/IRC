@@ -46,6 +46,8 @@ B担当はIRCプロトコル層を担当。ソケット書籍は**直接関係�
 | MODE | [4.2.3](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.3) | [3.2.3](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.3) |
 | KICK | [4.2.8](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.8) | [3.2.8](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.8) |
 | INVITE | [4.2.7](https://www.rfc-editor.org/rfc/rfc1459#section-4.2.7) | [3.2.7](https://www.rfc-editor.org/rfc/rfc2812#section-3.2.7) |
+| PING | [4.6.2](https://www.rfc-editor.org/rfc/rfc1459#section-4.6.2) | [3.7.2](https://www.rfc-editor.org/rfc/rfc2812#section-3.7.2) |
+| PONG | [4.6.3](https://www.rfc-editor.org/rfc/rfc1459#section-4.6.3) | [3.7.3](https://www.rfc-editor.org/rfc/rfc2812#section-3.7.3) |
 
 ---
 

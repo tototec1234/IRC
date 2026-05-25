@@ -47,6 +47,11 @@ classDiagram
     class Message {
         -string _command
         -vector~string~ _params
+        +getCommand() string
+        +getParams() vector~string~
+        +getParamCount() size_t
+        +hasParam(index) bool
+        +getSingleParam(index) string
     }
     
     class CommandDispatcher {
@@ -69,7 +74,15 @@ classDiagram
         -string _username
         -string _realname
         -string _host
-        +getFullPrefix()
+        -bool _passOk
+        -bool _registered
+        +getFd() int
+        +getNick() string
+        +getUsername() string
+        +getRealname() string
+        +getHost() string
+        +getFullPrefix() string
+        +isRegistered() bool
     }
     
     class ServerState {

@@ -123,26 +123,28 @@ staticメソッドのみの現設計では設定値の注入が困難。
 | Connection | あり | なし（Server直接管理） | 必須（分離予定） |
 | ServerState詳細 | あり | 空（未実装） | あり |
 | Channel詳細 | あり | 空（未実装） | あり |
-| **InviteList** | **なし** | なし | **あり** |
-| **Client._realname** | **なし** | あり | **あり** |
-| PING/PONG | なし | なし | なし |
+| InviteList | ✅ あり（`_invited`） | なし | あり |
+| Client._realname | ✅ あり | あり | あり |
+| Client._host | ✅ あり | - | - |
+| Client.getFullPrefix() | ✅ あり | - | - |
+| PING/PONG | ✅ あり | なし | なし |
 
-### 5.3 発見した問題点
+### 5.3 修正済みの問題点（2026-05-25対応完了）
 
-#### 問題1: InviteListの欠落
+#### 問題1: InviteListの欠落 → **解決済み**
 
 myIRCd/docs/design.md Section 7:
 ```
 Channel
 ├─ members    (参加中のClient一覧)
 ├─ operators  (Operator権限を持つClient一覧)
-├─ invited    (招待されたClient一覧)  ← これが設計図に無い
+├─ invited    (招待されたClient一覧)  ← _invited として追加済み
 └─ modes      (チャンネルのモード状態)
 ```
 
-**対応:** 設計図のChannelクラスに `_inviteList` を追加必須
+**対応:** 設計図のChannelクラスに `_invited` を追加 ✅
 
-#### 問題2: Client._realnameの欠落
+#### 問題2: Client._realnameの欠落 → **解決済み**
 
 myIRCd/docs/design.md Section 5.2:
 ```
@@ -150,7 +152,7 @@ Client が持つもの:
 - fd
 - nick
 - username
-- realname  ← これが設計図に無い
+- realname  ← _realname として追加済み
 - PASS 成功状態
 - 登録完了状態
 ```
@@ -193,7 +195,7 @@ const std::string& getSingleParam(size_t index) const;
 bool hasParam(size_t index) const;
 ```
 
-設計図には `command()`, `params()` のみ。上記メソッドを追加すると便利。
+設計図に `getCommand()`, `getParams()` および上記メソッドを追加済み（2026-05-25）。
 
 #### ヒント2: t_reply構造体
 
@@ -236,7 +238,7 @@ std::string _channelPass; // 設計図の _key に対応
 ### 6.1 完了した変更（2026-05-25）
 
 - `dev_docs/diagrams/class_overview_diagram.md`:
-  - Client: `_realname`, `realname()` 追加
+  - Client: `_realname`, `_host`, `getRealname()`, `getHost()`, `getFullPrefix()`, `getFd()` 追加
   - Channel: `_invited`, `addInvite()`, `isInvited()` 追加
   - Message: `getParamCount()`, `hasParam()`, `getSingleParam()` 追加
 - `dev_docs/onboarding_B.md`:

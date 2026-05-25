@@ -50,11 +50,14 @@ flowchart TB
     end
     
     subgraph Client
+        Fd["fd"]
         Nick["nick"]
         Username["username"]
         Realname["realname"]
+        Host["host"]
         AuthState["認証状態"]
         RegState["登録状態"]
+        FullPrefix["getFullPrefix()"]
     end
     
     ServerState --> Client

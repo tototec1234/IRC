@@ -263,7 +263,7 @@ struct CommandResult {
 CommandResult result;
 std::string joinMsg = ReplyBuilder::join(client, channel);
 for (Client* member : channel.members()) {
-    result.addReply(member->fd(), joinMsg);
+    result.addReply(member->getFd(), joinMsg);
 }
 return result;
 ```
