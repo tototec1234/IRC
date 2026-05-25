@@ -229,24 +229,7 @@ for (each reply in result.replies) {
 
 ---
 
-## 9. 最初の一歩
-
-1. bircd をビルド・実行してみる
-  ```bash
-   cd IRC_torinoue/bircd
-   make
-   ./bircd 6667
-
-   # 別ターミナルで
-   nc localhost 6667
-  ```
-2. `myIRCd/src/Server.cpp` を読む（poll() の実装例）
-3. `bircd_learning_curriculum.md` に沿って学習
-4. 質問はtorinoueへ
-
----
-
-## 10. よくある疑問
+## 9. よくある疑問
 
 ### Q: ConnectionとClientの違いは？
 

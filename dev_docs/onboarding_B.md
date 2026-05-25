@@ -116,10 +116,37 @@ PRIVMSG #room :hello world        → command="PRIVMSG", params=["#room","hello 
 class Message {
     std::string              _command;   // "NICK", "JOIN", etc.
     std::vector<std::string> _params;    // パラメータ配列
+
+public:
+    // ゲッター（get prefix統一）
+    std::string getCommand() const;
+    std::vector<std::string> getParams() const;
+    size_t getParamCount() const;
+    bool hasParam(size_t index) const;
+    std::string getSingleParam(size_t index) const;
 };
 ```
 
 **注意:** `:` で始まる trailing は `_params` の最後の要素として扱う。
+
+### サーバー→クライアントのprefix形式
+
+クライアント→サーバーのメッセージにはprefixは通常不要。
+しかし**サーバー→クライアント**では拡張prefix（`nick!user@host`）を付与する。
+
+| 方向 | prefix | 例 |
+|------|--------|-----|
+| クライアント→サーバー | 不要 | `PRIVMSG #ch :hello` |
+| サーバー→クライアント | 必須 | `:nick!user@host PRIVMSG #ch :hello` |
+
+**RFC根拠（Section 2.3）:**
+- prefixはサーバーがメッセージの真の発信元を示すために使用
+- prefixがない場合、受信した接続から発信されたと見なす
+- 拡張prefix（`!user@host`）はサーバー→クライアント専用（Note 6）
+
+**実装:** `Client.getFullPrefix()` が `nick!user@host` を返す（C1担当参照）
+
+詳細は `rfc1459_prefix_analysis.md` を参照。
 
 ---
 
@@ -149,6 +176,15 @@ class Message {
 | コマンド | 動作 | 例 | [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) |
 |----------|------|-----|----------|----------|
 | `PRIVMSG` | メッセージ送信 | `PRIVMSG #room :hello` | [4.4.1](https://www.rfc-editor.org/rfc/rfc1459#section-4.4.1) | [3.3.1](https://www.rfc-editor.org/rfc/rfc2812#section-3.3.1) |
+
+### 接続維持系（必須）
+
+| コマンド | 動作 | 例 | [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) |
+|----------|------|-----|----------|----------|
+| `PING` | 生存確認要求 | `PING :server` | [4.6.2](https://www.rfc-editor.org/rfc/rfc1459#section-4.6.2) | [3.7.2](https://www.rfc-editor.org/rfc/rfc2812#section-3.7.2) |
+| `PONG` | 生存確認応答 | `PONG :server` | [4.6.3](https://www.rfc-editor.org/rfc/rfc1459#section-4.6.3) | [3.7.3](https://www.rfc-editor.org/rfc/rfc2812#section-3.7.3) |
+
+**注意:** irssiはサーバーからのPINGに自動でPONGを返す。サーバー側はクライアントからのPONGを受け取り、クライアントが生存していることを確認する。PING/PONGがないとirssiが接続タイムアウトする可能性がある。
 
 ---
 
@@ -192,7 +228,7 @@ IRCでは返信に3桁の数字コードを使う。詳細は [RFC 1459 Section 
 
 ## 8. A層との境界
 
-### 重要ルール: B層は send() を呼ばない
+### 【設計】重要ルール: B層は send() を呼ばない（チーム独自）
 
 ```cpp
 // NG: B層が直接送信
@@ -203,6 +239,8 @@ CommandResult result;
 result.addReply(fd, reply);
 return result;
 ```
+
+**チームの強み:** sendバッファに積む方式により、層間の責務が明確に分離される。
 
 ### CommandResult 構造
 
@@ -287,26 +325,7 @@ if (!ch->isOperator(client)) {
 
 ---
 
-## 11. 最初の一歩
-
-1. irssiを触ってみる（IRCクライアント体験）
-   ```bash
-   brew install irssi
-   irssi -c irc.libera.chat -n test_nick
-   # /join #test
-   # /msg someone hello
-   # /quit
-   ```
-
-2. 簡単なParserを書いてみる（1行 → command + params）
-
-3. `interface.md` の ReplyBuilder 関数一覧を眺める
-
-4. 質問はtorinoueへ
-
----
-
-## 12. よくある疑問
+## 11. よくある疑問
 
 ### Q: ソケット書籍は読む必要ある？
 **A:** 必須ではない。B層はソケットを直接扱わない。ただし「TCPはバイトストリーム」という概念は理解しておくと良い（書籍6章）。

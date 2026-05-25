@@ -81,7 +81,7 @@ flowchart TB
 
 ## 重要なルール
 
-### nick変更ルール
+### 【実装】nick変更ルール
 
 ```cpp
 // NG: 辞書が更新されない
@@ -91,7 +91,7 @@ client.setNick(newNick);
 state.updateNick(client, newNick);
 ```
 
-### Client削除ルール
+### 【設計】Client削除ルール（IRCの一般的動作を反映）
 
 `ServerState::removeClient()` を通すこと。以下を自動処理：
 - 全Channelからmember登録削除

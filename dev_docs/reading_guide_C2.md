@@ -85,11 +85,11 @@ flowchart TB
 
 ## 重要なルール
 
-### Operator管理
+### 【仕様】Operator管理
 
 **operatorはClientではなくChannelが管理する。**
 
-理由: 1人のClientが複数Channelで異なる権限を持てる。
+理由: 1人のClientが複数Channelで異なる権限を持てる（IRC仕様）。
 
 ```
 Channel #foo

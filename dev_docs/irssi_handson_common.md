@@ -18,12 +18,12 @@
 ### 歴史
 
 
-| 年代 | 出来事 |
-|------|--------|
-| 1988 | IRC誕生（フィンランド、Jarkko Oikarinen）[^5] |
-| 1990s〜2004 | 爆発的普及、ピーク時1000万人同時接続[^7] |
-| 2003〜 | SNS台頭で衰退開始（2012年までに60%減）[^7] |
-| 2024現在 | OSSコミュニティで健在（Libera Chat: 約3万人）[^6] |
+| 年代         | 出来事                                 |
+| ---------- | ----------------------------------- |
+| 1988       | IRC誕生（フィンランド、Jarkko Oikarinen）[^5]  |
+| 1990s〜2004 | 爆発的普及、ピーク時1000万人同時接続[^7]            |
+| 2003〜      | SNS台頭で衰退開始（2012年までに60%減）[^7]        |
+| 2024現在     | OSSコミュニティで健在（Libera Chat: 約3万人）[^6] |
 
 
 ### Discordとの違い（重要）
@@ -54,13 +54,15 @@ IRCサーバー（ircserv）← ユーザーが接続先として意識する。
 
 ### もう1つの大きな違い: 永続性
 
-| 項目 | Discord | IRC |
-|------|---------|-----|
-| アカウント | 永続（登録制） | **一時的（接続中のみ）** |
-| ニックネーム | アカウントに紐づく | **接続するたびに設定** |
+| 項目 | Discord | IRC（ft_irc） |
+|------|---------|--------------|
+| アカウント | 永続（登録制） | **存在しない**[^10] |
+| ニックネーム | アカウントに紐づく | **早い者勝ち、接続中のみ有効**[^11] |
 | チャンネル | 永続（誰かが作れば残る） | **誰もいなくなったら消える** |
 
 → IRCは「切断したら終わり」。次に接続したらまたnickを設定し、チャンネルに参加し直す。
+
+---
 
 ### 公開IRCサーバー（誰でも接続可能）
 
@@ -79,6 +81,8 @@ Discordサーバーは招待制が多いが、IRCには**誰でも接続でき�
 ---
 
 ## 2. irssiインストール（2分）
+
+**irssi**[^12] はターミナルベースのIRCクライアントソフトウェア。今回のハンズオンではこれを使ってIRCサーバーに接続する。
 
 ```bash
 brew install irssi
@@ -101,6 +105,7 @@ irssi --version
 ```bash
 irssi -c irc.libera.chat -n 自分のニックネーム
 ```
+
 （`-c`: 接続先サーバー、`-n`: ニックネーム指定）[^3][^4]
 
 例:
@@ -133,18 +138,19 @@ irssi -c irc.libera.chat -n taro
 
 irssiのコマンド。IRCプロトコルに準拠しており、ircservが処理する。
 
-| コマンド | 動作 | 例 |
-|----------|------|-----|
-| `/join #チャンネル名` | チャンネル参加 | `/join #42test` |
-| `/names #チャンネル名` | メンバー一覧 | `/names #42test` |
-| `/msg 相手 内容` | DM送信 | `/msg taro hi!` |
-| `/nick 新名前` | ニックネーム変更 | `/nick jiro` |
-| `/topic #チャンネル名` | トピック確認 | `/topic #42test` |
-| `/topic #チャンネル名 内容` | トピック設定 | `/topic #42test Welcome!` |
-| `/mode #チャンネル名 +i` | 招待制に設定 | `/mode #secret +i` |
-| `/invite ユーザー #チャンネル名` | ユーザーを招待 | `/invite hanako #secret` |
-| `/part #チャンネル名` | チャンネル退出 | `/part #42test` |
-| `/quit` | 切断 | `/quit` |
+
+| コマンド                   | 動作       | 例                         |
+| ---------------------- | -------- | ------------------------- |
+| `/join #チャンネル名`        | チャンネル参加  | `/join #42test`           |
+| `/names #チャンネル名`       | メンバー一覧   | `/names #42test`          |
+| `/msg 相手 内容`           | DM送信     | `/msg taro hi!`           |
+| `/nick 新名前`            | ニックネーム変更 | `/nick jiro`              |
+| `/topic #チャンネル名`       | トピック確認   | `/topic #42test`          |
+| `/topic #チャンネル名 内容`    | トピック設定   | `/topic #42test Welcome!` |
+| `/mode #チャンネル名 +i`     | 招待制に設定   | `/mode #HOGEHOGE +i`        |
+| `/invite ユーザー #チャンネル名` | ユーザーを招待  | `/invite hanako #HOGEHOGE`  |
+| `/part #チャンネル名`        | チャンネル退出  | `/part #42test`           |
+| `/quit`                | 切断       | `/quit`                   |
 
 
 ### シナリオ: 3人でIRC体験（約12分）
@@ -250,11 +256,15 @@ Alt+2
 
 #### シナリオ2: TOPICを設定（2分）
 
-**【taro】チャンネルのトピックを設定**
+**【taro】チャンネルのトピック(お題)を設定**
+
+> 実行前: irssi画面最上段のステータスバー（ブルー背景の抜き文字）に注目
 
 ```
-/topic #42test Welcome to 42test!
+/topic #42test This is the topic
 ```
+
+→ 結果: ステータスバーに `This is the topic` が表示される
 
 **【hanako】トピックを確認**
 
@@ -262,17 +272,17 @@ Alt+2
 /topic #42test
 ```
 
-→ 結果: `Welcome to 42test!`
+→ 結果: メッセージ欄に `Topic for #42test: This is the topic` と表示される
 
 **【hanako】トピックを変更してみる**
 
 ```
-/topic #42test hanako's room
+/topic #42test hanako wants to change
 ```
 
-→ 変更できる（MODE +t が設定されていないため）
+→ 結果: メッセージ欄に `#42test You're not a channel operator` と表示される（エラー）
 
-**【ポイント】** オペレーターでなくてもTOPIC変更できる状態。後でMODE +tを設定すると、オペレーターだけが変更できるようになる（今回は省略）。
+→ オペレーター権限がないため変更できない
 
 ---
 
@@ -281,33 +291,35 @@ Alt+2
 **【taro】新しい秘密のチャンネルを作成**
 
 ```
-/join #secret
+/join #HOGEHOGE
 ```
 
 **【taro】招待制に設定**
 
 ```
-/mode #secret +i
+/mode #HOGEHOGE +i
 ```
 
 **【hanako】秘密のチャンネルに入ろうとする**
 
 ```
-/join #secret
+/join #HOGEHOGE
 ```
 
-→ 結果: `Cannot join channel (+i)` - 入れない！
+→ 結果: メッセージ欄に `Cannot join to channel #HOGEHOGE (You must be invited)` と表示される（エラー）
+
+→ 招待制（+i）のため、招待されていないユーザーは入れない
 
 **【taro】hanakoを招待する**
 
 ```
-/invite hanako #secret
+/invite hanako #HOGEHOGE
 ```
 
 **【hanako】招待されたので入れる**
 
 ```
-/join #secret
+/join #HOGEHOGE
 ```
 
 → 成功！
@@ -315,24 +327,26 @@ Alt+2
 **【torinoue】招待されていないので入れない**
 
 ```
-/join #secret
+/join #HOGEHOGE
 ```
 
-→ 結果: `Cannot join channel (+i)` - まだ入れない
+→ 結果: メッセージ欄に `Cannot join to channel #HOGEHOGE (You must be invited)` と表示される（エラー）
 
-**【taro】torinoueも招待する**
+→ まだ招待されていないため入れない
+
+**【taro】招待制を解除する**
 
 ```
-/invite torinoue #secret
+/mode #HOGEHOGE -i
 ```
 
 **【torinoue】入れるようになった**
 
 ```
-/join #secret
+/join #HOGEHOGE
 ```
 
-→ 成功！
+→ 成功！（招待制が解除されたため）
 
 **【全員】秘密のチャンネルで会話**
 
@@ -349,7 +363,7 @@ welcome to the secret room!
 **【全員】チャンネルを退出**
 
 ```
-/part #secret
+/part #HOGEHOGE
 /part #42test
 ```
 
@@ -361,29 +375,34 @@ welcome to the secret room!
 
 ---
 
-### 体験のまとめ: ircservで実装する機能
+### 体験のまとめ: ircservで実装する機能【仕様】
 
 下表の「機能」はIRCプロトコルのコマンド（ircservが処理する）。「irssiコマンド」は対応するクライアント側コマンド。
 
-| 機能 | 根拠 | 体験 | irssiコマンド | 説明 |
-|------|:----:|:----:|--------------|------|
-| PASS | 明示 | - | (自動送信) | サーバーパスワード認証 |
-| NICK | 明示 | ✅ | `/nick`, `-n` | ニックネーム（表示名、変更可） |
-| USER | 必須[^8] | - | (自動送信) | ユーザー名（識別子、変更不可） |
-| JOIN | 明示 | ✅ | `/join` | チャンネル参加 |
-| PRIVMSG | 明示 | ✅ | `/msg`, 直接入力 | メッセージ送信（チャンネル/DM） |
-| PART | 暗黙 | ✅ | `/part` | チャンネル退出 |
-| QUIT | 暗黙 | ✅ | `/quit` | サーバーから切断 |
-| TOPIC | 明示 | ✅ | `/topic` | トピック確認/設定 |
-| KICK | 明示 | - | `/kick` | ユーザーを追放 |
-| INVITE | 明示 | ✅ | `/invite` | ユーザーを招待 |
-| MODE +i | 明示 | ✅ | `/mode +i` | 招待制チャンネル |
-| MODE +t | 明示 | (✅) | `/mode +t` | TOPIC変更をオペレーター限定 |
-| MODE +k | 明示 | - | `/mode +k` | チャンネルパスワード |
-| MODE +o | 明示 | - | `/mode +o` | オペレーター権限の付与/剥奪 |
-| MODE +l | 明示 | - | `/mode +l` | ユーザー数制限 |
+
+| 機能      | 根拠     | 体験  | irssiコマンド     | 説明                |
+| ------- | ------ | --- | ------------- | ----------------- |
+| PASS    | 明示     | -   | (自動送信)        | サーバーパスワード認証       |
+| NICK    | 明示     | ✅   | `/nick`, `-n` | ニックネーム（表示名、変更可）   |
+| USER    | 必須[^8] | -   | (自動送信)        | ユーザー名（識別子、変更不可）   |
+| JOIN    | 明示     | ✅   | `/join`       | チャンネル参加           |
+| PRIVMSG | 明示     | ✅   | `/msg`, 直接入力  | メッセージ送信（チャンネル/DM） |
+| PART    | 暗黙     | ✅   | `/part`       | チャンネル退出           |
+| QUIT    | 暗黙     | ✅   | `/quit`       | サーバーから切断          |
+| PING    | 必須     | ✅   | (自動応答)        | 生存確認要求            |
+| PONG    | 必須     | ✅   | (自動応答)        | 生存確認応答            |
+| TOPIC   | 明示     | ✅   | `/topic`      | トピック確認/設定         |
+| KICK    | 明示     | -   | `/kick`       | ユーザーを追放           |
+| INVITE  | 明示     | ✅   | `/invite`     | ユーザーを招待           |
+| MODE +i | 明示     | ✅   | `/mode +i`    | 招待制チャンネル          |
+| MODE +t | 明示     | (✅) | `/mode +t`    | TOPIC変更をオペレーター限定  |
+| MODE +k | 明示     | -   | `/mode +k`    | チャンネルパスワード        |
+| MODE +o | 明示     | -   | `/mode +o`    | オペレーター権限の付与/剥奪    |
+| MODE +l | 明示     | -   | `/mode +l`    | ユーザー数制限           |
+
 
 **凡例:**
+
 - 根拠「明示」= 課題書に明記
 - 根拠「必須」= IRCプロトコル上必須（RFC 1459）
 - 根拠「暗黙」= 課題書の「similar to any official IRC server」から必要（irssiが使用するため）
@@ -413,16 +432,18 @@ irssi（クライアント）───→ ircserv（君たちが作るサーバ�
 
 ### なぜクライアントではなくサーバーを作るのか
 
-クライアント（irssi）はオープンソースで公開されている[^1]ため、既存のものを使えばよい。
+クライアント（irssi）はオープンソースで公開されている[^1](Libera.Chat等の大規模IRCネットワークでは「NickServ」という登録サービスでアカウント機能を提供するが、ft_ircでは実装不要。)ため、既存のものを使えばよい。
 
 しかし本当の理由は、**サーバー側の実装を通じて学べる技術**にある[^2]:
 
-| 技術要素 | この課題で学ぶこと |
-|----------|-------------------|
-| **I/O多重化（poll）** | 複数クライアントを1プロセスで同時に扱う |
-| **ノンブロッキングI/O** | 1つのクライアントに待たされずに処理を続ける |
-| **バッファリング** | TCPストリームからメッセージ境界を正しく切り出す |
-| **並行処理の状態管理** | 複数クライアント/チャンネルの状態を一貫して管理 |
+
+| 技術要素             | この課題で学ぶこと                 |
+| ---------------- | ------------------------- |
+| **I/O多重化（poll）** | 複数クライアントを1プロセスで同時に扱う      |
+| **ノンブロッキングI/O**  | 1つのクライアントに待たされずに処理を続ける    |
+| **バッファリング**      | TCPストリームからメッセージ境界を正しく切り出す |
+| **並行処理の状態管理**    | 複数クライアント/チャンネルの状態を一貫して管理  |
+
 
 **一言でまとめると: 並行ネットワークプログラミングの基礎技術**
 
@@ -480,20 +501,23 @@ ircservの内部構造:
 ### 公開サーバーに生で接続
 
 ```bash
-nc irc.libera.chat 4242
+nc irc.libera.chat 6667
 ```
+※ ポート番号については脚注[^13]を参照
 
 ### IRCプロトコルを手打ち
 
 ```
-NICK test_raw_xxx
-USER test 0 * :Real Name
+NICK jiro
+USER jiro 0 * :Test User
 ```
+
+※ `Real Name`（`:` 以降）は本名である必要はない。任意の文字列で、`WHOIS` コマンドで表示される。
 
 サーバーから返信が来る:
 
 ```
-:irc.libera.chat 001 test_raw_xxx :Welcome to the Libera.Chat...
+:irc.libera.chat 001 jiro :Welcome to the Libera.Chat...
 ```
 
 ### 何が見えるか
@@ -501,6 +525,51 @@ USER test 0 * :Real Name
 - irssiが裏で送っていた生のテキスト
 - `コマンド パラメータ\r\n` という形式
 - これを自分で解析する部分がB層
+
+### 生プロトコル体験シナリオ
+
+taro, hanako, torinoue が #HOGEHOGE にいる状態で試す:
+
+**【jiro】チャンネルに参加**
+```
+JOIN #HOGEHOGE
+```
+
+**【jiro】チャンネルにメッセージ送信**
+```
+PRIVMSG #HOGEHOGE :hello from nc!
+```
+
+**【jiro】taro に DM送信**
+```
+PRIVMSG taro :direct message from nc
+```
+
+**【jiro】チャンネルのメンバー一覧**
+```
+NAMES #HOGEHOGE
+```
+**【jiro】切断**
+```
+QUIT :bye
+```
+
+### PING timeout を体験する
+
+何もせずに放置すると、サーバーから以下が届く:
+
+```
+PING :calcium.libera.chat
+```
+
+これに `PONG :calcium.libera.chat` を返さないと:
+
+```
+:jiro!~jiro@... QUIT :Ping timeout: 245 seconds
+ERROR :Closing Link: ... (Ping timeout: 245 seconds)
+```
+
+→ **切断される。** これが PING/PONG 実装が必須な理由。
 
 **補足:** 42のコードレビューでレビュアーがncを使って動作確認することがある。
 
@@ -545,31 +614,56 @@ USER test 0 * :Real Name
 | C1層 | `onboarding_C1.md` |
 | C2層 | `onboarding_C2.md` |
 
+
 ---
 
 ## 参考資料
 
 本ドキュメントで使用したコマンド・情報の一次資料:
 
-| 項目 | 資料 |
-|------|------|
-| irssiソースコード | https://github.com/irssi/irssi |
-| irssi manページ | https://man.archlinux.org/man/irssi.1 |
-| irssi公式ドキュメント | https://irssi.org/documentation/help/connect/ |
-| Libera Chat | https://libera.chat/ |
-| Libera Chat統計 | https://netsplit.de/networks/statistics.php?net=libera.chat |
-| IRC歴史（創設者記述） | https://www.mirc.com/history.html |
-| IRC Wikipedia | https://en.wikipedia.org/wiki/Internet_Relay_Chat |
-| IRCプロトコル | RFC 1459, RFC 2812 |
+
+| 項目            | 資料                                                                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| irssiソースコード   | [https://github.com/irssi/irssi](https://github.com/irssi/irssi)                                                           |
+| irssi manページ  | [https://man.archlinux.org/man/irssi.1](https://man.archlinux.org/man/irssi.1)                                             |
+| irssi公式ドキュメント | [https://irssi.org/documentation/help/connect/](https://irssi.org/documentation/help/connect/)                             |
+| Libera Chat   | [https://libera.chat/](https://libera.chat/)                                                                               |
+| Libera Chat統計 | [https://netsplit.de/networks/statistics.php?net=libera.chat](https://netsplit.de/networks/statistics.php?net=libera.chat) |
+| IRC歴史（創設者記述）  | [https://www.mirc.com/history.html](https://www.mirc.com/history.html)                                                     |
+| IRC Wikipedia | [https://en.wikipedia.org/wiki/Internet_Relay_Chat](https://en.wikipedia.org/wiki/Internet_Relay_Chat)                     |
+| IRCプロトコル      | RFC 1459, RFC 2812                                                                                                         |
+
 
 ---
 
-[^1]: irssi（クライアント）GitHub https://github.com/irssi/irssi
-[^2]: サーバー側もオープンソースで公開されている。Solanum（C言語、40MB）: https://github.com/solanum-ircd/solanum 、InspIRCd（C++、54MiB）: https://github.com/inspircd/inspircd 等。ただしInspIRCdはC++17相当（GCC 7+/Clang 5+）であり、ft_ircのC++98とは互換性がない。また両者とも大規模ネットワーク向けで、ft_ircの参考にするには規模が大きすぎる。参考にすべきは課題書に添付のbircd（学習用、シンプル、select()使用）。
-[^3]: irssi(1) manページ https://man.archlinux.org/man/irssi.1 — `-c`（サーバー指定）および `-n`（ニックネーム指定）オプションの一次資料
-[^4]: irssi公式ドキュメント https://irssi.org/documentation/help/connect/ — /CONNECTコマンドの詳細
-[^5]: Jarkko Oikarinen "History of IRC" https://www.mirc.com/history.html — IRC創設者本人による記述。"The birthday of IRC was in August 1988."
-[^6]: netsplit.de libera.chat統計 https://netsplit.de/networks/statistics.php?net=libera.chat および Libera Chat Annual Report 2024 https://libera.chat/annual-reports/2024/
-[^7]: Wikipedia "Internet Relay Chat" https://en.wikipedia.org/wiki/Internet_Relay_Chat — "IRC reached 6 million simultaneous users in 2001 and 10 million users in 2004–2005" / "losing around 60% of users between 2003 and 2012"
+[^1](Libera.Chat等の大規模IRCネットワークでは「NickServ」という登録サービスでアカウント機能を提供するが、ft_ircでは実装不要。): irssi（クライアント）GitHub [https://github.com/irssi/irssi](https://github.com/irssi/irssi)
+[^2]: サーバー側もオープンソースで公開されている。Solanum（C言語、40MB）: [https://github.com/solanum-ircd/solanum](https://github.com/solanum-ircd/solanum) 、InspIRCd（C++、54MiB）: [https://github.com/inspircd/inspircd](https://github.com/inspircd/inspircd) 等。ただしInspIRCdはC++17相当（GCC 7+/Clang 5+）であり、ft_ircのC++98とは互換性がない。また両者とも大規模ネットワーク向けで、ft_ircの参考にするには規模が大きすぎる。参考にすべきは課題書に添付のbircd（学習用、シンプル、select()使用）。
+[^3]: irssi(1) manページ [https://man.archlinux.org/man/irssi.1](https://man.archlinux.org/man/irssi.1) — `-c`（サーバー指定）および `-n`（ニックネーム指定）オプションの一次資料
+[^4]: irssi公式ドキュメント [https://irssi.org/documentation/help/connect/](https://irssi.org/documentation/help/connect/) — /CONNECTコマンドの詳細
+[^5]: Jarkko Oikarinen "History of IRC" [https://www.mirc.com/history.html](https://www.mirc.com/history.html) — IRC創設者本人による記述。"The birthday of IRC was in August 1988."
+[^6]: netsplit.de libera.chat統計 [https://netsplit.de/networks/statistics.php?net=libera.chat](https://netsplit.de/networks/statistics.php?net=libera.chat) および Libera Chat Annual Report 2024 [https://libera.chat/annual-reports/2024/](https://libera.chat/annual-reports/2024/)
+[^7]: Wikipedia "Internet Relay Chat" [https://en.wikipedia.org/wiki/Internet_Relay_Chat](https://en.wikipedia.org/wiki/Internet_Relay_Chat) — "IRC reached 6 million simultaneous users in 2001 and 10 million users in 2004–2005" / "losing around 60% of users between 2003 and 2012"
 [^8]: USERコマンドはRFC 1459で接続時に必須。課題書の "a username" は曖昧だが、irssiは接続時に `USER <username> 0 * :<realname>` を自動送信するため、ircservはこれを受信・解析する必要がある。サーバーがOSユーザー名を取得するのではなく、クライアントが送信する文字列を処理するだけ。
+[^10]: **アカウントについて** — Libera.Chat等の大規模IRCネットワークでは「NickServ」という登録サービスでアカウント機能を提供するが、ft_ircでは実装不要。
+[^11]: **ニックネームについて** — irssiは `~/.irssi/config` にニックネームを保存するため、次回起動時に同じnickで接続を試みる。これはクライアント側の機能であり、サーバー側の永続化ではない。詳細フロー:
+    ```
+    1. irssi起動
+       └─ ~/.irssi/config から nick="foo" を読む
 
+    2. サーバーに接続
+       └─ NICK foo を送信
+
+    3. サーバー側チェック
+       ├─ "foo" 使用中？ → NO → "使っていいよ" (001 RPL_WELCOME)
+       └─ "foo" 使用中？ → YES → "ダメ" (433 ERR_NICKNAMEINUSE)
+
+    4. /quit
+       ├─ サーバー側: Client削除、nick "foo" 解放
+       └─ irssi側: ~/.irssi/config に "foo" 保存済み
+
+    5. 次回接続時
+       └─ また "foo" で試みる（たまたま空いていれば成功）
+    ```
+    **重要:** サーバーはnickを永続化しない。「前回と同じnickで接続できた」のは、irssiが設定を覚えていて、かつそのnickがたまたま空いていたから。
+[^12]: irssi — ターミナルベースのIRCクライアント。Wikipedia [https://ja.wikipedia.org/wiki/Irssi](https://ja.wikipedia.org/wiki/Irssi)
+[^13]: **Libera.Chat のポート番号** — 6667: 平文（非SSL）、6697: SSL/TLS。Libera.Chat は平文接続を制限している場合がある。反応がなければ SSL が必要かもしれない（nc では SSL 接続は難しい。代替として `openssl s_client -connect irc.libera.chat:6697` または `ncat --ssl irc.libera.chat 6697` を使用）。

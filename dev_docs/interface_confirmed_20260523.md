@@ -90,12 +90,15 @@ flowchart TB
 
 | 関数 | 戻り値 | 呼び出し元 | 説明 |
 |------|--------|-----------|------|
-| `int fd() const` | `int` | B, C2 | fdを取得 |
-| `const std::string& nick() const` | `const std::string&` | B, C2 | nickを取得 |
-| `const std::string& username() const` | `const std::string&` | B | usernameを取得 |
-| `const std::string& realname() const` | `const std::string&` | B | realnameを取得 |
+| `int getFd() const` | `int` | B, C2 | fdを取得 |
+| `const std::string& getNick() const` | `const std::string&` | B, C2 | nickを取得 |
+| `const std::string& getUsername() const` | `const std::string&` | B | usernameを取得 |
+| `const std::string& getRealname() const` | `const std::string&` | B | realnameを取得 |
+| `const std::string& getHost() const` | `const std::string&` | B | hostを取得 |
+| `std::string getFullPrefix() const` | `std::string` | B | `nick!user@host` を返す |
 | `void setUsername(const std::string&)` | `void` | B | username設定 |
 | `void setRealname(const std::string&)` | `void` | B | realname設定 |
+| `void setHost(const std::string&)` | `void` | A | host設定（接続時） |
 | `void setPassOk(bool)` | `void` | B | PASS成功状態設定 |
 | `bool isPassOk() const` | `bool` | B | PASS済みか |
 | `bool isRegistered() const` | `bool` | B | 登録完了か |
@@ -103,6 +106,8 @@ flowchart TB
 | `void markRegistered()` | `void` | B | 登録完了にする |
 
 **⚠️ 注意**: `setNick()` は外部から直接呼ばない。`ServerState::updateNick()` を使う。
+
+**getFullPrefix()** は RFC 1459 Section 2.3 に基づき、サーバー→クライアントのメッセージに必要。詳細は `rfc1459_prefix_analysis.md` 参照。
 
 ### 3.2 ServerState
 
@@ -168,7 +173,7 @@ flowchart TB
 
 ## 5. 重要ルール（必ず守る）
 
-### 5.1 nick変更は ServerState 経由
+### 5.1 【実装】nick変更は ServerState 経由
 
 ```cpp
 // ❌ NG
@@ -178,7 +183,7 @@ client.setNick("newNick");
 state.updateNick(client, "newNick");
 ```
 
-### 5.2 Client削除は ServerState 経由
+### 5.2 【設計】Client削除は ServerState 経由（IRCの一般的動作を反映）
 
 ```cpp
 // ServerState::removeClient(fd) が自動処理:
@@ -187,7 +192,7 @@ state.updateNick(client, "newNick");
 // - 空Channelの削除
 ```
 
-### 5.3 operator権限は Channel が管理
+### 5.3 【設計】operator権限は Channel が管理（仕様から導出）
 
 ```cpp
 // ❌ NG
@@ -197,7 +202,7 @@ client.setOperator(true);
 channel.addOperator(&client);
 ```
 
-### 5.4 Channel は Client を所有しない
+### 5.4 【設計】Channel は Client を所有しない
 
 - `Channel` は `Client*` を保持するだけ
 - `delete` は `ServerState` の責務

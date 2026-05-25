@@ -5,11 +5,22 @@
 
 ---
 
-## 全体クラス図
-
+## 【実装】ircserv クラス構造図
+> 詳細設計: クラスは？関係は？
 ```mermaid
 classDiagram
     direction TB
+    
+    %% === 最上段: Connection, Server, Parser, CommandDispatcher ===
+    class Connection {
+        -int _fd
+        -string _recvBuffer
+        -string _sendBuffer
+        +readFromSocket() bool
+        +writeToSocket() bool
+        +hasCompleteLine() bool
+        +popLine() string
+    }
     
     class Server {
         -int _listenFd
@@ -21,29 +32,33 @@ classDiagram
         +applyCommandResult(result)
     }
     
-    class Connection {
-        -int _fd
-        -string _recvBuffer
-        -string _sendBuffer
-        +readFromSocket() bool
-        +writeToSocket() bool
-        +hasCompleteLine() bool
-        +popLine() string
-    }
-    
     class Parser {
         +parse(line) Message$
     }
     
+    class CommandDispatcher {
+        +dispatch(fd, msg, state) CommandResult
+    }
+    
+    %% === 中段: Message, ServerState, ReplyBuilder, CommandResult ===
     class Message {
         -string _command
         -vector~string~ _params
-        +command() string
-        +params() vector
+        +getCommand() string
+        +getParams() vector
+        +getParamCount() size_t
+        +hasParam(index) bool
+        +getSingleParam(index) string
     }
     
-    class CommandDispatcher {
-        +dispatch(fd, msg, state) CommandResult
+    class ServerState {
+        -string _password
+        -map~int, Client*~ _fdToClient
+        -map~string, Client*~ _nickToClient
+        -map~string, Channel*~ _channels
+        +getClientByFd(fd) Client*
+        +updateNick(client, nick)
+        +removeClient(fd)
     }
     
     class ReplyBuilder {
@@ -58,24 +73,21 @@ classDiagram
         +addReply(fd, msg)
     }
     
+    %% === 下段: Client, Channel, ChannelModes ===
     class Client {
         -int _fd
         -string _nick
         -string _username
+        -string _realname
+        -string _host
         -bool _passOk
         -bool _registered
-        +nick() string
+        +getNick() string
+        +getUsername() string
+        +getRealname() string
+        +getHost() string
+        +getFullPrefix() string
         +isRegistered() bool
-    }
-    
-    class ServerState {
-        -string _password
-        -map~int, Client*~ _fdToClient
-        -map~string, Client*~ _nickToClient
-        -map~string, Channel*~ _channels
-        +getClientByFd(fd) Client*
-        +updateNick(client, nick)
-        +removeClient(fd)
     }
     
     class Channel {
@@ -83,9 +95,12 @@ classDiagram
         -string _topic
         -set~Client*~ _members
         -set~Client*~ _operators
+        -set~Client*~ _invited
         -ChannelModes _modes
         +addMember(client)
         +isOperator(client) bool
+        +addInvite(client)
+        +isInvited(client) bool
     }
     
     class ChannelModes {
@@ -97,21 +112,27 @@ classDiagram
         +hasKey() bool
     }
 
+    %% === 関係線 ===
     Server "1" *-- "*" Connection : owns
     Server "1" *-- "1" ServerState : owns
     Server ..> Parser : uses
     Server ..> CommandDispatcher : uses
+    Server ..> CommandResult : applies
     
+    Parser ..> Message : creates
     CommandDispatcher ..> Message : receives
     CommandDispatcher ..> ServerState : operates
     CommandDispatcher ..> ReplyBuilder : uses
     CommandDispatcher ..> CommandResult : returns
     
+    ReplyBuilder ..> Client : uses
+    ReplyBuilder ..> Channel : uses
+    
     ServerState "1" *-- "*" Client : owns
     ServerState "1" o-- "*" Channel : references
     
     Channel "1" *-- "1" ChannelModes : owns
-    Channel "*" o-- "*" Client : references
+    Client "*" --o "*" Channel : references
 
     style Server fill:#4A90D9,stroke:#2E5A8B,color:#fff
     style Connection fill:#4A90D9,stroke:#2E5A8B,color:#fff
@@ -125,54 +146,6 @@ classDiagram
     style Channel fill:#795548,stroke:#5D4037,color:#fff
     style ChannelModes fill:#795548,stroke:#5D4037,color:#fff
 ```
-
----
-
-## 担当別クラス配置
-
-```mermaid
-flowchart TB
-    subgraph A_LAYER["A層: Network/IO（torinoue）"]
-        Server
-        Connection
-    end
-    
-    subgraph B_LAYER["B層: Protocol/Command（torinoue）"]
-        Parser
-        Message
-        CommandDispatcher
-        ReplyBuilder
-        CommandResult
-    end
-    
-    subgraph C1_LAYER["C1層: Client/ServerState（taro）"]
-        Client
-        ServerState
-    end
-    
-    subgraph C2_LAYER["C2層: Channel（hanako）"]
-        Channel
-        ChannelModes
-    end
-
-    style A_LAYER fill:#E3F2FD,stroke:#64B5F6
-    style B_LAYER fill:#E8F5E9,stroke:#81C784
-    style C1_LAYER fill:#FFF3E0,stroke:#FFB74D
-    style C2_LAYER fill:#EFEBE9,stroke:#A1887F
-    
-    style Server fill:#4A90D9,stroke:#2E5A8B,color:#fff
-    style Connection fill:#4A90D9,stroke:#2E5A8B,color:#fff
-    style Parser fill:#50B878,stroke:#3A8A5A,color:#fff
-    style Message fill:#50B878,stroke:#3A8A5A,color:#fff
-    style CommandDispatcher fill:#50B878,stroke:#3A8A5A,color:#fff
-    style ReplyBuilder fill:#50B878,stroke:#3A8A5A,color:#fff
-    style CommandResult fill:#50B878,stroke:#3A8A5A,color:#fff
-    style Client fill:#F5A623,stroke:#C4841C,color:#fff
-    style ServerState fill:#F5A623,stroke:#C4841C,color:#fff
-    style Channel fill:#795548,stroke:#5D4037,color:#fff
-    style ChannelModes fill:#795548,stroke:#5D4037,color:#fff
-```
-
 ---
 
 ## クラス数と難易度

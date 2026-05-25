@@ -21,28 +21,53 @@
 
 ### 2. ft_irc の全体構成
 
+## 【スコープ】通信構成（C2S: Client to Server）
+> アーキテクチャ: どういった構成で使用（レビュー）される？
+
+```mermaid
+flowchart LR
+    subgraph Clients["IRCクライアント"]
+        irssi["irssi<br/>（リファレンス）"]
+        nc["nc<br/>（テスト用）"]
+    end
+
+    subgraph ircserv["ircserv（本課題の成果物）"]
+        Internal["内部処理<br/>（下図参照）"]
+    end
+
+    subgraph NotImplemented["実装禁止"]
+        OtherServer["他IRCサーバー<br/>（S2S通信）"]
+    end
+
+    irssi <-->|TCP/IP<br/>IRC Protocol| ircserv
+    nc <-->|TCP/IP<br/>IRC Protocol| ircserv
+    ircserv x--x|S2S禁止| OtherServer
+```
+
+## 【仕様】ircserv 内部構成
+> アーキテクチャ: どう構成する？ 
 ```mermaid
 flowchart TB
     subgraph A["A担当: Network / IO"]
         Poll["poll()"]
-        Server["Server"]
-        Conn["Connection"]
+        Server["Server<br/>イベント振り分け"]
+        Conn["Connection<br/>recv/send buffer"]
     end
 
     subgraph B["B担当: Protocol / Command"]
-        Parser["Parser"]
-        Dispatcher["CommandDispatcher"]
-        Reply["ReplyBuilder"]
+        Parser["Parser<br/>line → Message"]
+        Dispatcher["CommandDispatcher<br/>command実行"]
+        Reply["ReplyBuilder<br/>返信生成"]
     end
 
     subgraph C1["C1担当: Client / ServerState"]
-        State["ServerState"]
-        Client["Client"]
+        State["ServerState<br/>fd/nick/channel辞書"]
+        Client["Client<br/>登録状態/nick/user"]
     end
 
     subgraph C2["C2担当: Channel"]
-        Channel["Channel"]
-        Modes["ChannelModes"]
+        Channel["Channel<br/>members/operators/topic"]
+        Modes["ChannelModes<br/>+i/+t/+k/+l"]
     end
 
     Poll --> Server
@@ -55,63 +80,7 @@ flowchart TB
     Channel --> Modes
     Dispatcher --> Reply
     Reply -->|CommandResult| Server
-
-    style A fill:#E3F2FD,stroke:#64B5F6
-    style B fill:#E8F5E9,stroke:#81C784
-    style C1 fill:#FFF3E0,stroke:#FFB74D
-    style C2 fill:#EFEBE9,stroke:#A1887F
-    style Poll fill:#4A90D9,stroke:#2E5A8B,color:#fff
-    style Server fill:#4A90D9,stroke:#2E5A8B,color:#fff
-    style Conn fill:#4A90D9,stroke:#2E5A8B,color:#fff
-    style Parser fill:#50B878,stroke:#3A8A5A,color:#fff
-    style Dispatcher fill:#50B878,stroke:#3A8A5A,color:#fff
-    style Reply fill:#50B878,stroke:#3A8A5A,color:#fff
-    style State fill:#F5A623,stroke:#C4841C,color:#fff
-    style Client fill:#F5A623,stroke:#C4841C,color:#fff
-    style Channel fill:#795548,stroke:#5D4037,color:#fff
-    style Modes fill:#795548,stroke:#5D4037,color:#fff
-```
-
-### 3. データの流れ
-
-```mermaid
-sequenceDiagram
-    participant Client as IRCクライアント
-    participant A as A層(Network)
-    participant B as B層(Protocol)
-    participant C as C層(State)
-
-    rect rgb(227, 242, 253)
-        Note over Client,A: ネットワーク層（青）
-        Client->>A: TCP接続 + IRCコマンド
-        A->>A: recv() → バッファに蓄積
-        A->>A: \r\n で1行切り出し
-    end
-
-    rect rgb(232, 245, 233)
-        Note over A,B: プロトコル層（緑）
-        A->>B: complete line
-        B->>B: Parser: line → Message
-        B->>B: CommandDispatcher: コマンド実行
-    end
-
-    rect rgb(255, 243, 224)
-        Note over B,C: 状態層（オレンジ）
-        B->>C: ServerState/Channel 操作
-        C-->>B: 結果
-    end
-
-    rect rgb(232, 245, 233)
-        Note over B,A: 返信生成
-        B->>B: ReplyBuilder: 返信生成
-        B->>A: CommandResult
-    end
-
-    rect rgb(227, 242, 253)
-        Note over A,Client: 送信
-        A->>A: send buffer に積む
-        A->>Client: send()
-    end
+    Server -->|queueSend| Conn
 ```
 
 ---

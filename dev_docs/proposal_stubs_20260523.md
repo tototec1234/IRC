@@ -60,21 +60,26 @@ private:
     std::string _nick;
     std::string _username;
     std::string _realname;
+    std::string _host;
     bool        _passOk;
     bool        _registered;
 
 public:
     ClientStub(int fd) 
         : _fd(fd), _nick("stub_user"), _username("stub"), 
-          _realname("Stub User"), _passOk(false), _registered(false) {}
+          _realname("Stub User"), _host("127.0.0.1"), 
+          _passOk(false), _registered(false) {}
 
-    int fd() const { return _fd; }
-    const std::string& nick() const { return _nick; }
-    const std::string& username() const { return _username; }
-    const std::string& realname() const { return _realname; }
+    int getFd() const { return _fd; }
+    const std::string& getNick() const { return _nick; }
+    const std::string& getUsername() const { return _username; }
+    const std::string& getRealname() const { return _realname; }
+    const std::string& getHost() const { return _host; }
+    std::string getFullPrefix() const { return _nick + "!" + _username + "@" + _host; }
     
     void setUsername(const std::string& u) { _username = u; }
     void setRealname(const std::string& r) { _realname = r; }
+    void setHost(const std::string& h) { _host = h; }
     void setPassOk(bool ok) { _passOk = ok; }
     bool isPassOk() const { return _passOk; }
     bool isRegistered() const { return _registered; }
@@ -127,7 +132,7 @@ public:
     
     void updateNick(Client& client, const std::string& newNick) {
         // 簡易実装: 辞書更新のみ
-        _nickMap.erase(client.nick());
+        _nickMap.erase(client.getNick());
         // client.setNick(newNick); // 本実装で有効化
         _nickMap[newNick] = &client;
     }

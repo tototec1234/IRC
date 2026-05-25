@@ -6,6 +6,7 @@
 ---
 
 ## 実装依存関係
+> 【実装】: どのクラスが何に依存するか
 
 ```mermaid
 flowchart TB
@@ -51,11 +52,12 @@ flowchart TB
 
 ---
 
-## 並行作業可能な範囲
+## 並行開発可能な範囲
+> 【開発】: 上記の実装依存関係を前提に、誰がいつ何を作るか
 
 ```mermaid
 flowchart LR
-    subgraph PARALLEL["並行作業可能"]
+    subgraph PARALLEL["並行開発可能"]
         direction TB
         C1_work["C1: Client/ServerState<br/>クラス実装"]
         C2_work["C2: Channel/ChannelModes<br/>クラス実装"]
@@ -74,6 +76,8 @@ flowchart LR
     style A_work fill:#4A90D9,stroke:#2E5A8B,color:#fff
     style B_work fill:#50B878,stroke:#3A8A5A,color:#fff
 ```
+
+**注:** 【仕様】を満たす範囲で【実装】を変更することで、【開発】のクリティカルパスを短縮できる可能性がある。
 
 ---
 

@@ -75,10 +75,32 @@ class Client {
     std::string _nick;      // ニックネーム（例: "taro"）
     std::string _username;  // ユーザー名
     std::string _realname;  // 本名
+    std::string _host;      // 接続元ホスト（例: "127.0.0.1"）
     bool        _passOk;    // PASSコマンド成功したか
     bool        _registered; // 登録完了したか（PASS+NICK+USER全部済み）
+
+public:
+    // ゲッター（get prefix統一）
+    std::string getNick() const;
+    std::string getUsername() const;
+    std::string getRealname() const;
+    std::string getHost() const;
+    std::string getFullPrefix() const;  // "nick!user@host" を返す
+    bool isRegistered() const;
 };
 ```
+
+### getFullPrefix() について
+
+サーバーがクライアントにメッセージを送る際、送信元を `nick!user@host` 形式で付与する。
+
+```cpp
+// 例: taro が #room で "hello" と発言
+// サーバーは #room の他メンバーに以下を送信:
+":taro!taro@127.0.0.1 PRIVMSG #room :hello\r\n"
+```
+
+**RFC根拠:** RFC 1459 Section 2.3, Note 6（詳細は `rfc1459_prefix_analysis.md` 参照）
 
 ### ServerStateが持つもの
 
@@ -93,7 +115,7 @@ class ServerState {
 
 ### 重要ルール
 
-**nick変更は必ずServerState経由:**
+**【実装】nick変更は必ずServerState経由:**
 ```cpp
 // NG: 辞書が壊れる
 client.setNick("newNick");
@@ -102,7 +124,7 @@ client.setNick("newNick");
 state.updateNick(client, "newNick");
 ```
 
-**Client削除もServerState経由:**
+**【設計】Client削除もServerState経由（IRCの一般的動作を反映）:**
 ```cpp
 // ServerState::removeClient(fd) が以下を自動処理:
 // - 全Channelからmember/operator/invited削除
@@ -147,23 +169,7 @@ state.updateNick(client, "newNick");
 
 ---
 
-## 7. 最初の一歩
-
-1. irssiを触ってみる（IRCクライアント体験）
-   ```bash
-   brew install irssi
-   irssi -c irc.libera.chat -n test_nick
-   # /join #test
-   # /quit
-   ```
-
-2. `design.md` を読む
-
-3. 質問はtorinoueへ
-
----
-
-## 8. よくある疑問
+## 7. よくある疑問
 
 ### Q: ConnectionとClientの違いは？
 **A:** 

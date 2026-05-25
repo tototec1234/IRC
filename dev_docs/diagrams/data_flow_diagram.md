@@ -5,7 +5,9 @@
 
 ---
 
-## 受信→処理→送信の流れ
+## 【設計】コマンド処理シーケンス
+> 時間軸: いつ、何が起きるか
+> 受信→処理→送信の流れ
 
 ```mermaid
 sequenceDiagram
@@ -56,8 +58,8 @@ sequenceDiagram
 
 ---
 
-## 層間インターフェース
-
+## 【設計】コマンド処理フロー（概念）
+> 接続: 何が、どこに渡されるか
 ```mermaid
 flowchart LR
     subgraph A_layer["A層"]

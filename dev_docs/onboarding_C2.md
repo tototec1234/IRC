@@ -164,26 +164,7 @@ JOIN #newchannel   ← 存在しないチャンネルに入ろうとした
 
 ---
 
-## 8. 最初の一歩
-
-1. irssiを触ってみる（IRCクライアント体験）
-   ```bash
-   brew install irssi
-   irssi -c irc.libera.chat -n test_nick
-   # /join #test        ← チャンネル参加
-   # /topic #test       ← トピック確認
-   # /names #test       ← メンバー一覧
-   # /part #test        ← チャンネル退出
-   # /quit
-   ```
-
-2. `design.md` を読む
-
-3. 質問はtorinoueへ
-
----
-
-## 9. よくある疑問
+## 8. よくある疑問
 
 ### Q: ChannelはClientを所有する？
 **A:** しない。`Client*` を参照するだけ。Clientの生成・削除はC1層（ServerState）の責務。
