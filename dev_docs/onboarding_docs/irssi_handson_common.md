@@ -5,7 +5,16 @@
 > 形態: 2名以上で実施推奨
 
 ---
+## 0. ft_irc課題の目標
 
+**IRCサーバープログラム`ircserv`を作る！**
+
+- IRCクライアント（irssiなど）から接続できる
+- ユーザー登録（PASS/NICK/USER）ができる
+- チャンネルに入って会話できる（JOIN/PRIVMSG）
+- オペレーター機能（KICK/INVITE/TOPIC/MODE）が動く
+
+---
 ## 1. IRCとは（3分）
 
 **Internet Relay Chat** - 1988年生まれのテキストチャットプロトコル。
@@ -19,11 +28,11 @@
 
 
 | 年代         | 出来事                                 |
-| ---------- | ----------------------------------- |
-| 1988       | IRC誕生（フィンランド、Jarkko Oikarinen）[^5]  |
-| 1990s〜2004 | 爆発的普及、ピーク時1000万人同時接続[^7]            |
-| 2003〜      | SNS台頭で衰退開始（2012年までに60%減）[^7]        |
-| 2024現在     | OSSコミュニティで健在（Libera Chat: 約3万人）[^6] |
+| ---------- | ----------------------------------------------- |
+| 1988       | IRC誕生（フィンランド、Jarkko Oikarinen）[^010]    |
+| 1990s〜2004 | 爆発的普及、ピーク時1000万人同時接続[^020]              |
+| 2003〜      | SNS台頭で衰退開始（2012年までに60%減）[^020]          |
+| 2024現在     | OSSコミュニティで健在（Libera Chat: 約3万人）[^030]   |
 
 
 ### Discordとの違い（重要）
@@ -56,8 +65,8 @@ IRCサーバー（ircserv）← ユーザーが接続先として意識する。
 
 | 項目 | Discord | IRC（ft_irc） |
 |------|---------|--------------|
-| アカウント | 永続（登録制） | **存在しない**[^10] |
-| ニックネーム | アカウントに紐づく | **早い者勝ち、接続中のみ有効**[^11] |
+| アカウント | 永続（登録制） | **存在しない**[^040] |
+| ニックネーム | アカウントに紐づく | **早い者勝ち、接続中のみ有効**[^050] |
 | チャンネル | 永続（誰かが作れば残る） | **誰もいなくなったら消える** |
 
 → IRCは「切断したら終わり」。次に接続したらまたnickを設定し、チャンネルに参加し直す。
@@ -69,20 +78,22 @@ IRCサーバー（ircserv）← ユーザーが接続先として意識する。
 Discordサーバーは招待制が多いが、IRCには**誰でも接続できる公開サーバー**がある。
 
 
-| サーバー            | URL              | 利用者                                   |
-| --------------- | ---------------- | ------------------------------------- |
-| **Libera Chat** | irc.libera.chat  | Linux, Arch, KDE等のOSSコミュニティ（約32,000人） |
-| **OFTC**        | irc.oftc.net     | Debian等（約15,000人）                     |
-| freenode        | irc.freenode.net | 衰退中（2021年の騒動で多くがLiberaへ移行）            |
+| サーバー            | Server Address [^060]             | 利用者                                   |
+| --------------- | ----------------- | ------------------------------------- |
+| **Libera Chat** | `irc.libera.chat`[^070]| Linux, Arch, KDE等のOSSコミュニティ（約32,000人） |
+| **OFTC**        | `irc.oftc.net`     | Debian等（約15,000人）                     |
+| freenode        | `irc.freenode.net`[^080] | 衰退中（2021年の騒動で多くがLiberaへ移行）            |
 
 
 今回のハンズオンでは **Libera Chat** に接続する。
+
+
 
 ---
 
 ## 2. irssiインストール（2分）
 
-**irssi**[^12] はターミナルベースのIRCクライアントソフトウェア。今回のハンズオンではこれを使ってIRCサーバーに接続する。
+**irssi**[^090] はターミナルベースのIRCクライアントソフトウェア。今回のハンズオンではこれを使ってIRCサーバーに接続する。
 
 ```bash
 brew install irssi
@@ -106,7 +117,7 @@ irssi --version
 irssi -c irc.libera.chat -n 自分のニックネーム
 ```
 
-（`-c`: 接続先サーバー、`-n`: ニックネーム指定）[^3][^4]
+（`-c`: 接続先サーバー、`-n`: ニックネーム指定）[^100][^110]
 
 例:
 
@@ -384,7 +395,7 @@ welcome to the secret room!
 | ------- | ------ | --- | ------------- | ----------------- |
 | PASS    | 明示     | -   | (自動送信)        | サーバーパスワード認証       |
 | NICK    | 明示     | ✅   | `/nick`, `-n` | ニックネーム（表示名、変更可）   |
-| USER    | 必須[^8] | -   | (自動送信)        | ユーザー名（識別子、変更不可）   |
+| USER    | 必須[^120] | -   | (自動送信)        | ユーザー名（識別子、変更不可）   |
 | JOIN    | 明示     | ✅   | `/join`       | チャンネル参加           |
 | PRIVMSG | 明示     | ✅   | `/msg`, 直接入力  | メッセージ送信（チャンネル/DM） |
 | PART    | 暗黙     | ✅   | `/part`       | チャンネル退出           |
@@ -414,7 +425,7 @@ welcome to the secret room!
 
 ---
 
-## 5. 「これをC++で作る」（3分）
+## 5. 「これをC++98で作る」（3分）
 
 ### 何を作るのか
 
@@ -427,14 +438,14 @@ welcome to the secret room!
 irssi（クライアント）───→ irc.libera.chat（Libera Chatが運営するサーバー）
 
 【課題で作るもの】
-irssi（クライアント）───→ ircserv（君たちが作るサーバー）← これを実装
+irssi（クライアント）───→ ircserv（私たちが作るサーバー）← これを実装
 ```
 
 ### なぜクライアントではなくサーバーを作るのか
 
-クライアント（irssi）はオープンソースで公開されている[^1](Libera.Chat等の大規模IRCネットワークでは「NickServ」という登録サービスでアカウント機能を提供するが、ft_ircでは実装不要。)ため、既存のものを使えばよい。
+クライアント（irssi）はオープンソースで公開されている[^130]ため、既存のものを使えばよい。
 
-しかし本当の理由は、**サーバー側の実装を通じて学べる技術**にある[^2]:
+しかし本当の理由は、**学べる技術がサーバー側に多い**からと思われる[^140]:
 
 
 | 技術要素             | この課題で学ぶこと                 |
@@ -503,7 +514,7 @@ ircservの内部構造:
 ```bash
 nc irc.libera.chat 6667
 ```
-※ ポート番号については脚注[^13]を参照
+※ ポート番号については脚注[^150]を参照
 
 ### IRCプロトコルを手打ち
 
@@ -636,16 +647,12 @@ ERROR :Closing Link: ... (Ping timeout: 245 seconds)
 
 ---
 
-[^1](Libera.Chat等の大規模IRCネットワークでは「NickServ」という登録サービスでアカウント機能を提供するが、ft_ircでは実装不要。): irssi（クライアント）GitHub [https://github.com/irssi/irssi](https://github.com/irssi/irssi)
-[^2]: サーバー側もオープンソースで公開されている。Solanum（C言語、40MB）: [https://github.com/solanum-ircd/solanum](https://github.com/solanum-ircd/solanum) 、InspIRCd（C++、54MiB）: [https://github.com/inspircd/inspircd](https://github.com/inspircd/inspircd) 等。ただしInspIRCdはC++17相当（GCC 7+/Clang 5+）であり、ft_ircのC++98とは互換性がない。また両者とも大規模ネットワーク向けで、ft_ircの参考にするには規模が大きすぎる。参考にすべきは課題書に添付のbircd（学習用、シンプル、select()使用）。
-[^3]: irssi(1) manページ [https://man.archlinux.org/man/irssi.1](https://man.archlinux.org/man/irssi.1) — `-c`（サーバー指定）および `-n`（ニックネーム指定）オプションの一次資料
-[^4]: irssi公式ドキュメント [https://irssi.org/documentation/help/connect/](https://irssi.org/documentation/help/connect/) — /CONNECTコマンドの詳細
-[^5]: Jarkko Oikarinen "History of IRC" [https://www.mirc.com/history.html](https://www.mirc.com/history.html) — IRC創設者本人による記述。"The birthday of IRC was in August 1988."
-[^6]: netsplit.de libera.chat統計 [https://netsplit.de/networks/statistics.php?net=libera.chat](https://netsplit.de/networks/statistics.php?net=libera.chat) および Libera Chat Annual Report 2024 [https://libera.chat/annual-reports/2024/](https://libera.chat/annual-reports/2024/)
-[^7]: Wikipedia "Internet Relay Chat" [https://en.wikipedia.org/wiki/Internet_Relay_Chat](https://en.wikipedia.org/wiki/Internet_Relay_Chat) — "IRC reached 6 million simultaneous users in 2001 and 10 million users in 2004–2005" / "losing around 60% of users between 2003 and 2012"
-[^8]: USERコマンドはRFC 1459で接続時に必須。課題書の "a username" は曖昧だが、irssiは接続時に `USER <username> 0 * :<realname>` を自動送信するため、ircservはこれを受信・解析する必要がある。サーバーがOSユーザー名を取得するのではなく、クライアントが送信する文字列を処理するだけ。
-[^10]: **アカウントについて** — Libera.Chat等の大規模IRCネットワークでは「NickServ」という登録サービスでアカウント機能を提供するが、ft_ircでは実装不要。
-[^11]: **ニックネームについて** — irssiは `~/.irssi/config` にニックネームを保存するため、次回起動時に同じnickで接続を試みる。これはクライアント側の機能であり、サーバー側の永続化ではない。詳細フロー:
+[^010]: Jarkko Oikarinen "History of IRC" [https://www.mirc.com/history.html](https://www.mirc.com/history.html) — IRC創設者本人による記述。"The birthday of IRC was in August 1988."
+[^020]: Wikipedia "Internet Relay Chat" [https://en.wikipedia.org/wiki/Internet_Relay_Chat](https://en.wikipedia.org/wiki/Internet_Relay_Chat) — "IRC reached 6 million simultaneous users in 2001 and 10 million users in 2004–2005" / "losing around 60% of users between 2003 and 2012"
+[^030]: netsplit.de libera.chat統計 [https://netsplit.de/networks/statistics.php?net=libera.chat](https://netsplit.de/networks/statistics.php?net=libera.chat) および Libera Chat Annual Report 2024 [https://libera.chat/annual-reports/2024/](https://libera.chat/annual-reports/2024/)
+[^040]: **アカウントについて** — Libera.Chat等の大規模IRCネットワークでは「NickServ」という登録サービスでアカウント機能を提供するが、**ft_ircでは実装不要**。
+[^050]: **ニックネームについて** — irssiは `~/.irssi/config` にニックネームを保存するため、次回起動時に同じnickで接続を試みる。
+これはクライアント側の機能であり、サーバー側の永続化ではない。詳細フロー:
     ```
     1. irssi起動
        └─ ~/.irssi/config から nick="foo" を読む
@@ -665,5 +672,20 @@ ERROR :Closing Link: ... (Ping timeout: 245 seconds)
        └─ また "foo" で試みる（たまたま空いていれば成功）
     ```
     **重要:** サーバーはnickを永続化しない。「前回と同じnickで接続できた」のは、irssiが設定を覚えていて、かつそのnickがたまたま空いていたから。
-[^12]: irssi — ターミナルベースのIRCクライアント。Wikipedia [https://ja.wikipedia.org/wiki/Irssi](https://ja.wikipedia.org/wiki/Irssi)
-[^13]: **Libera.Chat のポート番号** — 6667: 平文（非SSL）、6697: SSL/TLS。Libera.Chat は平文接続を制限している場合がある。反応がなければ SSL が必要かもしれない（nc では SSL 接続は難しい。代替として `openssl s_client -connect irc.libera.chat:6697` または `ncat --ssl irc.libera.chat 6697` を使用）。
+[^060]:`irssi -c ` Server Address ` -n 自分のニックネーム`のようにサーバーに接続するために使う。HTLMで書かれたブラウザで見るためのページのドメイン名ではない。
+ちなみに、URL（Uniform Resource Locator） は「通信手段（プロトコル）＋場所」なので`https://www.oftc.net/`は（https:// というWebの通信方法で、oftcのHPを開く）。
+「場所」と誤魔化したが厳密にはFQDN（Fully Qualified Domain Name：完全修飾ドメイン名）である。FQDN ＝ ホスト名（www） ＋ ドメイン名（oftc.net）
+[^070]:irssi内部に"LiberaChat":"irc.libera.chat"という辞書があるらしく`irssi -c LiberaChat -n 自分のニックネーム` **でも繋がる**
+[^080]:irssiで接続後、不安定なら`/connect -tls -tls_verify irc.freenode.net 6697`で**証明書提示**すれば入れるみたい。
+[^090]: irssi — ターミナルベースのIRCクライアント。
+Wikipedia [https://ja.wikipedia.org/wiki/Irssi](https://ja.wikipedia.org/wiki/Irssi)
+[^100]: irssi(1) manページ [https://man.archlinux.org/man/irssi.1](https://man.archlinux.org/man/irssi.1) — `-c`（サーバー指定）および `-n`（ニックネーム指定）オプションの一次資料
+[^110]: irssi公式ドキュメント [https://irssi.org/documentation/help/connect/](https://irssi.org/documentation/help/connect/) — /CONNECTコマンドの詳細
+[^120]: USERコマンドはRFC 1459で接続時に必須。課題書の "a username" は曖昧だが、irssiは接続時に `USER <username> 0 * :<realname>` を自動送信するため、ircservはこれを**受信・解析**する必要がある。サーバーがOSユーザー名を取得するのではなく、クライアントが送信する文字列を処理するだけ。
+[^130]: irssi（クライアント）GitHub [https://github.com/irssi/irssi](https://github.com/irssi/irssi)
+[^140]: サーバー側もオープンソースで公開されている。
+Solanum（C言語、40MB）: [https://github.com/solanum-ircd/solanum](https://github.com/solanum-ircd/solanum) 、InspIRCd（C++、54MiB）: [https://github.com/inspircd/inspircd](https://github.com/inspircd/inspircd) 等。
+ただしInspIRCdはC++17相当（GCC 7+/Clang 5+）であり、ft_ircのC++98とは互換性がない。
+また両者とも大規模ネットワーク向けで、ft_ircの参考にするには規模が大きすぎる。
+参考にすべきは**課題書に添付のbircd**（学習用、シンプル、select()使用）。
+[^150]: **Libera.Chat のポート番号** — 6667: 平文（非SSL）、6697: SSL/TLS。Libera.Chat は平文接続を制限している場合がある。反応がなければ SSL が必要かもしれない（nc では SSL 接続は難しい。代替として `openssl s_client -connect irc.libera.chat:6697` または `ncat --ssl irc.libera.chat 6697` を使用）。
