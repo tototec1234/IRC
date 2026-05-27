@@ -1,25 +1,67 @@
 # クラス関係図
 
+> **SSOT (Single Source of Truth)**: 本図がチーム共有の正式な**クラス関係図**です。
+> 他のドキュメントとの差異がある場合、本図を正とします。
+
+> **スコープ**: クラス間の関係性と公開API（`+`）のみ記載。
+> プライベートメソッド（`-`）は省略。詳細は実装フェーズで決定。
+
 > 作成日: 2026-05-23
 > 用途: MTG資料（印刷用ペラ1枚）
+> 設計原則: [class_diagram_design_principles.md](../learning/class_diagram_design_principles.md) このmdは学習メモ的なものです
 
 ---
 
 ## 【実装】ircserv クラス構造図
 > 詳細設計: クラスは？関係は？
+## クラス数と難易度
+
+| 担当 | クラス数 | 主要クラス | 難易度 |
+|------|---------|-----------|--------|
+| A | 2 (+2 optional) | Server, Connection | ★★★ poll/バッファ管理 |
+| B | 4 | Parser, Message, Dispatcher, ReplyBuilder | ★★☆ RFC理解が必要 |
+| C1 | 2 (+1 optional) | Client, ServerState | ★★☆ 辞書整合性 |
+| C2 | 2 (+1 optional) | Channel, ChannelModes | ★☆☆ 比較的シンプル |
+
+### +optional の根拠
+
+| 担当 | Optional クラス | 分離条件（design.md Section 3 参照） |
+|------|----------------|--------------------------------------|
+| A | Poller, ConnectionManager (+2) | poll管理・fd辞書が肥大化した場合 |
+| C1 | ClientRegistry (+1) | ServerState が肥大化した場合 |
+| C2 | ChannelService (+1) | CommandDispatcher が肥大化した場合 |
+
+**方針:** 初期実装では必須クラスのみ。肥大化したら optional を分離。
+
+---
+
+## 色凡例
+
+| 色 | 意味 |
+|----|------|
+| 🔵 青 | A層: Network/IO |
+| 🟢 緑 | B層: Protocol/Command |
+| 🟠 オレンジ | C1層: Client/ServerState |
+| 🤎 茶 | C2層: Channel/ChannelModes |
+
 ```mermaid
+
 classDiagram
     direction TB
-    
+
+   
     %% === 最上段: Connection, Server, Parser, CommandDispatcher ===
     class Connection {
         -int _fd
         -string _recvBuffer
         -string _sendBuffer
+        +getFd() int
         +readFromSocket() bool
         +writeToSocket() bool
         +hasCompleteLine() bool
         +popLine() string
+        +bufferSend(msg)
+        +hasPendingOutput() bool
     }
     
     class Server {
@@ -28,7 +70,7 @@ classDiagram
         -map~int, Connection*~ _connections
         -ServerState _state
         +run()
-        +queueSend(fd, msg)
+        +sendTo(fd, msg)
         +applyCommandResult(result)
     }
     
@@ -148,33 +190,3 @@ classDiagram
     style ChannelModes fill:#795548,stroke:#5D4037,color:#fff
 ```
 ---
-
-## クラス数と難易度
-
-| 担当 | クラス数 | 主要クラス | 難易度 |
-|------|---------|-----------|--------|
-| A | 2 (+2 optional) | Server, Connection | ★★★ poll/バッファ管理 |
-| B | 4 | Parser, Message, Dispatcher, ReplyBuilder | ★★☆ RFC理解が必要 |
-| C1 | 2 (+1 optional) | Client, ServerState | ★★☆ 辞書整合性 |
-| C2 | 2 (+1 optional) | Channel, ChannelModes | ★☆☆ 比較的シンプル |
-
-### +optional の根拠
-
-| 担当 | Optional クラス | 分離条件（design.md Section 3 参照） |
-|------|----------------|--------------------------------------|
-| A | Poller, ConnectionManager (+2) | poll管理・fd辞書が肥大化した場合 |
-| C1 | ClientRegistry (+1) | ServerState が肥大化した場合 |
-| C2 | ChannelService (+1) | CommandDispatcher が肥大化した場合 |
-
-**方針:** 初期実装では必須クラスのみ。肥大化したら optional を分離。
-
----
-
-## 色凡例
-
-| 色 | 意味 |
-|----|------|
-| 🔵 青 | A層: Network/IO |
-| 🟢 緑 | B層: Protocol/Command |
-| 🟠 オレンジ | C1層: Client/ServerState |
-| 🤎 茶 | C2層: Channel/ChannelModes |

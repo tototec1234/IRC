@@ -38,6 +38,7 @@ classDiagram
         -int _fd
         -string _recvBuffer
         -string _sendBuffer
+        +...()
     }
     
     class Parser {

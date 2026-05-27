@@ -198,7 +198,7 @@ public:
     void addOperator(Client* c) { _operators.insert(c); }
     void removeOperator(Client* c) { _operators.erase(c); }
     
-    void invite(Client* c) { _invited.insert(c); }
+    void addInvite(Client* c) { _invited.insert(c); }
     bool isInvited(Client* c) const { return _invited.count(c) > 0; }
     void removeInvite(Client* c) { _invited.erase(c); }
     
