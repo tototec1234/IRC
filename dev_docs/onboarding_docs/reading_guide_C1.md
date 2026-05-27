@@ -40,6 +40,11 @@ C1担当はクライアント状態管理とサーバー全体の辞書管理を
 ---
 
 ## 担当クラス
+| クラス | 役割 |
+|--------|------|
+| Client | ユーザー固有情報、認証状態、登録状態 |
+| ServerState | fd/nick/channel辞書の集中管理 |
+| ClientRegistry | （必要に応じて分離）Client辞書管理 |
 
 ```mermaid
 flowchart TB
@@ -73,12 +78,6 @@ flowchart TB
     style AuthState fill:#F5A623,stroke:#C4841C,color:#fff
     style RegState fill:#F5A623,stroke:#C4841C,color:#fff
 ```
-
-| クラス | 役割 |
-|--------|------|
-| Client | ユーザー固有情報、認証状態、登録状態 |
-| ServerState | fd/nick/channel辞書の集中管理 |
-| ClientRegistry | （必要に応じて分離）Client辞書管理 |
 
 ---
 

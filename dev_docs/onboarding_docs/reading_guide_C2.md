@@ -43,6 +43,12 @@ C2担当はチャンネル管理を担当。
 
 ## 担当クラス
 
+| クラス | 役割 |
+|--------|------|
+| Channel | チャンネル状態（members, operators, topic等） |
+| ChannelModes | モード状態（+i, +t, +k, +l） |
+| ChannelService | （必要に応じて分離）Channel操作ロジック |
+
 ```mermaid
 flowchart TB
     subgraph Channel
@@ -74,12 +80,6 @@ flowchart TB
     style ModeK fill:#F5A623,stroke:#C4841C,color:#fff
     style ModeL fill:#F5A623,stroke:#C4841C,color:#fff
 ```
-
-| クラス | 役割 |
-|--------|------|
-| Channel | チャンネル状態（members, operators, topic等） |
-| ChannelModes | モード状態（+i, +t, +k, +l） |
-| ChannelService | （必要に応じて分離）Channel操作ロジック |
 
 ---
 

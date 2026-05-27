@@ -6,28 +6,7 @@
 
 ---
 
-## 1. IRCとは
-
-- **Internet Relay Chat** の略。1988年生まれのテキストチャットプロトコル
-- 1つのサーバーに複数クライアントが接続し、チャンネル（部屋）で会話する
-- Slack/Discordの先祖。今も使われている
-
----
-
-## 2. ft_irc課題の目標
-
-**C++98でIRCサーバーを作る。**
-
-できるようになること:
-
-- irssi（IRCクライアント）から接続できる
-- ユーザー登録（PASS/NICK/USER）ができる
-- チャンネルに入って会話できる（JOIN/PRIVMSG）
-- オペレーター機能（KICK/INVITE/TOPIC/MODE）が動く
-
----
-
-## 3. 全体アーキテクチャ（4層）
+## 1. 全体アーキテクチャ（4層）
 
 OSI参照モデル準拠: アプリケーション層（抽象度高）が上、ネットワーク層（低レイヤー）が下。
 
@@ -59,7 +38,7 @@ OSI参照モデル準拠: アプリケーション層（抽象度高）が上、
 
 ---
 
-## 4. 君の担当: A層
+## 2. 君の担当: A層
 
 ### 担当クラス
 
@@ -99,7 +78,7 @@ MODE解釈      // B層 + C2層
 
 ---
 
-## 5. 重要概念: poll() ループ
+## 3. 重要概念: poll() ループ
 
 ```mermaid
 flowchart TD
@@ -130,7 +109,7 @@ flowchart TD
 
 ---
 
-## 6. 重要概念: バッファリング
+## 4. 重要概念: バッファリング
 
 ### なぜバッファが必要か？
 
@@ -153,6 +132,8 @@ class Connection {
     int         _fd;
     std::string _recvBuffer;  // 受信データ蓄積
     std::string _sendBuffer;  // 送信待ちデータ
+    
+    // メソッドは ref_interface.md 参照
 };
 ```
 
@@ -176,7 +157,7 @@ send() → _sendBuffer から送信
 
 ---
 
-## 7. A層とB層の境界
+## 5. A層とB層の境界
 
 ### A層 → B層
 
@@ -200,7 +181,7 @@ struct CommandResult {
 
 // A層が処理
 for (each reply in result.replies) {
-    connection->queueSend(reply.message);  // sendバッファに積む
+    connection->bufferSend(reply.message);  // sendバッファに積む
 }
 ```
 
@@ -208,7 +189,7 @@ for (each reply in result.replies) {
 
 ---
 
-## 8. 読むべきドキュメント（この順番で）
+## 7. 読むべきドキュメント（この順番で）
 
 
 | 順序  | ファイル                           | 内容                          | 時間目安 |
@@ -229,7 +210,7 @@ for (each reply in result.replies) {
 
 ---
 
-## 9. よくある疑問
+## 8. よくある疑問
 
 ### Q: ConnectionとClientの違いは？
 

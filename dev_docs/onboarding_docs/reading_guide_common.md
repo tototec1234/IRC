@@ -19,6 +19,10 @@
 | ポート番号 | ホスト内のプロセスを特定 |
 | クライアント/サーバー | 接続を開始する側 / 待ち受ける側 |
 
+.
+.
+.
+.
 ### 2. ft_irc の全体構成
 
 ## 【スコープ】通信構成（C2S: Client to Server）
@@ -43,6 +47,24 @@ flowchart LR
     nc <-->|TCP/IP<br/>IRC Protocol| ircserv
     ircserv x--x|S2S禁止| OtherServer
 ```
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
 
 ## 【仕様】ircserv 内部構成
 > アーキテクチャ: どう構成する？ 
@@ -80,7 +102,7 @@ flowchart TB
     Channel --> Modes
     Dispatcher --> Reply
     Reply -->|CommandResult| Server
-    Server -->|queueSend| Conn
+    Server -->|sendTo| Conn
 ```
 
 ---
@@ -90,7 +112,7 @@ flowchart TB
 | リソース | 用途 |
 |---------|------|
 | [design.md](../../myIRCd/docs/design.md) | 全体設計、責務分割 |
-| [interface.md](../../myIRCd/docs/interface.md) | 各クラスのインターフェース |
+| [interface.md](../interface.md) | 各クラスのインターフェース |
 | [RFC 1459](https://datatracker.ietf.org/doc/html/rfc1459) | IRCプロトコル基本仕様 |
 | [RFC 2812](https://datatracker.ietf.org/doc/html/rfc2812) | IRCクライアントプロトコル詳細 |
 
@@ -98,7 +120,7 @@ flowchart TB
 
 ## 担当別ガイドへのリンク
 
-- [A担当（Network/IO）](./reading_guide_A.md) - ★書籍メイン
-- [B担当（Protocol/Command）](./reading_guide_B.md)
-- [C1担当（Client/ServerState）](./reading_guide_C1.md)
-- [C2担当（Channel）](./reading_guide_C2.md)
+- [A担当（Network/IO）./reading_guide_A.md](./reading_guide_A.md) - ★書籍メイン
+- [B担当（Protocol/Command）./reading_guide_B.md](./reading_guide_B.md)
+- [C1担当（Client/ServerState）./reading_guide_C1.md](./reading_guide_C1.md)
+- [C2担当（Channel）./reading_guide_C2.md](./reading_guide_C2.md)
