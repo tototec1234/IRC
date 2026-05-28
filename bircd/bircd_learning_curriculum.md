@@ -9,14 +9,14 @@
 ## 全体像
 
 ```
-bircd (select)  ──────────────────────────────▶  Server.cpp相当 (poll)
-     │                                                  │
-     │  学べる                    学べない（自分で埋める）   │
-     ├─ socket/bind/listen       ├─ poll()              │
-     ├─ accept                   ├─ ノンブロッキングI/O    │
-     ├─ recv/send                ├─ 受信バッファリング     │
-     ├─ select()                 ├─ 送信バッファリング     │
-     └─ コールバック設計          └─ POLLOUT動的制御       │
+bircd (select)  ───────────▶  Server.cpp相当 (poll)
+     │                           │
+     │  学べる                    │ 学べない（自分で埋める）   
+     ├─ socket/bind/listen       ├─ poll()              
+     ├─ accept                   ├─ ノンブロッキングI/O    
+     ├─ recv/send                ├─ 受信バッファリング     
+     ├─ select()                 ├─ 送信バッファリング     
+     └─ コールバック設計            └─ POLLOUT動的制御      
 ```
 
 ---
