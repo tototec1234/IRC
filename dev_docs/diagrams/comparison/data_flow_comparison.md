@@ -1,8 +1,35 @@
 # データフロー比較図
 
 > 作成日: 2026-05-25
+> 更新日: 2026-05-31
 > 用途: 外部ft_irc実装とのデータフロー比較
-> 対象: IRC_torinoue, barimehdi77, itsYakub, Ala-Na
+> 対象: IRC_torinoue, barimehdi77, itsYakub, Ala-Na, ft_IRC-InternetRelayChat-
+---
+
+## 比較サマリ
+
+| 要素 | IRC_torinoue | barimehdi77 | itsYakub | Ala-Na | ft_IRC-InternetRelayChat- |
+|------|:-----------:|:-----------:|:--------:|:------:|:---------------------------:|
+| **受信バッファ位置** | Connection | Server (map) | Client | Server | Client |
+| **送信バッファ** | ✅ Connection | ❌ なし | ❌ なし | ❌ なし | ✅ Client |
+| **CommandResult** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **POLLOUT対応** | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **即時send()** | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **Parser分離** | ✅ | Request | 内包 | Command | CommandHandler内 |
+
+### 結論
+
+**IO堅牢性（非ブロッキング送信）の実装パターンが2系統ある。**
+
+| パターン | 該当 | 特徴 |
+|---------|------|------|
+| Connection + CommandResult | IRC_torinoue（設計） | 層間データ型が明示、返信を一括適用 |
+| Client内バッファ + enablePollout | ft_IRC-InternetRelayChat- | 実装済み、CommandHandlerから逐次バッファ積み |
+| 即時 send() | barimehdi77, itsYakub, Ala-Na | シンプルだがブロックリスク |
+
+**ft_IRC-InternetRelayChat-の位置づけ:**
+- barimehdi77 / itsYakub / Ala-Na と異なり POLLOUT + 送信バッファあり
+- IRC_torinoue設計と目的は同じ（非ブロッキングIO）だが、バッファ所在と返信集約方式が異なる
 
 ---
 
@@ -216,21 +243,68 @@ sequenceDiagram
 
 ---
 
-## 比較サマリ
+## 5. ft_IRC-InternetRelayChat-
 
-| 要素 | IRC_torinoue | barimehdi77 | itsYakub | Ala-Na |
-|------|:-----------:|:-----------:|:--------:|:------:|
-| **受信バッファ位置** | Connection | Server (map) | Client | Server |
-| **送信バッファ** | ✅ Connection | ❌ なし | ❌ なし | ❌ なし |
-| **CommandResult** | ✅ | ❌ | ❌ | ❌ |
-| **POLLOUT対応** | ✅ | ❌ | ❌ | ❌ |
-| **即時send()** | ❌ | ✅ | ✅ | ✅ |
-| **Parser分離** | ✅ | Request | 内包 | Command |
+**特徴:** Client内バッファ、CommandHandlerが解析〜返信生成まで担当、送信バッファ+POLLOUT
 
-### 結論
+> Mandatory Part中心。Bot等の拡張は図から除外。
 
-**IRC_torinoueの設計が最も堅牢。**
+```mermaid
+sequenceDiagram
+    participant Client as IRCクライアント
+    participant Server as IrcServer
+    participant Handler as CommandHandler
+    participant ClientObj as Client
+    participant Channel as Channel
 
-- 他の全実装は即時 `send()` でブロックリスク
-- 送信バッファ + POLLOUT制御があるのはIRC_torinoueのみ
-- CommandResultパターンで送信を遅延できる設計
+    rect rgb(227, 242, 253)
+        Note over Client,Server: Network層
+        Client->>Server: TCP接続 + IRCコマンド
+        Server->>Server: recv() → Client.m_buffer蓄積
+        Server->>ClientObj: extractNextCommand() で1行切り出し
+    end
+
+    rect rgb(232, 245, 233)
+        Note over Server,Handler: Protocol層
+        Server->>Handler: parseCommand(line, client)
+        Handler->>Handler: parse(): line → Message
+        Handler->>Handler: m_cmdMap でコマンド判定
+    end
+
+    rect rgb(255, 243, 224)
+        Note over Handler,Channel: 状態更新
+        alt PASS/NICK/USER
+            Handler->>ClientObj: setNickName() / setRegistered()
+            Handler->>Server: isNickInUse() 等
+        else JOIN/KICK/MODE
+            Handler->>Server: getCreateChannel() / findChannel()
+            Handler->>Channel: addMember() / removeMember()
+            Handler->>ClientObj: joinChannel() / leaveChannel()
+        end
+    end
+
+    rect rgb(232, 245, 233)
+        Note over Handler,Server: 返信生成
+        Handler->>Handler: buildMessage() / sendError()
+        Handler->>ClientObj: appendSendBuffer(msg)
+        Handler->>Server: enablePollout(fd)
+    end
+
+    rect rgb(227, 242, 253)
+        Note over Server,Client: 送信
+        Server->>Server: poll() POLLOUT検出
+        Server->>Server: send() → sendBufferから消費
+        Server-->>Client: 返信
+    end
+```
+
+**データ型:**
+- recv: `Client.m_buffer` 内で `\r\n` 切り出し
+- 内部: `CommandHandler::Message` (prefix + command + params + trailing)
+- 送信: `Client.m_sendBuffer` + `enablePollout()`（CommandResult相当の集約型なし）
+
+**IRC_torinoue設計との差分:**
+- 受信バッファ位置: Connection vs Client
+- 返信の集約: CommandResult vs コマンド処理中に逐次 `appendSendBuffer`
+- QUIT時: `removeClientFromAllChannels` をHandlerから直接呼ぶ（IRC_torinoueは `removeClient` に集約）
+

@@ -1,8 +1,9 @@
 # 依存関係比較図
 
 > 作成日: 2026-05-25
+> 更新日: 2026-05-31
 > 用途: 外部ft_irc実装との依存関係比較
-> 対象: IRC_torinoue, barimehdi77, itsYakub, Ala-Na
+> 対象: IRC_torinoue, barimehdi77, itsYakub, Ala-Na, ft_IRC-InternetRelayChat-
 
 ---
 
@@ -203,33 +204,90 @@ flowchart TB
 
 ---
 
+## 5. ft_IRC-InternetRelayChat-
+
+**特徴:** CommandHandler分離、Client内IOバッファ、Channel/IrcServer双方向参照
+
+> Mandatory Part中心。
+
+```mermaid
+flowchart TB
+    subgraph NET["ネットワーク"]
+        Server["IrcServer"]
+    end
+    
+    subgraph PROTO["プロトコル"]
+        Handler["CommandHandler"]
+        Message["Message (nested)"]
+    end
+    
+    subgraph STATE["状態"]
+        Client["Client"]
+        Channel["Channel"]
+    end
+
+    Server -->|"所有"| Handler
+    Server -->|"map値"| Client
+    Server -->|"map値"| Channel
+    Handler -->|"参照"| Server
+    Handler -->|"使用"| Message
+    Handler -->|"操作"| Client
+    Handler -->|"操作"| Channel
+    Channel -->|"参照"| Server
+    Client -.->|"joinedChannels"| Channel
+
+    style Server fill:#4A90D9,stroke:#2E5A8B,color:#fff
+    style Handler fill:#50B878,stroke:#3A8A5A,color:#fff
+    style Message fill:#50B878,stroke:#3A8A5A,color:#fff
+    style Client fill:#F5A623,stroke:#C4841C,color:#fff
+    style Channel fill:#795548,stroke:#5D4037,color:#fff
+```
+
+**依存関係:**
+- IrcServer → CommandHandler: 所有（値メンバ）
+- CommandHandler → IrcServer: **逆参照**（`m_server` 参照）
+- Channel → IrcServer: **逆参照**（`m_server` ポインタ）
+- Client → Channel: チャンネル名のみ（`m_joinedChannels`）、ポインタ双方向なし
+
+**IRC_torinoue設計との差分:**
+- ServerState不在 → IrcServerが Client/Channel を直接管理
+- CommandResult不在 → Handlerが `sendMsg` / `queueMessageForClient` で直接IO操作
+- Client/Channel間は nick名/set ベースで、Client* ↔ Channel の双方向参照より疎
+
+---
+
 ## 比較サマリ
 
-| 要素 | IRC_torinoue | barimehdi77 | itsYakub | Ala-Na |
-|------|:-----------:|:-----------:|:--------:|:------:|
-| **依存方向** | 一方向 | 双方向 | 双方向 | 双方向 |
-| **循環参照** | ❌ なし | ✅ あり | ✅ あり | ✅ あり |
-| **Server逆参照** | ❌ なし | ❌ なし | ✅ あり | ✅ あり |
-| **層分離** | ✅ 明確 | ❌ | ⚠️ 部分的 | ⚠️ 部分的 |
-| **テスタビリティ** | ✅ 高 | ⚠️ 中 | ⚠️ 低 | ⚠️ 低 |
+| 要素 | IRC_torinoue | barimehdi77 | itsYakub | Ala-Na | ft_IRC-InternetRelayChat- |
+|------|:-----------:|:-----------:|:--------:|:------:|:---------------------------:|
+| **依存方向** | 一方向 | 双方向 | 双方向 | 双方向 | 双方向（Handler/Channel→Server） |
+| **循環参照** | ❌ なし | ✅ あり | ✅ あり | ✅ あり | ⚠️ 限定的 |
+| **Server逆参照** | ❌ なし | ❌ なし | ✅ あり | ✅ あり | ✅ あり |
+| **層分離** | ✅ 明確 | ❌ | ⚠️ 部分的 | ⚠️ 部分的 | ⚠️ 部分的 |
+| **IO非ブロッキング** | ✅ 設計 | ❌ | ❌ | ❌ | ✅ 実装 |
 
 ### 依存グラフの複雑さ
 
 | 実装 | エッジ数 | 循環 | 評価 |
 |------|---------|------|------|
-| IRC_torinoue | 5 | 0 | ✅ シンプル |
-| barimehdi77 | 5 | 1 | ⚠️ やや複雑 |
-| itsYakub | 8 | 2 | ⚠️ 複雑 |
-| Ala-Na | 9 | 3 | ❌ 最も複雑 |
+| IRC_torinoue | 5 | 0 | シンプル（設計） |
+| barimehdi77 | 5 | 1 | やや複雑 |
+| itsYakub | 8 | 2 | 複雑 |
+| Ala-Na | 9 | 3 | 最も複雑 |
+| ft_IRC-InternetRelayChat- | 7 | 1 | 中程度（IO堅牢性は高い） |
 
 ### 結論
 
-**IRC_torinoueの設計が最もクリーン。**
+**依存の少なさとIO堅牢性はトレードオフになりうる。**
 
-- **循環参照なし:** テスト・保守が容易
-- **一方向依存:** 変更の影響範囲が明確
-- **CommandResult:** Serverへの逆参照を回避
+| 実装 | 依存グラフ | IO |
+|------|-----------|-----|
+| IRC_torinoue（設計） | 一方向・循環なし | Connection + CommandResult |
+| ft_IRC-InternetRelayChat- | Handler/Channel→Server逆参照 | Client内バッファ + POLLOUT（実装済み） |
+| barimehdi77 | Server中心・Client↔Channel循環 | 即時send |
+| itsYakub / Ala-Na | 逆参照多・循環多 | 即時send |
 
-他実装の問題点:
-- Client/ChannelがServerを逆参照 → 密結合
-- 双方向参照 → デストラクタ順序やメモリ管理の複雑化
+**ft_IRC-InternetRelayChat-の位置づけ:**
+- itsYakub / Ala-Na と同系統（CommandHandler + Server逆参照）
+- ただし Client/Channel 間の双方向ポインタ参照は避け、nick名/set で疎に保つ
+- IO層だけ IRC_torinoue設計に近い実装を持つ参考例
