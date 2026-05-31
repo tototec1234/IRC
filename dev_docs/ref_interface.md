@@ -389,8 +389,7 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 | -------------------------------------------------------------- | -------------------: | ---------- | -------------------------- |
 | `const std::string& password() const;`                         | `const std::string&` | B          | サーバpasswordを取得する           |
 | `void addClient(int fd);`                                      |               `void` | Server     | 新規接続時にClientを作成する          |
-| `void removeClient(int fd);`                                   |               `void` | Server / B | 切断時にClientを削除する            |
-| `void removeClientFromAllChannels(Client& client);`            |               `void` | ServerState内部 / B | 全ChannelからClient参照を除去する |
+| `void removeClient(int fd);`                                   |               `void` | Server / B | 切断時にClientを削除する（Channel掃除・delete含む） |
 | `Client* getClientByFd(int fd);`                               |            `Client*` | B          | fdからClientを取得する            |
 | `Client* getClientByNick(const std::string& nick);`            |            `Client*` | B          | nickからClientを取得する          |
 | `bool nickExists(const std::string& nick) const;`              |               `bool` | B          | nick重複を確認する                |
@@ -401,7 +400,7 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 
 #### 削除ルール
 
-`removeClient(int fd)` はClientを削除する前に、内部処理用のプライベートメソッド（例: `removeClientFromAllChannels()`）で以下を削除する必要がある。
+`removeClient(int fd)` はClientを削除する前に、**private** メソッド（例: `removeClientFromAllChannels(Client&)`）で以下を削除する必要がある。B 層は `removeClient(fd)` のみ呼び、`removeClientFromAllChannels` は直接呼ばない（`decision_invite_and_removal.md` 参照）。
 
 削除対象:
 
@@ -642,7 +641,7 @@ channel.addOperator(&client);
 
 現時点では optional。
 
-A担当の既存モックを活かし、まずは `Server` 内で管理してもよい。
+Phase 4 初期実装では `Server` 内で管理してもよい。
 
 肥大化した場合に `Poller` へ分離する。
 

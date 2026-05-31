@@ -179,7 +179,7 @@ public:
 | `bool isOperator(Client*) const` | `bool` | B | operator権限確認 |
 | `void addOperator(Client*)` | `void` | B | operator付与 |
 | `void removeOperator(Client*)` | `void` | B | operator剥奪 |
-| `void addInvite(Client*)` | `void` | B | 招待リスト追加 |
+| `void addInvite(Client*)` | `void` | B | `_invited` へ追加（状態変更。`ReplyBuilder.invite` は通知文字列生成） |
 | `bool isInvited(Client*) const` | `bool` | B | 招待済みか |
 | `void removeInvite(Client*)` | `void` | B | 招待解除 |
 | `void setTopic(const std::string&)` | `void` | B | topic設定 |
@@ -259,6 +259,15 @@ channel.addOperator(&client);
 | ClientRegistry分離 | optional | 実装時判断 |
 | ChannelService分離 | optional | 実装時判断 |
 
+### 7.1 確定済み（設計決定）
+
+| 項目 | 決定 | 参照 |
+|------|------|------|
+| 自作 template | 不使用 | `decision_no_custom_templates.md` |
+| エラー・所有権 | 起動時例外 / ループは bool+Result / ServerState 所有 | `decision_error_handling.md` |
+| `removeClientFromAllChannels` | ServerState **private**。B は `removeClient(fd)` のみ | `decision_invite_and_removal.md` |
+| invite 系命名 | `addInvite`（C2）+ `ReplyBuilder.invite`（B）共存 | `decision_invite_and_removal.md` |
+
 ---
 
 ## 8. 関連ドキュメント
@@ -280,4 +289,4 @@ channel.addOperator(&client);
 | 日付 | 内容 |
 |------|------|
 | 2026-05-23 | 初版作成 |
-| 2026-05-26 | 層間API契約書として再構成、myIRCd依存削除 |
+| 2026-05-26 | 層間API契約書として再構成、外部リポジトリ依存削除 |
