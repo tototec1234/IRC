@@ -22,7 +22,7 @@ flowchart LR
     Ch3 --> Ch5_3["5.3.1<br/>ノンブロッキング"]
     Ch5_3 --> Ch5_5["5.5<br/>多重化"]
     Ch5_5 --> Ch6["6章<br/>TCP挙動"]
-    Ch6 --> Practice["実践<br/>Server.cpp"]
+    Ch6 --> Practice["実践<br/>design.md §10"]
 
     style Ch1 fill:#4A90D9,stroke:#2E5A8B,color:#fff
     style Ch2 fill:#4A90D9,stroke:#2E5A8B,color:#fff
@@ -78,22 +78,27 @@ UDP系、Fork系、Thread系、SIGIO系、Broadcast/Multicast系
 
 ---
 
-## 最重要: myIRCd/src/Server.cpp
+## 最重要: poll() 実践（bircd カリキュラム + design.md §10）
 
-**書籍には poll() のサンプルがない。** 代わりに `myIRCd/src/Server.cpp` を教材として使う。
+**書籍には poll() のサンプルがない。** 次の順で学ぶ。
 
-### Server.cpp が書籍の内容をカバー
+1. `bircd/bircd_learning_curriculum.md` — C の bircd で poll / バッファを体験
+2. `design.md` Section 10.2 — A 層の実装要件（POLLOUT、EAGAIN、責務分離）
+3. `ref_interface.md` Section 5 — Server / Connection の API
+4. `IRC_torinoue/src/` — 上記に従い新規実装
 
-| 書籍の章 | Server.cpp の該当部分 |
-|---------|---------------------|
-| 2章: ソケット基礎 | `setupSocket()` |
-| 2章: accept | `acceptNewClient()` |
-| 2章: send/recv | `receiveData()`, `sendData()` |
-| 3章: バイト順 | `htons(_port)` |
-| 5章: ノンブロッキング | `fcntl(fd, F_SETFL, O_NONBLOCK)` |
-| 5章: 多重化 | `ircLoop()` の `poll()` |
-| 6章: バッファリング | `_recvBuffers`, `_sendBuffers` |
-| 6章: 切断検知 | `POLLERR | POLLHUP | POLLNVAL` |
+### 書籍の章と A 層実装の対応
+
+| 書籍の章 | A 層で実装する箇所（ref_interface / design.md §10） |
+|---------|-----------------------------------------------------|
+| 2章: ソケット基礎 | Server 起動（socket / bind / listen） |
+| 2章: accept | accept → Connection 生成 |
+| 2章: send/recv | `Connection::readFromSocket()` / `writeToSocket()` |
+| 3章: バイト順 | `htons()` 等 |
+| 5章: ノンブロッキング | 全 fd で `fcntl(O_NONBLOCK)` |
+| 5章: 多重化 | `Server::run()` 内の単一 `poll()` |
+| 6章: バッファリング | Connection の recv/send buffer |
+| 6章: 切断検知 | `POLLERR` / `POLLHUP` / recv=0 → disconnect |
 
 ---
 
@@ -149,4 +154,6 @@ flowchart TD
 | オーム社 書籍ページ | https://www.ohmsha.co.jp/book/9784274065194/ |
 | 原著者サンプルコード | http://cs.baylor.edu/~donahoo/practical/CSockets/textcode.html |
 | man poll | `man 2 poll` |
-| myIRCd/src/Server.cpp | ローカル |
+| bircd カリキュラム | `dev_docs/../bircd/bircd_learning_curriculum.md` |
+| design.md §10 | `dev_docs/design.md` |
+| ref_interface §5 | `dev_docs/ref_interface.md` |

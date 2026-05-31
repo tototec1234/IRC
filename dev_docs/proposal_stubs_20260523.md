@@ -288,7 +288,7 @@ public:
 ### やる場合
 
 1. torinoueがスタブを作成（4h）
-2. スタブを `myIRCd/src/stubs/` に配置
+2. スタブを `IRC_torinoue/stubs/` に配置（c1/, c2/）
 3. taro/hanakoは本実装を進める
 4. 本実装完了後、スタブから本物に差し替え
 

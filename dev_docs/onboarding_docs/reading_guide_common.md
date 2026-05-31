@@ -111,7 +111,8 @@ flowchart TB
 
 | リソース | 用途 |
 |---------|------|
-| [design.md](../../myIRCd/docs/design.md) | 全体設計、責務分割 |
+| [design.md](../design.md) | 全体設計、責務分割（SSOT） |
+| [ref_interface.md](../ref_interface.md) | Server / Connection API 詳細 |
 | [interface.md](../interface.md) | 各クラスのインターフェース |
 | [RFC 1459](https://datatracker.ietf.org/doc/html/rfc1459) | IRCプロトコル基本仕様 |
 | [RFC 2812](https://datatracker.ietf.org/doc/html/rfc2812) | IRCクライアントプロトコル詳細 |

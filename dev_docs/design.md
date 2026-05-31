@@ -492,9 +492,9 @@ Channel Operator専用コマンド（`KICK` / `INVITE` / `TOPIC` / `MODE`）を�
 
 ## 10. Current Mock Implementation Policy
 
-A担当の既存モック実装（`Server.hpp/cpp`）を出発点として採用する。
+> **注（2026-05-29）:** Phase 4 以降、実装 SSOT は `dev_docs/interface.md` / `ref_interface.md`。コードは `IRC_torinoue/src/` に新規作成する。以下 §10.2 は実装時のチェックリスト。
 
-ただし、現状のモックは1つの `Server` クラスに以下の責務が混在している。
+Phase 4 では A 層を設計どおり実装する。初期構成では 1 つの `Server` クラスに以下の責務が混在しやすい。
 
 ```text
 Server
@@ -503,23 +503,23 @@ Connection
 ConnectionManager
 ```
 
-そのため、短期的には動作確認用として利用し、段階的かつ速やかに責務を分離する。
+そのため、まず最小構成で動作確認し、段階的かつ速やかに責務を分離する。
 
-### 10.1 Current Mock Status
+### 10.1 初期実装で想定する構成
 
 ```text
-Server.hpp/cpp
-├─ Serverの責務              実装済み
-├─ Pollerの責務              Server内に仮実装（POLLINのみ、POLLOUT未対応）
-├─ Connectionのrecv側責務     Server内に仮実装（切断時の安全ループ未対応）
-├─ Connectionのsend側責務     即sendのみ（partial write未対応、要変更）
-└─ ConnectionManagerの責務    Server内に一部仮実装
+Server（初期）
+├─ Server の責務           … run(), applyCommandResult
+├─ Poller の責務           … 当面 Server 内（optional 分離）
+├─ Connection recv 側      … 当面 Server 内 → Connection へ移管
+├─ Connection send 側      … send buffer + POLLOUT
+└─ ConnectionManager 側    … 当面 Server 内（optional 分離）
 ```
 
-### 10.2 Planned Changes
+### 10.2 実装チェックリスト（Phase 4）
 
 
-| 対象項目               | 現状のモック実装                                         | 変更予定                                                                                        |
+| 対象項目               | 初期の典型パターン（避ける）                               | 目標（design / interface 準拠）                                                                 |
 | ------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | `processMessage()` | echo replyを即座に `send()` している                     | 担当Bの `Parser` / `CommandDispatcher` へ文字列を渡す入口に変更する                                          |
 | `send()` 処理        | `processMessage()` 内で直接ソケット送信                    | `sendTo(fd, msg)` 方式に変更し、send buffer に積んだ後、`POLLOUT` イベント経由で非同期送信する                      |

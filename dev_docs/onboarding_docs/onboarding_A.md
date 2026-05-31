@@ -200,7 +200,7 @@ for (each reply in result.replies) {
 | 4   | `design.md` Section 3.1, 5     | Network/IO層、Connectionの詳細設計 | 20分  |
 | 5   | `interface.md` Section 5       | Server/Connectionの関数一覧      | 15分  |
 | 6   | `reading_guide_A.md`           | A担当向け詳細ガイド                  | 10分  |
-| 7   | `myIRCd/src/Server.cpp`        | 参考実装（poll()サンプル）            | 30分  |
+| 7   | `bircd/bircd_learning_curriculum.md` Phase 5 | poll() 実践・C++98 化の学習プラン | 30分  |
 
 
 **書籍（必須）:**

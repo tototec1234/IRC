@@ -539,4 +539,4 @@ Phase 完了後、以下を全て説明・実装できることを確認:
 
 - `bircd_analysis.md` - bircd の構造分析
 - `reading_guide_A.md` - A担当（Network/IO）向け読書ガイド
-- `myIRCd/src/Server.cpp` - 完成形の参考実装
+- `dev_docs/design.md` §10.2 - A 層実装要件（poll / buffer / POLLOUT）

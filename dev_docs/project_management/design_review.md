@@ -109,119 +109,64 @@ staticメソッドのみの現設計では設定値の注入が困難。
 
 ---
 
-## 5. myIRCdとの整合性調査（2026-05-25追記）
+## 5. 統合前の外部実装との整合性調査（2026-05-25 追記）
 
-### 5.1 調査目的
+> **アーカイブ（2026-05-29）:** 以下は設計統合前の比較記録。**現 SSOT は `IRC_torinoue/dev_docs/` のみ。** Phase 4 以降、外部リポジトリのコードは参照しない。
 
-1. IRC_torinoue内の設計図がmyIRCdの設計を正しく反映しているか確認
-2. 改善のヒントをmyIRCdから見つける
+### 5.1 調査目的（当時）
 
-### 5.2 設計図とmyIRCdの比較
+1. IRC_torinoue 内の設計図が、統合前の外部 design と一致しているか確認
+2. 改善ヒントの抽出（結果は §6 に反映済み）
 
-| 項目 | IRC_torinoue設計図 | myIRCd実装 | myIRCd/design.md |
-|------|-------------------|-----------|------------------|
-| Connection | あり | なし（Server直接管理） | 必須（分離予定） |
-| ServerState詳細 | あり | 空（未実装） | あり |
-| Channel詳細 | あり | 空（未実装） | あり |
+### 5.2 設計図と統合前実装の比較
+
+| 項目 | IRC_torinoue 設計図 | 統合前の実装（2026-05-25） | 統合前 design.md |
+|------|---------------------|---------------------------|------------------|
+| Connection | あり | なし（Server 直接管理） | 必須（分離予定） |
+| ServerState 詳細 | あり | 空（未実装） | あり |
+| Channel 詳細 | あり | 空（未実装） | あり |
 | InviteList | ✅ あり（`_invited`） | なし | あり |
 | Client._realname | ✅ あり | あり | あり |
 | Client._host | ✅ あり | - | - |
 | Client.getFullPrefix() | ✅ あり | - | - |
 | PING/PONG | ✅ あり | なし | なし |
 
-### 5.3 修正済みの問題点（2026-05-25対応完了）
+### 5.3 修正済みの問題点（2026-05-25 対応完了）
 
-#### 問題1: InviteListの欠落 → **解決済み**
+#### 問題1: InviteList の欠落 → **解決済み**
 
-myIRCd/docs/design.md Section 7:
+統合前 design.md Section 7 より:
+
 ```
 Channel
-├─ members    (参加中のClient一覧)
-├─ operators  (Operator権限を持つClient一覧)
-├─ invited    (招待されたClient一覧)  ← _invited として追加済み
-└─ modes      (チャンネルのモード状態)
+├─ members
+├─ operators
+├─ invited    ← _invited として追加済み
+└─ modes
 ```
 
-**対応:** 設計図のChannelクラスに `_invited` を追加 ✅
+**対応:** 設計図の Channel クラスに `_invited` を追加 ✅
 
-#### 問題2: Client._realnameの欠落 → **解決済み**
+#### 問題2: Client._realname の欠落 → **解決済み**
 
-myIRCd/docs/design.md Section 5.2:
-```
-Client が持つもの:
-- fd
-- nick
-- username
-- realname  ← _realname として追加済み
-- PASS 成功状態
-- 登録完了状態
-```
+**対応:** 設計図の Client クラスに `_realname` を追加 ✅
 
-myIRCd/includes/Client.hpp:
-```cpp
-std::string _realname;  // 実装済み
-```
-
-**対応:** 設計図のClientクラスに `_realname` を追加必須
-
-### 5.4 myIRCd実装の現状
-
-myIRCdは**モック状態**（design.md Section 10）:
+### 5.4 統合前実装の現状（2026-05-25 時点）
 
 | クラス | 状態 |
 |--------|------|
-| Server | 実装済み（Connectionの責務を内包） |
-| Connection | **未分離**（計画のみ） |
-| Parser | 実装済み |
-| Message | 実装済み |
-| Client | 実装済み |
-| ChannelModes | 実装済み |
-| Channel | **空** |
-| ServerState | **空** |
-| CommandDispatcher | **空** |
-| ReplyBuilder | **空** |
-| CommandResult | 実装済み |
+| Server | 実装あり（Connection 責務を内包） |
+| Connection | 未分離 |
+| Parser / Message / Client / ChannelModes / CommandResult | 一部実装 |
+| Channel / ServerState / CommandDispatcher / ReplyBuilder | 未実装 |
 
-**結論:** IRC_torinoue設計図はdesign.mdの計画を反映している。myIRCd実装はまだ計画を完全には実装していない。
+**結論:** IRC_torinoue 設計図は `dev_docs/design.md` の計画を反映。以降は dev_docs を SSOT として `IRC_torinoue/src/` に新規実装する。
 
-### 5.5 myIRCdから得た改善ヒント
+### 5.5 当時得た改善ヒント（§6 反映済み）
 
-#### ヒント1: Messageの便利メソッド
-
-myIRCd/includes/Message.hpp:
-```cpp
-size_t getParamCount() const;
-const std::string& getSingleParam(size_t index) const;
-bool hasParam(size_t index) const;
-```
-
-設計図に `getCommand()`, `getParams()` および上記メソッドを追加済み（2026-05-25）。
-
-#### ヒント2: t_reply構造体
-
-myIRCd/includes/CommandResult.hpp:
-```cpp
-struct t_reply {
-    int fd;
-    std::string reply;
-};
-```
-
-設計図の `OutgoingMessage` 相当。明示的な構造体定義があると分かりやすい。
-
-#### ヒント3: ChannelModesの詳細
-
-myIRCd/includes/ChannelModes.hpp:
-```cpp
-bool _inviteOnly;
-bool _topicRestricted;
-bool _memberLimited;      // 設計図の _limit に対応
-bool _channelProtected;   // MODE +k の有無
-int _maxMember;           // 設計図の _limit に対応
-std::string _channelPass; // 設計図の _key に対応
-```
-
-`_channelProtected` フラグで「パスワード設定の有無」を明示的に管理。設計図より明確。
+- Message: `getParamCount()`, `hasParam()`, `getSingleParam()` を設計に追加
+- CommandResult: `OutgoingMessage` 構造体として明示
+- ChannelModes: `hasKey()` / `key()` 等で +k 状態を明示管理する案を検討
 
 ---
 
@@ -251,4 +196,4 @@ std::string _channelPass; // 設計図の _key に対応
 - 評価基準: `docs/eval/chapter1_introduction.md`, `chapter2_general_rules.md`, `chapter4_mandatory_part.md`, `evalsheet_42evalhub.md`
 - ハンズオン: `dev_docs/irssi_handson_common.md`
 - 設計図: `dev_docs/diagrams/class_overview_diagram.md`, `data_flow_diagram.md`, `dependency_diagram.md`
-- myIRCd設計: `myIRCd/docs/design.md`
+- 設計 SSOT: `dev_docs/design.md`, `dev_docs/interface.md`, `dev_docs/ref_interface.md`
