@@ -196,4 +196,8 @@ Channel
 - 評価基準: `docs/eval/chapter1_introduction.md`, `chapter2_general_rules.md`, `chapter4_mandatory_part.md`, `evalsheet_42evalhub.md`
 - ハンズオン: `dev_docs/irssi_handson_common.md`
 - 設計図: `dev_docs/diagrams/class_overview_diagram.md`, `data_flow_diagram.md`, `dependency_diagram.md`
-- 設計 SSOT: `dev_docs/design.md`, `dev_docs/interface.md`, `dev_docs/ref_interface.md`
+- ドキュメント体制（2026-06-01 MTG 確定）:
+  - 公開 API・クラス関係 SSOT: `dev_docs/diagrams/class_overview_diagram.md`
+  - 契約憲章 SSOT: `dev_docs/interface.md`
+  - 実装読み物（B層主読者、非 SSOT）: `dev_docs/b_implementation_reader.md`
+  - 全体設計: `dev_docs/design.md`

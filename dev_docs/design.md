@@ -492,7 +492,11 @@ Channel Operator専用コマンド（`KICK` / `INVITE` / `TOPIC` / `MODE`）を�
 
 ## 10. Current Mock Implementation Policy
 
-> **注（2026-05-29）:** Phase 4 以降、実装 SSOT は `dev_docs/interface.md` / `ref_interface.md`。コードは `IRC_torinoue/src/` に新規作成する。以下 §10.2 は実装時のチェックリスト。
+> **注（2026-06-01）:** 
+公開 API の正は `dev_docs/diagrams/class_overview_diagram.md`。契約の理由・ルールは `dev_docs/interface.md`。
+B層実装リーダーは `dev_docs/b_implementation_reader.md`（SSOT ではない）。
+コードは `IRC_torinoue/src/` に新規作成する。
+以下 §10.2 は実装時のチェックリスト。
 
 Phase 4 では A 層を設計どおり実装する。初期構成では 1 つの `Server` クラスに以下の責務が混在しやすい。
 

@@ -1,7 +1,9 @@
 # 読書ガイド: A担当（Network / IO）
 
-> 対象: A担当（Server, Connection, Poller）
-> 作成日: 2026-05-23
+> 対象: A担当（Server, Connection, Poller）  
+> 作成日: 2026-05-23  
+> 更新日: 2026-06-01  
+> 更新者: torinoue  
 > ステータス: 確定
 
 ---
@@ -84,12 +86,12 @@ UDP系、Fork系、Thread系、SIGIO系、Broadcast/Multicast系
 
 1. `bircd/bircd_learning_curriculum.md` — C の bircd で poll / バッファを体験
 2. `design.md` Section 10.2 — A 層の実装要件（POLLOUT、EAGAIN、責務分離）
-3. `ref_interface.md` Section 5 — Server / Connection の API
+3. [`b_implementation_reader.md`](../b_implementation_reader.md) §5 — Server / Connection の呼び出し元・補足（公開 API は [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md)）
 4. `IRC_torinoue/src/` — 上記に従い新規実装
 
 ### 書籍の章と A 層実装の対応
 
-| 書籍の章 | A 層で実装する箇所（ref_interface / design.md §10） |
+| 書籍の章 | A 層で実装する箇所（[`b_implementation_reader.md`](../b_implementation_reader.md) §5 / [`design.md`](../design.md) §10） |
 |---------|-----------------------------------------------------|
 | 2章: ソケット基礎 | Server 起動（socket / bind / listen） |
 | 2章: accept | accept → Connection 生成 |
@@ -156,4 +158,5 @@ flowchart TD
 | man poll | `man 2 poll` |
 | bircd カリキュラム | `dev_docs/../bircd/bircd_learning_curriculum.md` |
 | design.md §10 | `dev_docs/design.md` |
-| ref_interface §5 | `dev_docs/ref_interface.md` |
+| b_implementation_reader §5 | [`dev_docs/b_implementation_reader.md`](../b_implementation_reader.md) |
+| class_overview § Server/Connection | [`dev_docs/diagrams/class_overview_diagram.md`](../diagrams/class_overview_diagram.md) |

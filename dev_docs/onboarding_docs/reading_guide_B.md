@@ -1,7 +1,9 @@
 # 読書ガイド: B担当（Protocol / Command）
 
-> 対象: B担当（Parser, CommandDispatcher, ReplyBuilder, Message）
-> 作成日: 2026-05-23
+> 対象: B担当（Parser, CommandDispatcher, ReplyBuilder, Message）  
+> 作成日: 2026-05-23  
+> 更新日: 2026-06-01  
+> 更新者: torinoue  
 > ステータス: **次回セッションで詳細化予定**
 
 ---
@@ -9,7 +11,7 @@
 ## 概要
 
 B担当はIRCプロトコル層を担当。ソケット書籍は**直接関係しない**。
-主な学習リソースはRFC 1459/2812とdesign.md/interface.md。
+主な学習リソースは RFC 1459/2812 と [`design.md`](../design.md) / [`interface.md`](../interface.md) / [`b_implementation_reader.md`](../b_implementation_reader.md)。
 
 ---
 
@@ -31,7 +33,7 @@ B担当はIRCプロトコル層を担当。ソケット書籍は**直接関係�
 |---------|----------|------|
 | [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | Section 2 | メッセージフォーマット（prefix, command, params） |
 | [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) | Section 2 | 詳細なメッセージ仕様 |
-| interface.md | Section 6 | Parser, CommandDispatcher, ReplyBuilder の仕様 |
+| [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md), [`b_implementation_reader.md`](../b_implementation_reader.md) §6, [`interface.md`](../interface.md) §3 | — | B層 公開 API・実装リーダー・契約 |
 | design.md | Section 3.2 | Protocol/Command層の責務 |
 
 ### コマンド別RFCセクション

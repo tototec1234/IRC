@@ -1,10 +1,11 @@
 # クラス関係図
 
-> **SSOT (Single Source of Truth)**: 本図がチーム共有の正式な**クラス関係図**です。
+> **SSOT (Single Source of Truth)**: 本図が**公開 API とクラス関係**の正式な定義です。
 > 他のドキュメントとの差異がある場合、本図を正とします。
 
 > **スコープ**: クラス間の関係性と公開API（`+`）のみ記載。
 > プライベートメソッド（`-`ChannelService）は省略。詳細は実装フェーズで決定。
+> 契約憲章 → [`interface.md`](../interface.md) / 実装読み物 → [`b_implementation_reader.md`](../b_implementation_reader.md)（SSOT ではない）
 
 > 作成日: 2026-05-23
 > 用途: MTG資料（印刷用ペラ1枚）

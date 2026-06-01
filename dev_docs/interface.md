@@ -1,7 +1,13 @@
 # 層間インターフェース仕様
 
-> 本ドキュメントは、ircserv の**層間API契約**を定義する。
-> 各層の責務は `design.md` を参照。
+> **SSOT（契約憲章）**: 層間契約の**理由・ルール・設計決定**を定める。経緯と「なぜそうなったか」を読むための憲章的ドキュメント。  
+> **公開 API の正**: [`diagrams/class_overview_diagram.md`](./diagrams/class_overview_diagram.md)  
+> **実装読み物（B層主読者）**: [`b_implementation_reader.md`](./b_implementation_reader.md) — SSOT ではない  
+> 各層の責務は [`design.md`](./design.md) を参照。
+
+本ドキュメントは層間 API の「何を」ではなく「なぜ・どう守るか」を定める憲章である。  
+公開 API のメソッド名・シグネチャは [`class_overview_diagram.md`](./diagrams/class_overview_diagram.md) を正とする。  
+Processing Flow や各 API の呼び出し元・利用コンテキストは [`b_implementation_reader.md`](./b_implementation_reader.md) を参照する（本書は SSOT ではない）。
 
 ## スコープ
 
@@ -275,7 +281,8 @@ channel.addOperator(&client);
 | ドキュメント | 内容 |
 |-------------|------|
 | `design.md` | 全体設計・責務分割 |
-| `ref_interface.md` | A/B層の詳細インターフェース（リファレンス用） |
+| `b_implementation_reader.md` | B層主読者向け実装読み物（SSOT ではない。Processing Flow、呼び出し元等） |
+| `diagrams/class_overview_diagram.md` | 公開 API・クラス関係（SSOT） |
 | `onboarding_A.md` | A層オンボーディング |
 | `onboarding_B.md` | B層オンボーディング |
 | `onboarding_C1.md` | taro向けオンボーディング |
@@ -290,3 +297,4 @@ channel.addOperator(&client);
 |------|------|
 | 2026-05-23 | 初版作成 |
 | 2026-05-26 | 層間API契約書として再構成、外部リポジトリ依存削除 |
+| 2026-06-01 | MTG決定: 契約憲章（SSOT）として位置づけ明確化 |

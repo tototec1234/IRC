@@ -2,7 +2,7 @@
 
 > **ステータス**: 決定（2026-05-29）  
 > **セッション**: #0006  
-> **関連**: [interface.md](./interface.md), [ref_interface.md](./ref_interface.md), [decision_error_handling.md](./decision_error_handling.md)
+> **関連**: [interface.md](./interface.md), [b_implementation_reader.md](./b_implementation_reader.md), [decision_error_handling.md](./decision_error_handling.md)
 
 ---
 
@@ -13,7 +13,7 @@
 | 調査対象 | 結果 |
 |----------|------|
 | `dev_docs/` 全 md | B 層の公開契約（`interface.md`）に `removeClientFromAllChannels` **なし** |
-| `ref_interface.md` | 公開 API 表に誤って記載（0004 で「例:」文言に修正済みだが行は残存） |
+| `b_implementation_reader.md` | 公開 API 表に誤って記載（0004 で「例:」文言に修正済みだが行は残存） |
 | B 層が呼ぶ API | **`removeClient(int fd)` のみ**（`interface.md` L153: 呼び出し元 Server / B） |
 | B 層の典型シーン | **QUIT** — 状態掃除後に `removeClient(fd)`。Channel 掃除はその内部処理 |
 | 参考実装 | `references/ft_IRC-InternetRelayChat-`: Quit から `removeClientFromAllChannels` を呼ぶが、本設計では `removeClient` に集約 |
@@ -102,7 +102,7 @@ MVP では `ChannelService` 未分離。`CommandDispatcher` が `canInvite` 判�
 
 | ファイル | 変更 |
 |----------|------|
-| `ref_interface.md` | `removeClientFromAllChannels` を公開 API 表から削除 |
+| `b_implementation_reader.md` | `removeClientFromAllChannels` を公開 API 表から削除 |
 | `interface.md` | 本決定へのリンク、invite 命名注釈 |
 | `decision_error_handling.md` | 所有権・削除経路 |
 
