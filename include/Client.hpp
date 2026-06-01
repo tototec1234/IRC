@@ -1,7 +1,10 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#include <set>
 #include <string>
+
+#include "Channel.hpp"
 
 /*
   clientが所属channelを管理しない設計になっているが、
@@ -23,6 +26,7 @@ class Client {
   const std::string& getUsername() const;
   const std::string& getRealname() const;
   const std::string& getHost() const;
+  const std::set<Channel*>& getChannels() const;
   std::string getFullPrefix() const;
   void setUsername(const std::string& username);
   void setRealname(const std::string& realname);
@@ -47,6 +51,7 @@ class Client {
   int _fd;
   bool _passOk;
   bool _registered;
+  std::set<Channel*> _channels;
 };
 
 #endif
