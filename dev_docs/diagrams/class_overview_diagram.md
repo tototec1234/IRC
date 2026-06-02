@@ -5,11 +5,12 @@
 
 > **スコープ**: クラス間の関係性と公開API（`+`）のみ記載。
 > プライベートメソッド（`-`ChannelService）は省略。詳細は実装フェーズで決定。
-> 契約憲章 → [`interface.md`](../interface.md) / 実装読み物 → [`b_implementation_reader.md`](../b_implementation_reader.md)（SSOT ではない）
+> **SSOT（契約憲章・意図）**: 層間契約の**理由・ルール・設計決定** → [`interface.md`](../interface.md)（本図と同じ契約の別視点。公開 API の正は本図）  
+> **実装読み物（B層主読者）**: [`b_implementation_reader.md`](../b_implementation_reader.md) — SSOT ではない
 
 > 作成日: 2026-05-23
 > 用途: MTG資料（印刷用ペラ1枚）
-> 設計原則: [class_diagram_design_principles.md](../learning/class_diagram_design_principles.md) このmdは学習メモ的なものです
+> 設計原則（オンボ必読）: [class_diagram_design_principles.md](../learning/class_diagram_design_principles.md) — 本図の読み方・SSOT の役割分担
 
 ---
 

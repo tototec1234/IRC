@@ -69,7 +69,8 @@ flowchart LR
 .
 
 ## 【仕様】ircserv 内部構成
-> アーキテクチャ: どう構成する？ 
+> **図の種類**: 処理フロー図（Mermaid flowchart）。静的なクラス関係・公開 API は [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) を参照。
+> アーキテクチャ: どう構成する？
 ```mermaid
 flowchart TB
     subgraph A["A担当: Network / IO"]
