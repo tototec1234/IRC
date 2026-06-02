@@ -5,12 +5,15 @@ CXXFLAGS    = -Wall -Wextra -Werror -std=c++98
 
 INCLUDES    = -I../../include -I.
 
-SRC_DIR     = ../../src/logic
+SRC_DIR     = ../../src/c
 SRCS_LOGIC  = $(SRC_DIR)/ServerState.cpp \
               $(SRC_DIR)/Client.cpp \
+              $(SRC_DIR)/ClientRegistry.cpp \
+              $(SRC_DIR)/Channel.cpp \
+              $(SRC_DIR)/ChannelModes.cpp \
+              $(SRC_DIR)/Utils.cpp
 
-
-SRCS_TEST   = test_main.cpp \
+SRCS_TEST   = test_main.cpp
 
 OBJS_LOGIC  = $(notdir $(SRCS_LOGIC:.cpp=.o))
 OBJS_TEST   = $(SRCS_TEST:.cpp=.o)
