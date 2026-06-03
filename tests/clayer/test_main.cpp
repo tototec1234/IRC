@@ -12,8 +12,8 @@ namespace {
 int g_failed = 0;
 int g_passed = 0;
 
-void expectTrue(bool condition, const std::string& expr, const std::string& file,
-                int line) {
+void expectTrue(bool condition, const std::string& expr,
+                const std::string& file, int line) {
   if (condition) {
     ++g_passed;
     return;
@@ -40,8 +40,9 @@ void expectEqual(const T& expected, const U& actual, const std::string& expr,
 
 #define EXPECT_TRUE(expr) expectTrue((expr), #expr, __FILE__, __LINE__)
 #define EXPECT_FALSE(expr) expectFalse((expr), #expr, __FILE__, __LINE__)
-#define EXPECT_EQ(expected, actual) \
-  expectEqual((expected), (actual), #expected " == " #actual, __FILE__, __LINE__)
+#define EXPECT_EQ(expected, actual)                                     \
+  expectEqual((expected), (actual), #expected " == " #actual, __FILE__, \
+              __LINE__)
 
 Client* addClientWithNick(ServerState& state, int fd, const std::string& nick) {
   state.addClient(fd);
@@ -102,8 +103,15 @@ void testChannelModesAndLocalState() {
   EXPECT_EQ(std::string("secret"), modes.getKey());
   EXPECT_EQ(42, modes.getLimit());
 
-  modes.unsetKey();
-  modes.unsetLimit();
+  modes.setLimit(0);
+  EXPECT_EQ(42, modes.getLimit());
+  modes.setLimit(-2);
+  EXPECT_EQ(42, modes.getLimit());
+  modes.setLimit(-1);
+  EXPECT_EQ(-1, modes.getLimit());
+
+  modes.unSetKey();
+  modes.unSetLimit();
   EXPECT_FALSE(modes.hasKey());
   EXPECT_EQ(std::string(""), modes.getKey());
   EXPECT_EQ(-1, modes.getLimit());
@@ -159,6 +167,21 @@ void testInviteCleanup() {
 
   Channel* joined = state.addClientToChannel(inviter, "#joined");
   Channel* inviteOnly = state.getOrCreateChannel("#invite-only");
+  state.inviteClientToChannel(invited, inviteOnly);
+  EXPECT_TRUE(inviteOnly->isInvited(invited));
+
+  inviteOnly->getModes().setInviteOnly(false);
+  state.inviteClientToChannel(invited, inviteOnly);
+  EXPECT_TRUE(inviteOnly->isInvited(invited));
+  inviteOnly->getModes().setInviteOnly(true);
+  EXPECT_TRUE(inviteOnly->isInvited(invited));
+  inviteOnly->getModes().setInviteOnly(false);
+  inviteOnly->getModes().setInviteOnly(true);
+  EXPECT_TRUE(inviteOnly->isInvited(invited));
+
+  Channel* joinedByInvite = state.addClientToChannel(invited, "#invite-only");
+  EXPECT_EQ(inviteOnly, joinedByInvite);
+  EXPECT_FALSE(inviteOnly->isInvited(invited));
   state.inviteClientToChannel(invited, inviteOnly);
   EXPECT_TRUE(inviteOnly->isInvited(invited));
 

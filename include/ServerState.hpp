@@ -46,11 +46,9 @@ class ServerState {
   Client* getClientByNick(const std::string& nick);
   bool nickExists(const std::string& nick) const;
   /*
-    clientのニックネームを更新する
-    返り値がvoidだと、呼び出し側はnickExistsを呼び出して重複を確認してから
-    updateNickを呼び出す必要がある
-    ここではmapのInsert時の戻り値を利用して重複があった場合は
-    boolを返すような設計に変更する
+    B層向けのnick更新Facade API。
+    実際のnick辞書更新はClientRegistryに委譲する。
+    B層はClientRegistryを直接触らず、この関数を使う。
   */
   bool updateNick(Client& client, const std::string& newNick);
   Channel* getChannel(const std::string& name);

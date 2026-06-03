@@ -7,8 +7,8 @@
 
 ClientRegistry::ClientRegistry() {}
 ClientRegistry::~ClientRegistry() {
-  for (std::map<int, Client*>::iterator it = _fd_to_client.begin();
-       it != _fd_to_client.end(); ++it) {
+  for (std::map<int, Client*>::iterator it = _fdToClient.begin();
+       it != _fdToClient.end(); ++it) {
     delete it->second;
   }
 }
@@ -18,45 +18,38 @@ void ClientRegistry::addClient(int fd) {
     return;
   }
   Client* client = new Client(fd);
-  _fd_to_client.insert(std::make_pair(fd, client));
+  _fdToClient.insert(std::make_pair(fd, client));
 }
 
 void ClientRegistry::removeClient(int fd) {
   Client* client = getClientByFd(fd);
   if (client) {
-    _nickname_to_client.erase(client->getNick());
-    _fd_to_client.erase(fd);
+    _nicknameToClient.erase(client->getNick());
+    _fdToClient.erase(fd);
     delete client;
   }
 }
 
 Client* ClientRegistry::getClientByFd(int fd) {
-  std::map<int, Client*>::iterator it = _fd_to_client.find(fd);
-  if (it != _fd_to_client.end()) {
+  std::map<int, Client*>::iterator it = _fdToClient.find(fd);
+  if (it != _fdToClient.end()) {
     return it->second;
   }
   return NULL;
 }
 
 Client* ClientRegistry::getClientByNick(const std::string& nick) {
-  std::map<std::string, Client*>::iterator it = _nickname_to_client.find(nick);
-  if (it != _nickname_to_client.end()) {
+  std::map<std::string, Client*>::iterator it = _nicknameToClient.find(nick);
+  if (it != _nicknameToClient.end()) {
     return it->second;
   }
   return NULL;
 }
 
 bool ClientRegistry::nickExists(const std::string& nick) const {
-  return _nickname_to_client.find(nick) != _nickname_to_client.end();
+  return _nicknameToClient.find(nick) != _nicknameToClient.end();
 }
 
-/*
-  testscenario
-  1. oldnick is newnick
-  2. newnick already exists (another client has the same nick)
-  3. oldnick is empty (first time setting nick)
-  4. normal case
-*/
 bool ClientRegistry::updateNick(Client& client, const std::string& newNick) {
   std::string oldNick = client.getNick();
 
@@ -66,9 +59,9 @@ bool ClientRegistry::updateNick(Client& client, const std::string& newNick) {
   }
 
   // 2. 存在確認 (IrcStringCompareによる大文字小文字を無視した検索)
-  MapIt it = _nickname_to_client.find(newNick);
+  MapIt it = _nicknameToClient.find(newNick);
 
-  if (it != _nickname_to_client.end()) {
+  if (it != _nicknameToClient.end()) {
     // 存在するが、その所有者が自分自身ではない場合（＝他人が使っている）
     if (it->second != &client) {
       return false;  // 衝突 (ERR_NICKNAMEINUSE)
@@ -79,10 +72,10 @@ bool ClientRegistry::updateNick(Client& client, const std::string& newNick) {
 
   // 3. マップの更新
   if (!oldNick.empty()) {
-    _nickname_to_client.erase(oldNick);
+    _nicknameToClient.erase(oldNick);
   }
 
-  _nickname_to_client.insert(std::make_pair(newNick, &client));
+  _nicknameToClient.insert(std::make_pair(newNick, &client));
   client._unsafe_setNick(newNick);
 
   return true;

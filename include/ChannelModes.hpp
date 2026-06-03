@@ -16,16 +16,15 @@ class ChannelModes {
   void setKey(const std::string& key);
   std::string getKey() const;
   int getLimit() const;
-  // 最大値どうする？
-  // 呼び出し側が適切な値を渡すこと
+  // Accepts 1 or greater, or -1 for no limit.
   void setLimit(int limit);
-  void unsetKey();
-  void unsetLimit();
+  void unSetKey();
+  void unSetLimit();
 
  private:
   bool _inviteOnly;
-  bool _topicrestricted;
-  bool _haskey;
+  bool _topicRestricted;
+  bool _hasKey;
   std::string _key;
   int _limit;  // -1 indicates no limit
 };

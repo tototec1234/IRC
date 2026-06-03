@@ -33,6 +33,8 @@ C層は `Client`、`Channel`、`ChannelModes`、`ClientRegistry`、`ServerState`
 - invite は `Channel` 側に保持されること
 - client 削除時に member / operator / invite 参照が cleanup されること
 - `ChannelModes` が `+i`, `+t`, `+k`, `+l` の状態を保持できること
+- `ChannelModes::setLimit()` が C層の最終防衛ラインとして不正値を保持しないこと
+- INVITE 通知とサーバ内部の招待券の仕様が C層状態として固定されること
 
 ## 対象外
 
@@ -84,6 +86,8 @@ tests/clayer/
 ### Channel
 
 - `ChannelModes` の初期値が期待通りである
+- `ChannelModes::setLimit` が `1` 以上と `-1` だけを受け入れる
+- `ChannelModes::setLimit` が `0` や `-2` 以下を no-op として扱う
 - `setTopic` / `getTopic` が topic を保持する
 - `setOperator` が member の operator 状態を更新する
 - invite 追加・確認・削除ができる
@@ -99,6 +103,9 @@ tests/clayer/
 ### ServerState invite cleanup
 
 - `inviteClientToChannel` が `Channel` 側 invite list に client を追加する
+- channel が `+i` か `-i` かにかかわらず、成功した INVITE は invite list に追加される
+- `+i` / `-i` の mode 切替で invite list が clear されない
+- JOIN 成功時に invite が消費される
 - `removeInviteFromChannel` が invite list から client を削除する
 - `removeClient` が、client が参加していない channel の invite list からも client を削除する
 
@@ -107,6 +114,28 @@ tests/clayer/
 - `removeClient` が所属する全 channel から client を削除する
 - `removeClient` が空 channel を削除する
 - `removeClient` 後に fd / nick lookup から client が取得できない
+
+## 仕様固定としてのテスト
+
+一部のテストは、単なる実装確認ではなく、仕様判断を固定する目的を持つ。
+
+### `ChannelModes::setLimit`
+
+`MODE +l` の文字列解析や numeric reply の判断は B層の責務である。
+
+ただし C層では、状態を壊さないための最終防衛ラインとして、`limit >= 1` または `limit == -1` のみを保持する。
+
+この方針は [channel_limit_policy.md](../knowledge/channel_limit_policy.md) に整理する。
+
+### INVITE 招待券
+
+本実装では、INVITE 通知とサーバ内部の招待券を別概念として扱う。
+
+`/invite` が成功した場合、channel が `+i` か `-i` かにかかわらず invite list に追加する。また、`+i` / `-i` の mode 切替では invite list を clear しない。
+
+JOIN 成功時には invite を消費し、client の QUIT / disconnect 時には `ServerState` が cleanup する。
+
+この方針は [invite_ticket_policy.md](../knowledge/invite_ticket_policy.md) に整理する。
 
 ## 実行コマンド
 
