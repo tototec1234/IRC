@@ -1,6 +1,8 @@
 # オンボーディング: B担当（Protocol / Command）
 
-> 作成日: 2026-05-24
+> 作成日: 2026-05-24  
+> 更新日: 2026-06-01  
+> 更新者: torinoue  
 > 対象: B担当（Parser, Message, CommandDispatcher, ReplyBuilder）
 > 所要時間: 約30分で読める
 
@@ -295,7 +297,7 @@ if (!ch->isOperator(client)) {
 | 1 | **このファイル** | 全体像把握 | 10分 |
 | 2 | `reading_guide_common.md` | 共通概念、データフロー図 | 10分 |
 | 3 | `design.md` Section 3.2 | Protocol/Command層の詳細設計 | 15分 |
-| 4 | `interface.md` Section 6 | Parser, Dispatcher, ReplyBuilderの関数一覧 | 20分 |
+| 4 | [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) + [`b_implementation_reader.md`](../b_implementation_reader.md) §6 + [`interface.md`](../interface.md) §3 | B層 公開 API・実装リーダー・契約 | 20分 |
 | 5 | `reading_guide_B.md` | B担当向け詳細ガイド | 10分 |
 
 **RFC（必須）:**

@@ -1,6 +1,8 @@
 # オンボーディング: C2担当（hanako）
 
-> 作成日: 2026-05-23
+> 作成日: 2026-05-23  
+> 更新日: 2026-06-01  
+> 更新者: torinoue  
 > 対象: hanako（C2担当: Channel）
 > 所要時間: 約30分で読める
 
@@ -134,7 +136,7 @@ JOIN #newchannel   ← 存在しないチャンネルに入ろうとした
 | 1 | **このファイル** | 全体像把握 | 10分 |
 | 2 | `reading_guide_common.md` | 共通概念、データフロー図 | 10分 |
 | 3 | `design.md` Section 3.4, 7 | Channel/ChannelModesの詳細設計 | 20分 |
-| 4 | `interface.md` Section 8 | Channel/ChannelModesの関数一覧 | 15分 |
+| 4 | [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) + [`interface.md`](../interface.md) §5 + [`b_implementation_reader.md`](../b_implementation_reader.md) §8 | Channel/ChannelModes 公開 API・契約・呼び出し元 | 15分 |
 | 5 | `reading_guide_C2.md` | C2向け詳細ガイド | 10分 |
 
 **RFC（後で読む）:**
