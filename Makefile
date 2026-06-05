@@ -23,14 +23,17 @@ $(NAME): $(OBJS)
 clean:
 	rm -f $(OBJS)
 	$(MAKE) -C tests/clayer clean
+	$(MAKE) -C tests/blayer clean
 
 fclean: clean
 	rm -f $(NAME)
 	$(MAKE) -C tests/clayer fclean
+	$(MAKE) -C tests/blayer fclean
 
 re: fclean all
 
 test:
 	$(MAKE) -C tests/clayer run
+	$(MAKE) -C tests/blayer run
 
 .PHONY: all clean fclean re test
