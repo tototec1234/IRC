@@ -88,7 +88,7 @@ int ret = poll(&fds[0], fds.size(), -1);
 
 > `Connection` と `Client` はfdで紐づくが、責務は明確に分離する。
 
-`ref_interface.md` Section 5.2:
+`b_implementation_reader.md` Section 5.2:
 
 > `Connection` はIRCコマンドの意味を知らない。
 
@@ -137,5 +137,5 @@ Connection は純粋に I/O の責務に集中し、Server の内部構造（辞
 | ドキュメント | 内容 |
 |-------------|------|
 | `design.md` | Section 2.2: TCP接続とIRC状態の分離 |
-| `ref_interface.md` | Section 5.2: Connection インターフェース |
+| `b_implementation_reader.md` | Section 5.2: Connection インターフェース |
 | `diagrams/class_overview_diagram.md` | クラス図（Server, Connection） |

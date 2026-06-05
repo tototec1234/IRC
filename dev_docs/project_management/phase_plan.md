@@ -275,8 +275,9 @@ Inception と同様の Navigator/Driver モデルを採用。
 
 > **設計完了基準**
 >
-> - クラス図が SSOT として確定（`class_overview_diagram.md`）
-> - インターフェース仕様が文書化（`interface.md`, `ref_interface.md`）
+> - 公開 API・クラス関係が SSOT として確定（`class_overview_diagram.md`）
+> - 契約の理由・ルールが SSOT として確定（`interface.md`）
+> - B層実装リーダーが整備（`b_implementation_reader.md`、非 SSOT）
 > - データフロー図が確定（`data_flow_diagram.md`）
 > - 実装依存関係が明確化（`development_dependency_diagram.md`）
 > - チーム全員が設計を理解・合意

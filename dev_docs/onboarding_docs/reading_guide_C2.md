@@ -1,7 +1,9 @@
 # 読書ガイド: C2担当（Channel）
 
-> 対象: C2担当（Channel, ChannelModes, ChannelService）
-> 作成日: 2026-05-23
+> 対象: C2担当（Channel, ChannelModes, ChannelService）  
+> 作成日: 2026-05-23  
+> 更新日: 2026-06-01  
+> 更新者: torinoue  
 > ステータス: **次回セッションで詳細化予定**
 
 ---
@@ -24,7 +26,7 @@ C2担当はチャンネル管理を担当。
 | リソース | 該当箇所 | 内容 |
 |---------|----------|------|
 | design.md | Section 3.4, 7 | Channel/ChannelModesの責務 |
-| interface.md | Section 9, 10 | Channel, ChannelModesの関数仕様 |
+| [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md), [`interface.md`](../interface.md) §5, [`b_implementation_reader.md`](../b_implementation_reader.md) §8 | — | Channel/ChannelModes 公開 API・契約・呼び出し元 |
 | [RFC 1459](https://www.rfc-editor.org/rfc/rfc1459) | Section 1.3, 4.2 | チャンネル仕様、JOIN/PART/KICK等 |
 | [RFC 2812](https://www.rfc-editor.org/rfc/rfc2812) | Section 3.2 | チャンネルコマンド詳細 |
 

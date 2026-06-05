@@ -1,7 +1,9 @@
 # 読書ガイド: 共通
 
-> 対象: 全担当者（A, B, C1, C2）
-> 作成日: 2026-05-23
+> 対象: 全担当者（A, B, C1, C2）  
+> 作成日: 2026-05-23  
+> 更新日: 2026-06-01  
+> 更新者: torinoue  
 > ステータス: 確定
 
 ---
@@ -67,7 +69,8 @@ flowchart LR
 .
 
 ## 【仕様】ircserv 内部構成
-> アーキテクチャ: どう構成する？ 
+> **図の種類**: 処理フロー図（Mermaid flowchart）。静的なクラス関係・公開 API は [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) を参照。
+> アーキテクチャ: どう構成する？
 ```mermaid
 flowchart TB
     subgraph A["A担当: Network / IO"]
@@ -112,8 +115,9 @@ flowchart TB
 | リソース | 用途 |
 |---------|------|
 | [design.md](../design.md) | 全体設計、責務分割（SSOT） |
-| [ref_interface.md](../ref_interface.md) | Server / Connection API 詳細 |
-| [interface.md](../interface.md) | 各クラスのインターフェース |
+| [b_implementation_reader.md](../b_implementation_reader.md) | 実装読み物（B層主読者。SSOT ではない） |
+| [`interface.md`](../interface.md) | 契約憲章 — 理由・ルール（SSOT） |
+| [class_overview_diagram.md](../diagrams/class_overview_diagram.md) | 公開 API・クラス関係（SSOT） |
 | [RFC 1459](https://datatracker.ietf.org/doc/html/rfc1459) | IRCプロトコル基本仕様 |
 | [RFC 2812](https://datatracker.ietf.org/doc/html/rfc2812) | IRCクライアントプロトコル詳細 |
 

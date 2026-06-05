@@ -2,7 +2,7 @@
 
 > **ステータス**: スケルトン（2026-05-29）  
 > **セッション**: #0006  
-> **SSOT**: 実装状況の詳細は本ファイルで管理（今後更新）。設計は [design.md](./design.md)、API 契約は [interface.md](./interface.md)。
+> **SSOT**: 実装状況の詳細は本ファイルで管理（今後更新）。設計は [design.md](./design.md)、契約の理由・ルールは [interface.md](./interface.md)、公開 API は [class_overview_diagram.md](./diagrams/class_overview_diagram.md)。
 
 ---
 
@@ -36,7 +36,7 @@
 | クラス / タスク | 状態 | 担当 | 備考 |
 |----------------|------|------|------|
 | Server | ⬜ | A | `interface.md` §2 準拠。poll 単一ループ、`applyCommandResult` / `sendTo`（`design.md` §10.2） |
-| Connection | ⬜ | A | fd 自己保持、recv/send buffer、complete line、POLLOUT 連動（`ref_interface.md` §5.2） |
+| Connection | ⬜ | A | 公開 API: [`class_overview_diagram.md`](./diagrams/class_overview_diagram.md)（Connection）。呼び出し元・補足: [`b_implementation_reader.md`](./b_implementation_reader.md) §5.2 |
 | Poller | ⏸ | A | optional |
 | ConnectionManager | ⏸ | A | optional |
 

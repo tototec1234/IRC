@@ -1,6 +1,8 @@
 # オンボーディング: A担当（Network / IO）
 
-> 作成日: 2026-05-24
+> 作成日: 2026-05-24  
+> 更新日: 2026-06-01  
+> 更新者: torinoue  
 > 対象: A担当（Server, Connection）
 > 所要時間: 約30分で読める
 
@@ -133,7 +135,7 @@ class Connection {
     std::string _recvBuffer;  // 受信データ蓄積
     std::string _sendBuffer;  // 送信待ちデータ
     
-    // メソッドは ref_interface.md 参照
+    // メソッドは b_implementation_reader.md 参照
 };
 ```
 
@@ -198,7 +200,7 @@ for (each reply in result.replies) {
 | 2   | `reading_guide_common.md`      | 共通概念、データフロー図                | 10分  |
 | 3   | `bircd_learning_curriculum.md` | bircd → Server.cpp 学習プラン    | 30分  |
 | 4   | `design.md` Section 3.1, 5     | Network/IO層、Connectionの詳細設計 | 20分  |
-| 5   | `interface.md` Section 5       | Server/Connectionの関数一覧      | 15分  |
+| 5   | [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) + [`b_implementation_reader.md`](../b_implementation_reader.md) §5 + [`interface.md`](../interface.md) §2 | Server/Connection 公開 API・呼び出し元・契約 | 15分  |
 | 6   | `reading_guide_A.md`           | A担当向け詳細ガイド                  | 10分  |
 | 7   | `bircd/bircd_learning_curriculum.md` Phase 5 | poll() 実践・C++98 化の学習プラン | 30分  |
 

@@ -1,6 +1,8 @@
 # オンボーディング: C1担当（taro）
 
-> 作成日: 2026-05-23
+> 作成日: 2026-05-23  
+> 更新日: 2026-06-01  
+> 更新者: torinoue  
 > 対象: taro（C1担当: Client / ServerState）
 > 所要時間: 約30分で読める
 
@@ -141,7 +143,7 @@ state.updateNick(client, "newNick");
 | 1 | **このファイル** | 全体像把握 | 10分 |
 | 2 | `reading_guide_common.md` | 共通概念、データフロー図 | 10分 |
 | 3 | `design.md` Section 3.3, 5, 6 | Client/ServerStateの詳細設計 | 20分 |
-| 4 | `interface.md` Section 7 | Client/ServerStateの関数一覧 | 15分 |
+| 4 | [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) + [`interface.md`](../interface.md) §4 + [`b_implementation_reader.md`](../b_implementation_reader.md) §7 | Client/ServerState 公開 API・契約・呼び出し元 | 15分 |
 | 5 | `reading_guide_C1.md` | C1向け詳細ガイド | 10分 |
 
 **RFC（後で読む）:**

@@ -2,7 +2,7 @@
 
 > **ステータス**: 決定（2026-05-29）  
 > **セッション**: #0006  
-> **関連**: [proposal_stubs_20260523.md](./proposal_stubs_20260523.md)（C1/C2 スタブ）, [interface.md](./interface.md), [ref_interface.md](./ref_interface.md), [b_layer_reply_result_flow.md](./b_layer_reply_result_flow.md)
+> **関連**: [proposal_stubs_20260523.md](./proposal_stubs_20260523.md)（C1/C2 スタブ）, [interface.md](./interface.md), [b_implementation_reader.md](./b_implementation_reader.md), [b_layer_reply_result_flow.md](./b_layer_reply_result_flow.md)
 
 ---
 
@@ -20,8 +20,8 @@ C1/C2 未完成でも A↔B 境界（complete line → `CommandResult`）を検�
 |--------|----------|------|
 | **Parser** | ✅ 実装 | 1 行 → `Message`（最低限: command + params 分割） |
 | **CommandDispatcher** | ✅ 最小 | 未知コマンドは echo、`PING` → `PONG` 程度 |
-| **Message** | ✅ 実装 | `interface.md` 準拠 |
-| **CommandResult** | ✅ 実装 | `ref_interface.md` §4.2 準拠で新規実装 |
+| **Message** | ✅ 実装 | [`class_overview_diagram.md`](./diagrams/class_overview_diagram.md) + [`interface.md`](./interface.md) §3.1 に整合 |
+| **CommandResult** | ✅ 実装 | 契約は [`interface.md`](./interface.md) §1、構造参考は [`b_implementation_reader.md`](./b_implementation_reader.md) §4.2 |
 | **ReplyBuilder** | ⏸ 後回し | Dispatcher が固定文字列で返す |
 | **C1/C2** | ✅ 流用 | `proposal_stubs_20260523.md` のスタブを使用 |
 
@@ -44,7 +44,7 @@ IRC_torinoue/
     c2/
 ```
 
-**方針 md 先行。** スタブコード本体は Phase 4 着手時に `IRC_torinoue/stubs/` へ新規作成（SSOT: `interface.md`, `ref_interface.md`）。
+**方針 md 先行。** スタブコード本体は Phase 4 着手時に `IRC_torinoue/stubs/` へ新規作成（公開 API: [`class_overview_diagram.md`](./diagrams/class_overview_diagram.md)、契約憲章: [`interface.md`](./interface.md)、実装読み物: [`b_implementation_reader.md`](./b_implementation_reader.md)）。
 
 ---
 
@@ -97,7 +97,7 @@ B 層スタブテストでは **C1 ServerStateStub を必須**、C2 は JOIN/INV
 ## 7. 実装順序
 
 1. `Message` + `Parser`（B 単体）
-2. `CommandResult`（`ref_interface.md` §4.2 準拠で新規実装）
+2. `CommandResult`（契約: [`interface.md`](./interface.md) §1、構造参考: [`b_implementation_reader.md`](./b_implementation_reader.md) §4.2）
 3. `CommandDispatcher` echo 版
 4. C1 スタブ移植（proposal から）
 5. A 層と結合
