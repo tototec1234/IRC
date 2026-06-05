@@ -1,7 +1,7 @@
 # 層間インターフェース仕様
 
 > **SSOT（契約憲章）**: 層間契約の**理由・ルール・設計決定**を定める。経緯と「なぜそうなったか」を読むための憲章的ドキュメント。  
-> **公開 API の正**: [`diagrams/class_overview_diagram.md`](./diagrams/class_overview_diagram.md)  
+> **公開 API のSSOT**: [`diagrams/class_overview_diagram.md`](./diagrams/class_overview_diagram.md)  
 > **実装読み物（B層主読者）**: [`b_implementation_reader.md`](./b_implementation_reader.md) — SSOT ではない  
 > 各層の責務は [`design.md`](./design.md) を参照。
 
