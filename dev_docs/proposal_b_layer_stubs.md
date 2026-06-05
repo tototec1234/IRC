@@ -2,7 +2,7 @@
 
 > **ステータス**: 決定（2026-05-29）  
 > **セッション**: #0006  
-> **関連**: [proposal_stubs_20260523.md](./proposal_stubs_20260523.md)（C1/C2 スタブ）, [interface.md](./interface.md), [b_implementation_reader.md](./b_implementation_reader.md)
+> **関連**: [proposal_stubs_20260523.md](./proposal_stubs_20260523.md)（C1/C2 スタブ）, [interface.md](./interface.md), [b_implementation_reader.md](./b_implementation_reader.md), [b_layer_reply_result_flow.md](./b_layer_reply_result_flow.md)
 
 ---
 
