@@ -35,13 +35,15 @@
 
 ## 2. Design Policy
 
-本プロジェクトでは、IRCサーバを以下の4つの層に分けて実装する。
+本プロジェクトでは、IRCサーバを以下の3つの主要層と C層内の役割に分けて実装する。
 
 ```text
 Network / IO
 Protocol / Command
-Client / ServerState
-Channel
+C Layer
+  - ServerState facade / ownership
+  - ClientRegistry internal registry
+  - Client / Channel / ChannelModes entities
 ```
 
 ### 2.1 完全ノンブロッキング & 単一 poll() の徹底
@@ -61,8 +63,9 @@ Channel
 
 ### 2.3 状態とロジックの整理
 
-- `Channel` はチャンネル内の状態を管理する。
-- `ServerState` はサーバ全体の辞書を集中管理する。
+- `ServerState` は C層の facade として、所有、辞書、Client-Channel 関係同期、cleanup を管理する。
+- `ClientRegistry` は `ServerState` 内部の fd / nick registry を管理する。
+- `Client`, `Channel`, `ChannelModes` は IRC 状態を表す entity として局所状態を管理する。
 - `Parser` は文字列をIRCメッセージ構造に変換する。
 - `CommandDispatcher` はコマンド処理の入口を担当する。
 - `ReplyBuilder` は返信文字列の生成に責務を限定する。
@@ -154,62 +157,31 @@ CommandDispatcher は Server / Connection / Poller / ConnectionManager を直接
 
 ---
 
-### 3.3 Client / ServerState Layer
+### 3.3 C Layer
 
-担当: C1
+担当: C
 
 #### 主なクラス
 
-- `Client`
 - `ServerState`
-
-#### 必要に応じて分離するクラス
-
 - `ClientRegistry`
-
-#### 責務
-
-- IRC上のClient状態、認証状態、登録状態を管理する。
-- fdからClientを引く。
-- nickからClientを引く。
-- nickの重複確認、および変更時の辞書更新を行う。
-- 全体の辞書、つまり fd / nick / channel を保持する。
-- Clientの生成・削除のライフサイクルを管理する。
-- Client削除時に、そのClientが参加・招待・operator登録されている全Channelから参照を除去する。
-
-#### 補足
-
-`ClientRegistry` は、`ServerState` が肥大化した場合に分離する補助クラスとする。初期実装では必須ではない。
-
----
-
-### 3.4 Channel Layer
-
-担当: C2
-
-#### 主なクラス
-
+- `Client`
 - `Channel`
 - `ChannelModes`
 
-#### 必要に応じて分離するクラス
-
-- `ChannelService`
-
 #### 責務
 
-- channel名を管理する。
-- 参加memberを管理する。
-- channel operatorを管理する。
-- topicを管理する。
-- invited listを管理する。
-- channel mode（`+i`, `+t`, `+k`, `+l`）を管理する。
-- `JOIN` / `KICK` / `INVITE` / `TOPIC` / `MODE` のChannel側内部処理を担当する。
-- 新規Channel作成直後、最初に参加したClientをChannel Operatorにする。
+- `ServerState` は B層向け facade として C層状態更新の窓口になる。
+- `ServerState` は Client / Channel を所有し、Client 削除時の cleanup を行う。
+- `ServerState` は Client と Channel の参加関係を同期する。
+- `ClientRegistry` は fd / nick から Client を引く内部 registry を担う。
+- `Client` は IRC user 状態、認証状態、登録状態、所属 Channel cache を管理する。
+- `Channel` は member / operator / invite / topic を管理する。
+- `ChannelModes` は `+i`, `+t`, `+k`, `+l` の状態を管理する。
 
 #### 補足
 
-`ChannelService` は、`CommandDispatcher` が肥大化した場合に分離する補助クラスとする。初期実装では必須ではない。
+`ChannelService` は、CommandDispatcher の channel 操作が肥大化した場合に検討する補助クラスである。初期実装では必須ではない。
 
 ---
 
@@ -296,10 +268,12 @@ Connection が send() で send buffer のデータをノンブロッキング送
 - `host`（接続元ホスト）
 - `PASS` 成功状態
 - 登録完了状態
+- 所属Channel cache
 
 #### 主なメソッド
 
 - `getFd()`, `getNick()`, `getUsername()`, `getRealname()`, `getHost()` — 各フィールドのgetter
+- `getChannels()` — 所属Channel一覧を返す
 - `getFullPrefix()` — `nick!user@host` 形式を返す（RFC 1459 Section 2.3 準拠）
 - `isRegistered()`, `isPassOk()`, `canRegister()`, `markRegistered()` — 状態管理
 
@@ -309,6 +283,7 @@ Connection が send() で send buffer のデータをノンブロッキング送
 - 自身のusernameを保持する。
 - 自身のrealnameを保持する。
 - 自身のIRC登録状態・認証状態を保持する。
+- 所属Channelのcacheを保持する。
 
 #### やらないこと
 
@@ -316,12 +291,14 @@ Connection が send() で send buffer のデータをノンブロッキング送
 - socketへ直接書く。
 - recv bufferを持つ。
 - send bufferを持つ。
+- nick辞書を直接更新する。
+- Channelのmember状態を単独で更新する。
 
 ---
 
 ## 6. ServerState
 
-`ServerState` はサーバ全体の状態辞書を管理する。
+`ServerState` は C層の facade として、サーバ全体の状態辞書、所有、Client-Channel 関係同期、cleanup を管理する。
 
 ### 6.1 保持する主な辞書
 
@@ -331,14 +308,18 @@ nick    -> Client
 channel -> Channel
 ```
 
+fd / nick の registry 実体は `ClientRegistry` に委譲する。B層は `ClientRegistry` を直接触らず、`ServerState` の公開 API を使う。
+
 ### 6.2 主な責務
 
 - Clientの追加・削除。
 - fdからClientを検索する。
 - nickからClientを検索する。
 - nick重複チェックを行う。
-- nick変更時に `nick -> Client` 辞書を更新する。
+- nick変更時に `Client` cache と `nick -> Client` 辞書を同期する。
 - Channelの取得・作成を行う。
+- Client と Channel の参加関係を同期する。
+- invite list の追加・削除・client削除時 cleanup を行う。
 - 空になったChannelを削除する。
 - Client削除時に、全Channelから該当Clientへの参照を除去する。
 
@@ -349,7 +330,7 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 NG:
 
 ```cpp
-client.setNick(newNick);
+client._unsafe_setNick(newNick);
 ```
 
 OK:
@@ -362,14 +343,31 @@ state.updateNick(client, newNick);
 
 `Client` のnickだけを直接変更すると、`ServerState` 内の `nick -> Client` 辞書が古い状態のまま残り、不整合が発生するため。
 
-### 6.4 Client Removal Rule
+実装上は `ServerState::updateNick()` が `ClientRegistry::updateNick()` に委譲する。これは facade / delegation であり、B層は `ClientRegistry` の存在を知る必要がない。
+
+### 6.4 Client-Channel Relation Rule
+
+Client と Channel の参加関係を作る/壊す操作は必ず `ServerState` を通す。
+
+OK:
+
+```cpp
+state.addClientToChannel(client, "#channel");
+state.removeClientFromChannel(client, "#channel");
+```
+
+理由:
+
+`Client` は所属Channel cacheを持ち、`Channel` はmemberを持つ。片側だけを更新すると不整合が発生するため。
+
+### 6.5 Client Removal Rule
 
 Client削除は必ず `ServerState::removeClient()` を通す。
 
 `removeClient()` は、Client本体を削除する前に以下を行う。
 
 - 参加中の全Channelからmember登録を削除する。
-- operator集合から該当Clientを削除する。
+- operator情報から該当Clientを削除する。
 - invited listから該当Clientを削除する。
 - 空になったChannelを削除する。
 - `fd -> Client` と `nick -> Client` の辞書を更新する。
@@ -388,9 +386,10 @@ IRCにおける `operator` は、サーバ管理者、つまりIRC Operatorで�
 
 ```text
 Channel
-├─ members    (参加中のClient一覧)
-├─ operators  (Operator権限を持つClient一覧)
+├─ members    (参加中のClientと、そのChannel内状態)
+│  └─ operator flag
 ├─ invited    (招待されたClient一覧)
+├─ topic      (チャンネルトピック)
 └─ modes      (チャンネルのモード状態)
 ```
 
@@ -413,7 +412,7 @@ Channelを作成する
   ↓
 JOINしたClientをmembersへ追加する
   ↓
-同じClientをoperatorsへ追加する
+同じClientにoperator権限を付与する
 ```
 
 理由:
@@ -429,7 +428,7 @@ Channel Operator専用コマンド（`KICK` / `INVITE` / `TOPIC` / `MODE`）を�
 - `+k` : channel key。チャンネル参加にパスワードを要求。
 - `+l` : user limit。最大参加人数制限。
 
-`+o` は `ChannelModes` の状態フラグではなく、`Channel::_operators` の集合で管理する。
+`+o` は `ChannelModes` の状態フラグではなく、`Channel` のmember状態として管理する。
 
 理由:
 
@@ -467,12 +466,12 @@ Channel Operator専用コマンド（`KICK` / `INVITE` / `TOPIC` / `MODE`）を�
 | Protocol / Command   | `CommandDispatcher` | 必須       | コマンド名の判定と、対応する各コマンド処理ロジックへのルーティング                   |
 | Protocol / Command   | `ReplyBuilder`      | 必須       | IRC返信文字列、Numeric Reply、Error、Broadcast用メッセージの生成     |
 | Protocol / Command   | `CommandResult`     | 必須       | コマンド処理結果。送信対象fdと送信文字列、切断要求をServerへ返すための境界オブジェクト     |
-| Client / ServerState | `Client`            | 必須       | ユーザー固有の情報、認証状態、登録状態の管理                              |
-| Client / ServerState | `ServerState`       | 必須       | `fd`, `nick`, `channel` 各種辞書の集中管理と不整合の防止            |
-| Client / ServerState | `ClientRegistry`    | 必要に応じて分離 | Client辞書分離用                                         |
-| Channel              | `Channel`           | 必須       | チャンネルの内部状態、参加者、operator、topic等の管理                   |
-| Channel              | `ChannelModes`      | 必須       | チャンネルモード（`+i`, `+t`, `+k`, `+l`）の状態管理               |
-| Channel              | `ChannelService`    | 必要に応じて分離 | Channel操作が肥大化した場合の補助ロジック                            |
+| C Layer              | `ServerState`       | 必須       | C層 facade、Client / Channel の所有、辞書管理、関係同期、cleanup     |
+| C Layer              | `ClientRegistry`    | 必須       | `fd` / `nick` から Client を引く内部 registry                  |
+| C Layer              | `Client`            | 必須       | ユーザー固有の情報、認証状態、登録状態、所属Channel cacheの管理               |
+| C Layer              | `Channel`           | 必須       | チャンネルの内部状態、参加者、operator、invite、topic等の管理             |
+| C Layer              | `ChannelModes`      | 必須       | チャンネルモード（`+i`, `+t`, `+k`, `+l`）の状態管理               |
+| C Layer              | `ChannelService`    | 必要に応じて分離 | Channel操作が肥大化した場合の補助ロジック                            |
 
 
 ---
@@ -484,8 +483,8 @@ Channel Operator専用コマンド（`KICK` / `INVITE` / `TOPIC` / `MODE`）を�
 | --- | -------------------- | -------------------------------------------------------- | ----------------------------- |
 | A   | Network / IO         | `Server`, `Connection`                                   | `Poller`, `ConnectionManager` |
 | B   | Protocol / Command   | `Message`, `Parser`, `CommandDispatcher`, `ReplyBuilder` | なし                            |
-| C1  | Client / ServerState | `Client`, `ServerState`                                  | `ClientRegistry`              |
-| C2  | Channel              | `Channel`, `ChannelModes`                                | `ChannelService`              |
+| C   | State facade / registry | `ServerState`, `ClientRegistry`                         | なし                            |
+| C   | Entities / modes        | `Client`, `Channel`, `ChannelModes`                     | `ChannelService`              |
 
 
 ---
@@ -560,7 +559,6 @@ Server（初期）
 
 - `Poller`
 - `ConnectionManager`
-- `ClientRegistry`
 - `ChannelService`
 
 ---
@@ -568,7 +566,7 @@ Server（初期）
 ## 12. Notes
 
 - 詳細な関数プロトタイプは `dev_docs/interface.md` に記載する。
+- SSOT、実装、テストの更新手順は `dev_docs/workflow.md` に記載する。
 - 実装状況は `dev_docs/roadmap.md` に記載する。
 - 課題PDF（要件）由来のメモは `dev_docs/notes/subject.md` に記載する。
 - チーム内の決定事項は `dev_docs/notes/meeting-log.md` に記載する。
-
