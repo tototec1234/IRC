@@ -2,3 +2,4 @@
 .vscode/
 *.o
 tests/*/test_runner
+*.code-workspace
