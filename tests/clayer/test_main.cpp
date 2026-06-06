@@ -2,10 +2,10 @@
 #include <string>
 #include <vector>
 
-#include "Channel.hpp"
-#include "ChannelModes.hpp"
-#include "Client.hpp"
-#include "ServerState.hpp"
+#include "c/Channel.hpp"
+#include "c/ChannelModes.hpp"
+#include "c/Client.hpp"
+#include "c/ServerState.hpp"
 
 namespace {
 

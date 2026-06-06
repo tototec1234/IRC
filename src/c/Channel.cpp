@@ -1,6 +1,6 @@
-#include "Channel.hpp"
+#include "c/Channel.hpp"
 
-#include "Client.hpp"
+#include "c/Client.hpp"
 
 Channel::Channel(const std::string& name) : _name(name) {}
 

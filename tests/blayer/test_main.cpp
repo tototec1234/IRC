@@ -2,12 +2,12 @@
 #include <string>
 #include <vector>
 
-#include "Client.hpp"
-#include "CommandDispatcher.hpp"
-#include "CommandResult.hpp"
-#include "Message.hpp"
-#include "Parser.hpp"
-#include "ServerState.hpp"
+#include "c/Client.hpp"
+#include "b/CommandDispatcher.hpp"
+#include "b/CommandResult.hpp"
+#include "b/Message.hpp"
+#include "b/Parser.hpp"
+#include "c/ServerState.hpp"
 
 namespace {
 

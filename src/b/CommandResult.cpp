@@ -1,4 +1,4 @@
-#include "CommandResult.hpp"
+#include "b/CommandResult.hpp"
 
 OutgoingMessage::OutgoingMessage(int targetFd, const std::string& text)
     : fd(targetFd), message(text) {}

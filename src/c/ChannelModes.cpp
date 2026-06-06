@@ -1,4 +1,4 @@
-#include "ChannelModes.hpp"
+#include "c/ChannelModes.hpp"
 
 ChannelModes::ChannelModes()
     : _inviteOnly(false), _topicRestricted(false), _hasKey(false), _limit(-1) {}

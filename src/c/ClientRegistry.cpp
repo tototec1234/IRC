@@ -1,9 +1,9 @@
-#include "ClientRegistry.hpp"
+#include "c/ClientRegistry.hpp"
 
 #include <utility>
 
-#include "Client.hpp"
-#include "Utils.hpp"
+#include "c/Client.hpp"
+#include "c/Utils.hpp"
 
 ClientRegistry::ClientRegistry() {}
 ClientRegistry::~ClientRegistry() {
