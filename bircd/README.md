@@ -288,6 +288,63 @@ git push origin phase-1 phase-2
 
 ---
 
+## コラム: 「bircd」という名前の由来
+
+> 公式な命名理由は Epitech 教材内に明示されておらず確証はない。以下、まず確実な部分（`d`）、続いて頭文字 `b` の有力説、同名別プロジェクトの順に併記する。
+
+### 確実な部分: 末尾の `d` = daemon
+
+Unix / Linux の慣習で、**バックグラウンドで常駐するサーバプログラム**には末尾に小文字 `d` を付ける命名規則がある。
+
+| プログラム | 正式名 |
+|------------|--------|
+| `httpd` | HTTP daemon（Apache 等） |
+| `sshd` | SSH daemon |
+| `ftpd` | FTP daemon |
+| `inetd` | Internet super-server daemon |
+| `crond` | cron daemon |
+| `syslogd` | system logger daemon |
+| `mysqld` / `mariadbd` | MySQL / MariaDB daemon |
+| **`ircd`** | **IRC daemon** |
+
+**daemon の語源:**
+- 元はギリシャ語 δαίμων (daimōn = 守護霊・精霊)
+- MIT Project MAC (1963) のスタッフが「裏で黙々と仕事をするプロセス」を Maxwell の悪魔（Maxwell's demon）になぞらえた命名
+- ユーザーと直接対話せず、システムの裏で動き続けるプロセスを指す
+
+つまり `ircd` = **IRC daemon** = IRC プロトコルを話すサーバ常駐プログラム。
+
+> 補足: ft_irc で作る `ircserv` も実質 ircd の一種だが、**fork 禁止**（課題要件）なので厳密にはフォアグラウンドで動く IRC サーバ。
+
+#### 42 の他課題でも同じ規則に遭遇する
+
+例えば後期課題 **Inception** で Docker コンテナに MariaDB を立てるとき、起動エントリポイントが `mariadbd` であることに気づく。これも当然「daemon」の `d`。歴史的には `mysqld`（MySQL daemon）が標準だったが、MariaDB 10.4 以降は `mariadbd` がデフォルト名として独立し、同じ命名規則を踏襲している。
+
+つまり 42 のカリキュラムは **「サーバ常駐プログラム = 末尾 `d`」という Unix 文化に複数の課題で繰り返し触れさせる**構造になっており、`bircd` の `d` もこの流儀の延長線上にある。`ircserv` という非 `d` 命名はむしろ **fork 禁止 ＝ 厳密には daemon ではない**ことを示唆していると読むこともできる。
+
+### 頭文字 `b` の有力説
+
+1. ⭐ **basic IRCd** — 「最小限の IRC サーバ雛形」を素直に表す。Epitech Tek2（2 年生）ネットワークプログラミング教材の文脈にぴたり合う。実際 `client_read.c` を見ても **IRC プロトコルを一切持たない TCP echo broadcaster** で、文字通り "basic"。
+2. **bare-bones IRCd** — 直訳「骨と皮だけ」。コード量・機能とも極小（<300 行）で骨格しかない。
+3. **boilerplate IRCd** — 出発点として配布される雛形。学生はここに肉付けする。Epitech 教材的位置づけに合致。
+4. **beginner('s) IRCd** — 初学者向け。Epitech Tek2 向け教材という文脈と整合。
+
+### 同名・別プロジェクト（こちらは無関係）
+
+5. **beware ircd** — 偶然同じ略称をもつ別実在の IRC サーバ（[bircd.org](https://www.bircd.org/) / [ircd.bircd.org](https://ircd.bircd.org/history.html)）。Stskeeps 作の Windows 系本格 IRCd。**Epitech 教材の bircd とは無関係**だが、語感は同じ。
+
+### 結論
+
+`d` = daemon は確実。頭文字 `b` は辞書なし正典なしだが、教材文脈と素直なネーミング規則から **basic IRCd** が最も妥当。公式 Epitech シラバスやリファレンスに明記が見つかれば、本節を更新すること。
+
+**参考リンク:**
+- [GitHub - anders/bircd](https://github.com/anders/bircd/blob/master/ircd.conf.example) — beware ircd 系の派生
+- [GitHub topics: tek2](https://github.com/topics/tek2) — Epitech Tek2 のネットワーク系プロジェクト群
+- [Wikipedia: Daemon (computing)](https://en.wikipedia.org/wiki/Daemon_(computing)) — daemon の由来と MIT の命名経緯
+- [MariaDB Knowledge Base: mariadbd Options](https://mariadb.com/kb/en/mariadbd-options/) — `mariadbd` の公式リファレンス（42 Inception 課題でおなじみ）
+
+---
+
 ## 関連リンク
 
 - カリキュラム全体: [bircd_learning_curriculum.md](bircd_learning_curriculum.md)
