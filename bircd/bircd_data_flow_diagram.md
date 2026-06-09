@@ -4,7 +4,7 @@
 > 用途: bircd 学習資料（main_loop 複数サイクルにまたがるシナリオ、poll 版／select 版の比較）
 > 参考スタイル: [`dev_docs/diagrams/data_flow_diagram.md`](../dev_docs/diagrams/data_flow_diagram.md)
 > 対象コミット:
-> - **poll 版** (現在): `3a969ec feat(bircd): Phase 2 select を poll に置き換え`
+> - **poll 版** (現在): `3a969ec feat(bircd): Phase 2 select を poll に置き換え`（コミットメッセージは履歴のためそのまま。学習段階は **Lesson 2**）
 > - **select 版** (1 コミット前): `cd88479 Initial commit`（bircd ソースファイルの編集としては直前）
 
 ---

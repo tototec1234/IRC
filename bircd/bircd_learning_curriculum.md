@@ -4,6 +4,9 @@
 > 想定時間: 10-14時間
 > 前提: C言語の基礎知識
 
+> **用語:** 本ドキュメントの **Lesson** = bircd 学習カリキュラムの段階。**Phase** = ircserv A 層の実装フェーズ（[`a_implementation_plan.md`](../a_header_tmp/a_implementation_plan.md)）。混同しないこと。対応表は [bircd_lesson_ircserv_phase_map.md](bircd_lesson_ircserv_phase_map.md)。
+
+
 ---
 
 ## 全体像
@@ -21,7 +24,7 @@ bircd (select)  ───────────▶  Server.cpp相当 (poll)
 
 ---
 
-## Phase 1: bircd 完全理解（2-3時間）
+## Lesson 1: bircd 完全理解（2-3時間）
 
 ### 目標
 - bircd のコードを読み、処理フローを説明できる
@@ -29,7 +32,7 @@ bircd (select)  ───────────▶  Server.cpp相当 (poll)
 
 ### 手順
 
-#### 1.1 ビルドと動作確認（15分）
+#### Lesson 1.1 ビルドと動作確認（15分）
 
 ```bash
 cd IRC_torinoue/bircd
@@ -45,7 +48,7 @@ nc localhost 6667   # クライアント2（別ターミナル）
 
 クライアント1で文字を打つ → クライアント2に届く（ブロードキャスト）
 
-#### 1.2 コードリーディング（1-2時間）
+#### Lesson 1.2 コードリーディング（1-2時間）
 
 **読む順番:**
 
@@ -66,7 +69,7 @@ nc localhost 6667   # クライアント2（別ターミナル）
 - [ ] `t_env` 構造体の各フィールドの役割
 - [ ] `fds[fd番号]` という直接インデックスの設計
 
-#### 1.3 フロー図作成（30分）
+#### Lesson 1.3 フロー図作成（30分）
 
 以下を自分で図示する:
 
@@ -105,13 +108,13 @@ main()
 
 ---
 
-## Phase 2: select → poll 変換（2-3時間）
+## Lesson 2: select → poll 変換（2-3時間）
 
 ### 目標
 - select() と poll() の違いを説明できる
 - bircd を poll() 版に書き換えられる
 
-### 2.1 select vs poll 比較（30分）
+### Lesson 2.1 select vs poll 比較（30分）
 
 | 項目 | select() | poll() |
 |------|----------|--------|
@@ -138,7 +141,7 @@ poll(fds, nfds, -1);
 if (fds[i].revents & POLLIN) { ... }
 ```
 
-### 2.2 poll() のイベントフラグ（15分）
+### Lesson 2.2 poll() のイベントフラグ（15分）
 
 | フラグ | events | revents | 意味 |
 |--------|--------|---------|------|
@@ -148,7 +151,7 @@ if (fds[i].revents & POLLIN) { ... }
 | `POLLHUP` | - | ✓ | 切断 |
 | `POLLNVAL` | - | ✓ | 無効なfd |
 
-### 2.3 演習: bircd を poll 版に書き換え（1.5-2時間）
+### Lesson 2.3 演習: bircd を poll 版に書き換え（1.5-2時間）
 
 **変更が必要な箇所:**
 
@@ -189,14 +192,14 @@ typedef struct s_env {
 
 ---
 
-## Phase 3: バッファリング追加（3-4時間）★最難関
+## Lesson 3: バッファリング追加（3-4時間）★最難関
 
 ### 目標
 - TCP がバイトストリームであることを体験的に理解する
 - 受信バッファで `\r\n` 切り出しを実装できる
 - 送信バッファで非同期送信を実装できる
 
-### 3.1 TCP ストリーム特性の体験（30分）
+### Lesson 3.1 TCP ストリーム特性の体験（30分）
 
 **問題を体験する実験:**
 
@@ -221,7 +224,7 @@ recv 3回目: " :World\r\n"
 
 → `recv()` の1回 ≠ メッセージの1つ
 
-### 3.2 受信バッファリング設計（1時間）
+### Lesson 3.2 受信バッファリング設計（1時間）
 
 **必要なデータ構造:**
 
@@ -291,7 +294,7 @@ void client_read(t_env *e, int cs)
 }
 ```
 
-### 3.3 送信バッファリング設計（1時間）
+### Lesson 3.3 送信バッファリング設計（1時間）
 
 **なぜ必要か:**
 - `send()` は全データを送信できるとは限らない（部分送信）
@@ -369,14 +372,14 @@ void client_write(t_env *e, int cs)
 
 ---
 
-## Phase 4: ノンブロッキングI/O（1-2時間）
+## Lesson 4: ノンブロッキングI/O（1-2時間）
 
 ### 目標
 - ノンブロッキングI/O の必要性を説明できる
 - `fcntl()` でノンブロッキング設定できる
 - `EAGAIN` を正しくハンドリングできる
 
-### 4.1 ブロッキング vs ノンブロッキング（30分）
+### Lesson 4.1 ブロッキング vs ノンブロッキング（30分）
 
 | 状況 | ブロッキング | ノンブロッキング |
 |------|-------------|-----------------|
@@ -390,7 +393,7 @@ poll() は「読める可能性がある」ことを教えるだけ。
 実際に recv() したら 0バイトだった、という状況がありうる。
 ブロッキングだとそこで止まってしまう。
 
-### 4.2 fcntl() でノンブロッキング設定（30分）
+### Lesson 4.2 fcntl() でノンブロッキング設定（30分）
 
 ```c
 #include <fcntl.h>
@@ -404,7 +407,7 @@ int client_fd = accept(server_fd, ...);
 fcntl(client_fd, F_SETFL, O_NONBLOCK);
 ```
 
-### 4.3 EAGAIN ハンドリング（30分）
+### Lesson 4.3 EAGAIN ハンドリング（30分）
 
 ```c
 void client_read(t_env *e, int cs)
@@ -446,12 +449,12 @@ void client_read(t_env *e, int cs)
 
 ---
 
-## Phase 5: C++98化（2時間）
+## Lesson 5: C++98化（2時間）
 
 ### 目標
-- Phase 1-4 の成果物を C++98 で書き直せる
+- Lesson 1-4 の成果物を C++98 で書き直せる
 
-### 5.1 データ構造の変換（1時間）
+### Lesson 5.1 データ構造の変換（1時間）
 
 | C (bircd) | C++98 |
 |-----------|-------|
@@ -460,7 +463,7 @@ void client_read(t_env *e, int cs)
 | 関数ポインタ | 仮想関数 or 単純な if 分岐 |
 | `malloc/free` | `new/delete` or コンテナ |
 
-### 5.2 クラス設計例（1時間）
+### Lesson 5.2 クラス設計例（1時間）
 
 ```cpp
 class Server {
@@ -497,7 +500,7 @@ private:
 
 ## 最終チェックリスト
 
-Phase 完了後、以下を全て説明・実装できることを確認:
+全 Lesson 完了後、以下を全て説明・実装できることを確認:
 
 ### 知識
 
@@ -521,7 +524,7 @@ Phase 完了後、以下を全て説明・実装できることを確認:
 
 ## 補助リソースまとめ
 
-| Phase | 必須リソース |
+| Lesson | 必須リソース |
 |-------|-------------|
 | 1 | 書籍2章, man socket/bind/listen/accept/select |
 | 2 | man poll |
