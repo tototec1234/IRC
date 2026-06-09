@@ -6,6 +6,10 @@
 // #include <cstring>
 // #include <string>
 #include <unistd.h> // close()
+#include <arpa/inet.h> // inet_ntoa 用
+
+static void _printRevents(short revents);
+
 
 Server::Server(int port, const std::string& pw) : _listenFd(-1) {
 
@@ -71,34 +75,65 @@ Data	*Serializer::deserialization(uintptr_t raw)
 
 Server::~Server() {
 	if (_listenFd >= 0)
-    close(_listenFd);
+	close(_listenFd);
 	std::cout << RED_COLOR << "Server デストラクタ　コールド" << RESET_COLOR << std::endl;
 }
 
 // API
 void Server::run() {
 	std::cout << "RUN RUN RUN" << std::endl;
+	int tmp = 4242;
 	while (true)
-	{
+	{	
+		/*
+		https://man7.org/linux/man-pages/man2/poll.2.html
+		*/
+
 		int ret = poll(&_pollfds[0], _pollfds.size(), -1);
-		std::cout << "ret=" << ret
-		<< " fd=" << _pollfds[0].fd
-		<< " revents=" << _pollfds[0].revents
-		<< std::endl;
+
+		// ここから
+		if (tmp != ret)
+		{
+			tmp = ret;
+			std::cout
+			<< BLUE_COLOR
+			<< "ret=" << ret // ret = ready な fd の総数（listen 限定ではない）
+			<< " fd=" << _pollfds[0].fd
+			<< " nfds=" << _pollfds.size()
+			<< " [listen] fd=" << _pollfds[0].fd
+			<< " revents="			// revents=0 → 今回の poll でイベントなし（監視は継続）
+			<< RESET_COLOR;
+			_printRevents(_pollfds[0].revents);
+			std::cout << std::endl;
+
+			for (size_t i = 0; i < _pollfds.size(); ++i)
+			{
+				std::cout << "  i=" << i << " fd=" << _pollfds[i].fd
+				<< " revents=";
+				_printRevents(_pollfds[i].revents);
+				std::cout
+				<< (_pollfds[i].fd == _listenFd ? " [listen]" : " [client]")
+				<< std::endl;
+			}
+	
+		}
+		// ここまではデバッグ出力
+		
 		if (ret < 0)
 			break; 	// errno 処理は後で
 		for (size_t i = 0; i < _pollfds.size(); ++i)
 		{
-			usleep(100000);
-			if(_pollfds[i].revents & POLLIN)
+		 // revents 走査 → listen なら _acceptClient()
+		 if(_pollfds[i].revents & POLLIN)
 			{
 				if(_pollfds[i].fd == _listenFd)
+				{
 					std::cout << "_acceptClient(); " << std::endl;
-					// _acceptClient(); // ここで accept
+					_acceptClient(); // ここで accept
 				}
+			}
 		}
-		 // TODO: revents 走査 → listen なら _acceptClient()
-		}
+	}
 }
 
 // privete methods
@@ -109,4 +144,55 @@ void Server::_addFd(int fd, short events){
 	pfd.events = events;
 	pfd.revents = 0;
 	_pollfds.push_back(pfd);
+}
+
+void Server::_acceptClient()
+{
+	int			cs;
+	struct sockaddr_in	csin;
+	socklen_t	csin_len;
+
+	csin_len = sizeof(csin);
+	cs = accept(_listenFd, (struct sockaddr *)&csin, &csin_len);
+	if (cs < 0)
+	{
+		close(_listenFd);
+		throw std::runtime_error("accept() 失敗");
+	}
+	_addFd(cs, POLLIN);
+	std::cout << GREEN_COLOR
+	<< "New client #" << cs
+	<< " from " << inet_ntoa(csin.sin_addr)
+	<< ":" << ntohs(csin.sin_port)
+	<< RESET_COLOR << std::endl;
+
+}
+
+/* #include <netinet/in.h> でsockaddr_inの中身確認するとこうなってる
+ * Socket address, internet style.
+
+ struct sockaddr_in {
+	__uint8_t       sin_len;
+	sa_family_t     sin_family;
+	in_port_t       sin_port;
+	struct  in_addr sin_addr;
+	char            sin_zero[8];
+};
+*/
+
+
+
+static void _printRevents(short revents)
+{
+	std::cout << revents;
+	if (revents == 0) {
+		std::cout << "(none)";
+		return;
+	}
+	std::cout << "[";
+	if (revents & POLLIN)  std::cout << "IN ";
+	if (revents & POLLOUT) std::cout << "OUT ";
+	if (revents & POLLERR) std::cout << "ERR ";
+	if (revents & POLLHUP) std::cout << "HUP ";
+	std::cout << "]";
 }
