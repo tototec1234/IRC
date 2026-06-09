@@ -1,10 +1,11 @@
-# Phase 2: select → poll 変換ハンズオン
+# Lesson 2: select → poll 変換ハンズオン
 
 > **作成者**: torinoue  
-> **前提:** [Phase 1](bircd_learning_curriculum.md) 必修。`select()` / `fd_set` が読めること。  
-> **ブランチ:** `learn/bircd-curriculum` / **タグ:** `phase-1`（開始）→ `phase-2`（完成）  
+> **前提:** [Lesson 1](bircd_learning_curriculum.md) 必修。`select()` / `fd_set` が読めること。  
+> **ブランチ:** `learn/bircd-curriculum` / **タグ:** `lesson-1`（開始）→ `lesson-2`（完成）  
 > **Git 初見:** タグの説明は [README.md — Git タグ入門](README.md#git-タグ入門メタ学習)  
-> **答え合わせ:** [bircd_learning_curriculum_ans.md](bircd_learning_curriculum_ans.md) Phase 2 セクション（**本ガイドに完成コードは載せない**）
+> **用語:** 本ガイドの **Lesson** = bircd 学習段階。ircserv の **Phase** とは別（[対応表](bircd_lesson_ircserv_phase_map.md)）。  
+> **答え合わせ:** [bircd_learning_curriculum_ans.md](bircd_learning_curriculum_ans.md) Lesson 2 セクション（**本ガイドに完成コードは載せない**）
 
 ---
 
@@ -18,13 +19,13 @@
 
 ## 0. 開始地点の確認
 
-Phase 1 完了時点（select 版）= タグ **`phase-1`**。
+Lesson 1 完了時点（select 版）= タグ **`lesson-1`**。
 
 ### 0.1 模範解答を見ないで自力実装する（推奨）
 
 ```bash
 git fetch origin --tags
-git checkout -b my-phase2-work phase-1
+git checkout -b my-lesson2-work lesson-1
 ```
 
 `detached HEAD` を避けるため、**必ず `-b` で作業ブランチを切る**（理由は [README](README.md#detached-head-とは注意)）。
@@ -32,19 +33,19 @@ git checkout -b my-phase2-work phase-1
 ### 0.2 select 版のコードを確認するだけ
 
 ```bash
-git show phase-1:bircd/init_fd.c | head -20
-git diff phase-1 phase-2 -- bircd/init_fd.c   # Phase 2 で何が変わるか予習（ネタバレ注意）
+git show lesson-1:bircd/init_fd.c | head -20
+git diff lesson-1 lesson-2 -- bircd/init_fd.c   # Lesson 2 で何が変わるか予習（ネタバレ注意）
 ```
 
 ### 0.3 タグのメタ確認（1分）
 
 ```bash
 git tag
-git show phase-1 --oneline --no-patch
-git show phase-2 --oneline --no-patch
+git show lesson-1 --oneline --no-patch
+git show lesson-2 --oneline --no-patch
 ```
 
-`phase-1` と `phase-2` が **別のコミット** を指していることを確認する。
+`lesson-1` と `lesson-2` が **別のコミット** を指していることを確認する。
 
 ---
 
@@ -230,7 +231,7 @@ void check_fd(t_env *e)
 
 **削除するもの:** select 版の `e->r--` ループ（poll では不要）。
 
-`POLLERR` / `POLLHUP` は Phase 3 以降で追加可。
+`POLLERR` / `POLLHUP` は Lesson 3 以降で追加可。
 
 ---
 
@@ -284,33 +285,33 @@ nc localhost 6667
 
 ## 6. 答え合わせ
 
-自分の実装と模範解答（タグ **`phase-2`**）を比較:
+自分の実装と模範解答（タグ **`lesson-2`**）を比較:
 
 ```bash
-# 自分の変更（phase-1 からの差分）
-git diff phase-1 -- bircd/
+# 自分の変更（lesson-1 からの差分）
+git diff lesson-1 -- bircd/
 
 # 模範解答との差分
-git diff my-phase2-work phase-2 -- bircd/
+git diff my-lesson2-work lesson-2 -- bircd/
 
-# Phase 1 → Phase 2 の模範 diff 全体（参考）
-git diff phase-1 phase-2 -- bircd/
+# Lesson 1 → Lesson 2 の模範 diff 全体（参考）
+git diff lesson-1 lesson-2 -- bircd/
 ```
 
 文章での解答・メモ: [bircd_learning_curriculum_ans.md](bircd_learning_curriculum_ans.md)
 
 ### Git メタ自己チェック
 
-- [ ] `git diff phase-1 phase-2` と `git diff phase-1..phase-2` の違いを調べた（通常は同じ範囲）
+- [ ] `git diff lesson-1 lesson-2` と `git diff lesson-1..lesson-2` の違いを調べた（通常は同じ範囲）
 - [ ] 模範 diff を見たあと `git checkout learn/bircd-curriculum` で戻れる
 
 ---
 
 ## 7. ft_irc への橋渡し
 
-Phase 2 が終わったら A 層を読む。
+Lesson 2 が終わったら A 層を読む。
 
-| 本 Phase（C） | ft_irc（C++98） |
+| 本 Lesson（C） | ft_irc（C++98） |
 |---------------|-----------------|
 | `pollfds[MAX_CLIENTS + 1]` 固定配列 | `std::vector<struct pollfd> _pollfds` |
 | `nfds` を毎回 0 から再計算 | `push_back` / `erase` |
@@ -321,19 +322,19 @@ Phase 2 が終わったら A 層を読む。
 
 ---
 
-## 8. 次の Phase
+## 8. 次の Lesson
 
-Phase 3（バッファリング）では:
+Lesson 3（バッファリング）では:
 
 - `recv()` が `\r\n` 単位で返ってこない問題
 - 送信バッファ + `POLLOUT` の動的 ON/OFF
 
-を追加する。Phase 2 の poll 基盤の上に載せる。
+を追加する。Lesson 2 の poll 基盤の上に載せる。
 
 ---
 
 ## 補助リソース
 
 - `man 2 poll`
-- [bircd_learning_curriculum.md](bircd_learning_curriculum.md) Phase 2 節
+- [bircd_learning_curriculum.md](bircd_learning_curriculum.md) Lesson 2 節
 - [README.md](README.md) — ブランチ・タグの使い方（Git タグ入門）

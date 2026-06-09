@@ -37,7 +37,7 @@ void check_fd(t_env *e)
 		if (e->pollfds[i].revents & POLLOUT)
 			e->fds[fd].fct_write(e, fd);
 
-		// POLLERR / POLLHUP は Phase 3 以降実装？
+		// POLLERR / POLLHUP は Lesson 3 以降実装？
 
 		i++;
 	}
