@@ -2,7 +2,7 @@
 
 > **用語**
 > - **Lesson**（本表の左列）= [bircd 学習カリキュラム](bircd_learning_curriculum.md) の段階
-> - **Phase**（本表の右列）= [ircserv A 層実装計画](../a_header_tmp/a_implementation_plan.md) の機能軸フェーズ
+> - **Phase**（本表の右列）= [ircserv A 層実装計画](../dev_docs/a_devdoc/a_implementation_plan.md) の機能軸フェーズ
 
 混同防止のため、ドキュメント上はこの2語を使い分ける。
 
@@ -25,7 +25,7 @@
 
 ## PING/PONG 結合テスト合格に必要な Phase
 
-ircserv の **Phase 5 完了**がゴール（[a_implementation_plan.md](../a_header_tmp/a_implementation_plan.md) §3）。
+ircserv の **Phase 5 完了**がゴール（[a_implementation_plan.md](../dev_docs/a_devdoc/a_implementation_plan.md) §3）。
 
 bircd Lesson だけでは足りない部分:
 
@@ -54,4 +54,4 @@ Lesson 1 → Lesson 2 → ircserv Phase 2 仕上げ
 - [bircd_learning_curriculum.md](bircd_learning_curriculum.md)
 - [lesson2_guide.md](lesson2_guide.md)
 - [README.md](README.md) — Git タグ（`lesson-1` / `lesson-2`）
-- [a_implementation_plan.md](../a_header_tmp/a_implementation_plan.md)
+- [a_implementation_plan.md](../dev_docs/a_devdoc/a_implementation_plan.md)
