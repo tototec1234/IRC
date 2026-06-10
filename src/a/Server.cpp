@@ -3,12 +3,17 @@
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
-// #include <cstring>
 // #include <string>
 #include <unistd.h> // close()
 #include <arpa/inet.h> // inet_ntoa 用
 
-static void _printRevents(short revents);
+#include <cstring>
+#include <cerrno>
+
+/*
+これはrevents挙動確認用関数です 
+*/
+static void _printRevents(short revents); 
 
 
 Server::Server(int port, const std::string& pw) : _listenFd(-1) {
@@ -121,15 +126,22 @@ void Server::run() {
 		
 		if (ret < 0)
 			break; 	// errno 処理は後で
+
+		/* revents 走査 → listen なら _acceptClient()　*/
 		for (size_t i = 0; i < _pollfds.size(); ++i)
 		{
-		 // revents 走査 → listen なら _acceptClient()
-		 if(_pollfds[i].revents & POLLIN)
+			short 	rev = _pollfds[i].revents;
+			int		fd = _pollfds[i].fd;
+			if (rev == 0)
+				continue;
+
+			if(fd == _listenFd)
 			{
-				if(_pollfds[i].fd == _listenFd)
+				if(rev & POLLIN)
 				{
 					std::cout << "_acceptClient(); " << std::endl;
 					_acceptClient(); // ここで accept
+					continue; // Phase3以降ではアクセプトしたら次のfdに進む必要あり
 				}
 			}
 		}
@@ -156,12 +168,18 @@ void Server::_acceptClient()
 	cs = accept(_listenFd, (struct sockaddr *)&csin, &csin_len);
 	if (cs < 0)
 	{
-		close(_listenFd);
-		throw std::runtime_error("accept() 失敗");
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return;	    // EAGAIN / EWOULDBLOCK は無視（Phase 7 で正式に扱う）
+		std::cerr
+		<< RED_COLOR
+		<< "accept() 失敗"
+		<< strerror(errno)
+		<< RESET_COLOR << std::endl;
+		return; // （→ accept は 1 回 1 fd なので return で十分）
 	}
 	_addFd(cs, POLLIN);
 	std::cout << GREEN_COLOR
-	<< "New client #" << cs
+	<< "New client #" << cs // csはクラアントのfd　#1 stdin  #2 stdout  #3 stderr #4 listenソケット なので必ず#4から 
 	<< " from " << inet_ntoa(csin.sin_addr)
 	<< ":" << ntohs(csin.sin_port)
 	<< RESET_COLOR << std::endl;
@@ -181,7 +199,9 @@ void Server::_acceptClient()
 */
 
 
-
+/*
+これは挙動確認用関数です
+*/
 static void _printRevents(short revents)
 {
 	std::cout << revents;
