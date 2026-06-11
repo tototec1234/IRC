@@ -340,12 +340,16 @@ poll_check.c で実験
 
 ---
 
-## Lesson 3: バッファリング追加（3-4時間）★最難関
+## Lesson 3: バッファリング追加とディスパッチ骨格の読解（5-6時間）★最難関
 
 ### 目標
 - TCP がバイトストリームであることを体験的に理解する
+- bircd の **FD イベントのディスパッチ機構**（関数ポインタ）の配線を読解できる
+- 「呼ばれないコード」（`client_write`）を証拠の連鎖で特定できる
 - 受信バッファで `\r\n` 切り出しを実装できる
 - 送信バッファで非同期送信を実装できる
+
+> **2026-06-12 改訂:** Lesson 3.1 の答え合わせセッションで2つの論点（FD イベントディスパッチ = 手作り仮想関数、`client_write` = 穴埋め問題の骨格）を発見したため、3.2 / 3.4 を新設し旧 3.2→3.3、旧 3.3→3.5 に繰り下げた。発見の文脈（C++ 対応表）は [Lesson 5.3](#lesson-53-関数ポインタ--仮想関数の対応30分) に収録。
 
 ### Lesson 3.1 TCP ストリーム特性の体験（30分）
 
@@ -390,7 +394,88 @@ recv 3回目: " :World\r\n"
 
 → `recv()` の1回 ≠ メッセージの1つ
 
-### Lesson 3.2 受信バッファリング設計（1時間）
+### Lesson 3.2 FD イベントのディスパッチ骨格の読解（30分）
+
+> **ディスパッチ対象の明示（冗長を承知で）:** ここでディスパッチするのは **FD イベント**（= カーネルが通知するトランスポート層 TCP の状態変化。POLLIN / POLLOUT）。
+> **B 層の `CommandDispatcher` とは別物**。あちらのディスパッチ対象は**アプリケーション層（L7）の IRC コマンド**（`PING` / `NICK` / `JOIN`...）。
+
+**課題: `client_read` はどのソースファイルのどこから呼ばれているか？**
+
+**答え: 直接呼ぶ箇所は無い。関数ポインタ経由で2段構え。**
+
+データ構造（`bircd.h`）:
+
+```c
+typedef struct s_fd {
+    int   type;                              // FD_FREE / FD_SERV / FD_CLIENT
+    void  (*fct_read)(struct s_env *, int);  // FD ごとの読み処理スロット
+    void  (*fct_write)(struct s_env *, int); // FD ごとの書き処理スロット
+    ...
+} t_fd;
+```
+
+**登録（2箇所）** — FD の種類が決まった瞬間にスロットへ格納:
+
+```c
+// srv_create.c:26 — listen ソケット
+e->fds[s].fct_read = srv_accept;
+
+// srv_accept.c:19-20 — クライアントソケット
+e->fds[cs].fct_read = client_read;
+e->fds[cs].fct_write = client_write;
+```
+
+**呼び出し（1箇所）** — `check_fd.c` が poll の結果でディスパッチ:
+
+```c
+if (e->pollfds[i].revents & POLLIN)
+    e->fds[fd].fct_read(e, fd);    // ← 実際の呼び出し元はここだけ
+if (e->pollfds[i].revents & POLLOUT)
+    e->fds[fd].fct_write(e, fd);
+```
+
+**ポイント: 呼び出し側は「どの関数か」を知らない。FD ごとのスロットに入った関数を呼ぶだけ。**
+ft_irc で C++ に移すとき、これが仮想関数（ポリモーフィズム）に対応する。C++ 対応表は [Lesson 5.3](#lesson-53-関数ポインタ--仮想関数の対応30分) 参照。
+
+**ircserv での層の責任:** この FD イベントディスパッチは **A 層の責任範囲**。ircserv A 層では fd 種類が2つ（listen / client）しかないため、関数ポインタではなく if 分岐で実現する:
+
+```cpp
+if (fd == _listenFd)
+    _acceptClient();      // = srv_accept 相当
+else
+    _handleRead(fd);      // = client_read 相当
+```
+
+#### 脚注: FD イベントの正体（層モデルでの位置）
+
+FD イベントは「プロトコル」ではない。**トランスポート層（L4 / TCP）の状態変化を、カーネルがソケット API 経由で通知したもの。**
+
+なお IRC は**プレゼンテーション層ではなくアプリケーション層（L7）**。RFC 1459/2812 はアプリケーション層プロトコル。OSI のプレゼンテーション層（L6）は文字コード変換や TLS 等で、TCP/IP 4層モデルでは L5-L7 をまとめて「アプリケーション層」と呼ぶ。
+
+各 poll イベントは TCP（L4）の状態変化と対応する:
+
+| poll イベント | 裏で起きた TCP（L4）の出来事 |
+|---|---|
+| POLLIN（listen ソケット） | 3-way ハンドシェイク完了、接続キューに溜まった |
+| POLLIN（クライアント fd） | データセグメント到着、カーネル受信バッファに溜まった |
+| POLLIN で `recv == 0` | FIN 受信（相手が正常クローズ） |
+| POLLOUT | カーネル送信バッファに空きができた（ACK が返って掃けた） |
+| POLLERR / POLLHUP | RST 受信や接続破壊 |
+
+ポイント: **fd・poll・POLLIN はどの層のプロトコルにも属さない**。これらは OS のシステムコール API（ソケット API）であって、ネットワーク上を流れるビット列ではない。層モデルは「ワイヤ上のプロトコル」の分類。FD イベントは「カーネル内の TCP 実装が L4 の出来事をアプリに教えるための通知機構」。
+
+```
+[アプリ層 L7]  IRC コマンド ──→ CommandDispatcher がディスパッチ（B層）
+                 ↑ \r\n で切り出し（A層 popLine）
+─── ソケット API（層モデルの外。カーネルとの境界）───
+[トランスポート層 L4]  TCP の状態変化 ──→ poll が FD イベントとして通知
+                                          → A層が fd 種別でディスパッチ
+[ネットワーク層 L3]  IP
+```
+
+一次資料: `man 2 poll`、RFC 1122（Requirements for Internet Hosts — 層モデル）、RFC 793（TCP）
+
+### Lesson 3.3 受信バッファリング設計（1時間）
 
 **必要なデータ構造:**
 
@@ -460,7 +545,34 @@ void client_read(t_env *e, int cs)
 }
 ```
 
-### Lesson 3.3 送信バッファリング設計（1時間）
+### Lesson 3.4 呼ばれない client_write を読む（30分）
+
+**課題: `client_write` は実行時に呼ばれるか？呼ばれないなら、その証拠の連鎖を示せ。**
+
+**答え: 一度も呼ばれない。ただし「呼ばれる配線」は全部ある。**
+
+証拠の連鎖（4段）:
+
+1. **登録はされる**: `srv_accept.c:20` で `fct_write = client_write`
+2. **呼ぶコードもある**: `check_fd.c:37-38` で `revents & POLLOUT` なら `fct_write(e, fd)`
+3. **だが POLLOUT 監視は条件付き**: `init_fd.c:59-60` — `strlen(buf_write) > 0` のときだけ `events |= POLLOUT`
+4. **そして `buf_write` に書き込むコードがどこにも無い**: `client_read` は `recv` → 即 `send` の直結で `buf_write` を経由しない
+
+→ `buf_write` 常に空 → POLLOUT 監視されない → `client_write` 永遠に呼ばれない。中身も空（`client_write.c` は空関数）。
+
+**`client_read` の即 `send` がアンチパターンである理由:**
+
+- 送信先のソケットバッファが満杯なら `send` は**ブロック**する（1クライアントの詰まりが全体を止める）
+- ノンブロッキングなら部分送信 / `EAGAIN` が起きるが、対処コードが無い
+- ft_irc の評価要件「**全ての read/write は poll（等価物）を1回だけ通す**」に違反する
+
+**42 的な教育的意義 — これは「穴埋め問題」:**
+
+bircd は正解インフラ（`buf_write` スロット、`fct_write` ディスパッチ、条件付き POLLOUT）だけ用意して、実装を空にしている。「設計図だけ見せて、実装はお前がやれ」という形。`client_write.c` の空関数はその印。ft_irc では `client_write` 相当（送信キュー + POLLOUT 駆動の flush）を必ず書く。
+
+**「空なら監視しない」の理由も教材:** POLLOUT は送信バッファに空きがあれば常に立つ。送るものが無いのに監視すると poll が毎回即返ってきて busy loop になる。`init_fd.c:59` の条件はその対策。
+
+### Lesson 3.5 送信バッファリング設計 + 実装演習（1.5時間）
 
 **なぜ必要か:**
 - `send()` は全データを送信できるとは限らない（部分送信）
@@ -523,13 +635,26 @@ void client_write(t_env *e, int cs)
 }
 ```
 
+**実装演習（Lesson 3.4 の穴埋め問題を実際に埋める）:**
+
+1. `bircd.h` の `t_fd` に `buf_write_len` を追加
+2. `client_read` の直 `send` を `queue_message`（`buf_write` 追記）に置き換え
+3. `client_write.c` の空関数を POLLOUT 駆動の flush として実装（上の実装例参照）
+4. `init_fd.c` の条件付き POLLOUT は既にあるので変更不要（配線が生きる瞬間を確認）
+5. 動作確認: `nc localhost 6667` を2枚開き、relay が動くこと。`client_write` に `fprintf(stderr, ...)` を仕込んで「初めて呼ばれた」ことを確認
+
 ### チェックリスト
 
 - [ ] 「TCP はバイトストリーム」の意味を説明できる
 - [ ] `recv()` が1回で完全なメッセージを返さない理由を説明できる
+- [ ] **FD イベントのディスパッチ**と **IRC コマンドのディスパッチ**（B 層 `CommandDispatcher`）の違い（対象・層・キー）を説明できる
+- [ ] `client_read` の登録箇所と呼び出し箇所をファイル名・行番号で挙げられる
+- [ ] `client_write` が呼ばれない理由を証拠の連鎖（4段）で説明できる
+- [ ] `client_read` の即 `send` がアンチパターンである理由を3つ挙げられる
 - [ ] `\r\n` でメッセージを切り出す処理を実装できる
 - [ ] 部分送信が起こる理由を説明できる
 - [ ] POLLOUT を動的に制御する理由を説明できる
+- [ ] 演習: `buf_write` 経由の送信経路を実装し、`client_write` が呼ばれることを確認した
 
 ### 補助リソース
 
@@ -656,11 +781,50 @@ private:
 };
 ```
 
+### Lesson 5.3 関数ポインタ → 仮想関数の対応（30分）
+
+> **発見の文脈（2026-06-12）:** Lesson 3.1 の答え合わせ中、「`client_read` はどこから呼ばれるか？」を追ったところ、`bircd.h` の `fct_read` / `fct_write` スロット（[Lesson 3.2](#lesson-32-fd-イベントのディスパッチ骨格の読解30分)）が **C で手作りした抽象メソッド + 動的ディスパッチ**だと気づいた。その対応表をここに収録する。
+
+bircd の関数ポインタディスパッチを C++ で書き直すとこうなる:
+
+```cpp
+class FdHandler {
+public:
+    virtual void onRead(Env& e, int fd) = 0;   // = fct_read
+    virtual void onWrite(Env& e, int fd) = 0;  // = fct_write
+};
+
+class ServerSocket : public FdHandler {
+    void onRead(Env& e, int fd) { /* srv_accept 相当 */ }
+};
+class ClientSocket : public FdHandler {
+    void onRead(Env& e, int fd) { /* client_read 相当 */ }
+};
+```
+
+対応関係:
+
+| bircd (C) | C++ |
+|---|---|
+| `t_fd` 構造体 | オブジェクト |
+| `fct_read` / `fct_write` スロット | vtable のエントリ |
+| `srv_accept.c:19` での代入 | コンストラクタで型が決まる |
+| `e->fds[fd].fct_read(e, fd)` | `handler->onRead(e, fd)` 仮想関数呼び出し |
+| `type` フィールド（FD_SERV/FD_CLIENT） | クラスそのもの（型で区別） |
+
+C++ の仮想関数も内部実装は同じ。オブジェクトが vtable（関数ポインタの表）を持ち、呼び出し側は表を引くだけ。bircd はその表を構造体に直接埋めている。
+
+注意点:
+
+- 厳密には bircd のは「メソッド」ではない。C に this は無いから `t_env *` と `int fd` を毎回手渡ししている。C++ ならこれが暗黙の this になる
+- **ircserv A 層では仮想関数を採用しない**。fd 種類が2つ（listen / client）しかないので if 分岐で十分、という設計判断（[Lesson 3.2](#lesson-32-fd-イベントのディスパッチ骨格の読解30分) 参照）
+
 ### チェックリスト
 
 - [ ] `std::vector<struct pollfd>` で fd 管理できる
 - [ ] `std::map<int, std::string>` でバッファ管理できる
 - [ ] C++98 の範囲で実装できる（C++11機能は使わない）
+- [ ] bircd の関数ポインタスロットと C++ vtable の対応を説明できる
 
 ---
 

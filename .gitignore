@@ -3,3 +3,5 @@
 *.o
 tests/*/test_runner
 *.code-workspace
+bircd/LOG
+bircd/LOG2
