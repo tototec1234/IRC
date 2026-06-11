@@ -135,9 +135,9 @@ void Server::run() {
 			if (rev == 0)
 				continue;
 
-			if(fd == _listenFd)
+			if (fd == _listenFd)
 			{
-				if(rev & POLLIN)
+				if (rev & POLLIN)
 				{
 					std::cout << "_acceptClient(); " << std::endl;
 					_acceptClient(); // ここで accept
