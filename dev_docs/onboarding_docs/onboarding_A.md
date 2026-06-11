@@ -202,7 +202,7 @@ for (each reply in result.replies) {
 | 4   | `design.md` Section 3.1, 5     | Network/IO層、Connectionの詳細設計 | 20分  |
 | 5   | [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) + [`b_implementation_reader.md`](../b_implementation_reader.md) §5 + [`interface.md`](../interface.md) §2 | Server/Connection 公開 API・呼び出し元・契約 | 15分  |
 | 6   | `reading_guide_A.md`           | A担当向け詳細ガイド                  | 10分  |
-| 7   | `bircd/bircd_learning_curriculum.md` Phase 5 | poll() 実践・C++98 化の学習プラン | 30分  |
+| 7   | `bircd/bircd_learning_curriculum.md` Lesson 5 | poll() 実践・C++98 化の学習プラン | 30分  |
 
 
 **書籍（必須）:**
