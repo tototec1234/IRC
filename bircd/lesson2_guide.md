@@ -318,8 +318,7 @@ Lesson 2 が終わったら A 層を読む。
 | `init_fd()` 一括再構築 | `_addFd()` / `_removeFd()` |
 | 関数ポインタ `fct_read` | `Server::run()` 内の分岐 |
 
-参照: [../src/a/Server.cpp](../src/a/Server.cpp) または PoC の [../a_tmp/Server.cpp](../a_tmp/Server.cpp)
-
+参照: [../src/a/Server.cpp](../src/a/Server.cpp)
 ---
 
 ## 8. 次の Lesson
