@@ -9,9 +9,10 @@
 # define FD_SERV	1
 # define FD_CLIENT	2
 
-#define MAX_CLIENTS 42  //とりあえず最大同時接続42名　	ft_irc（提出）ではvector<pollfd> 動的　で上限は　実質 OS の fd 上限の予定？
+#define MAX_CLIENTS 100  //とりあえず最大同時接続42名　	ft_irc（提出）ではvector<pollfd> 動的　で上限は　実質 OS の fd 上限の予定？
 
-# define BUF_SIZE	4096
+// # define BUF_SIZE	4096
+# define BUF_SIZE	100 //Lesson3で分割送信を体感するため
 
 # define Xv(err,res,str)	(x_void(err,res,str,__FILE__,__LINE__))
 # define X(err,res,str)		(x_int(err,res,str,__FILE__,__LINE__))

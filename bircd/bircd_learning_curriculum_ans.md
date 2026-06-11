@@ -40,6 +40,8 @@ make
 ./bircd 6667
 ```
 
+`bind error (srv_create.c, 21): Address already in use` が出たときは [対処法][^bind-eaddrinuse]。
+
 別ターミナルで:
 ```bash
 nc localhost 6667   # クライアント1
@@ -47,6 +49,26 @@ nc localhost 6667   # クライアント2（別ターミナル）
 ```
 
 クライアント1で文字を打つ → クライアント2に届く（ブロードキャスト）
+
+[^bind-eaddrinuse]: ポート 6667 が既に使用中（前回の `bircd` が残っている、または別プロセスが LISTEN 中）。占有プロセスを確認する:
+
+    ```bash
+    # 基本（これで十分）
+    lsof -i :6667
+
+    # プロトコルまで明示（よく使う）
+    lsof -iTCP:6667
+
+    # LISTEN 中だけ（サーバプロセス特定向け）
+    lsof -iTCP:6667 -sTCP:LISTEN
+
+    # ホスト名逆引きを切る（速い・見やすい）
+    lsof -nP -iTCP:6667
+
+	ps aux | grep bircd
+    ```
+
+    出力の `PID` 列のプロセスを止める: `kill <PID>`（効かなければ `kill -9 <PID>`）。または別ポートで起動: `./bircd 6668`（`nc` 側のポートも合わせる）。`lsof` の `-i` にロングオプションはない（macOS / BSD 版）。
 
 #### Lesson 1.2 コードリーディング（1-2時間）
 
@@ -334,10 +356,28 @@ poll_check.c で実験
 ./bircd 6667
 
 # クライアント側（大量データ送信）
-yes "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" | head -1000 | nc localhost 6667
+yes "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcde" | head -1000 | nc localhost 6667
 ```
 
-別クライアントで受信すると、recv() が複数回に分割される様子が観察できる。
+> **注意（2026-06-12 実験で判明）:** 分割は**別クライアントの受信データでは目視できない**。
+> TCP はバイトストリームであり、recv() の切れ目はデータにマーカーとして残らないため、
+> 受信側には継ぎ目なく連結されたバイト列が届くだけ（= それ自体が「境界が消える」ことの証明）。
+>
+> 分割を観察するなら**サーバー側ログ**で見る:
+>
+> 1. `client_read.c` の recv() 直後に一時的に `fprintf(stderr, "recv %d bytes\n", r);` を入れる
+> 2. `bircd.h` の `BUF_SIZE` を一時的に小さく（例: `100`）すると分割が確実に起きる
+> 3. 改行なしの塊を送る: `python3 -c "import sys; sys.stdout.buffer.write(b'A' * 100000)" | nc localhost 6667`
+>
+> 結果例: サーバー側に `recv 100 bytes` が 1000 回出る（100000 バイトが 1000 分割）。
+> 受信側を `nc localhost 6667 > LOG` で保存すると LOG はちょうど 100000 バイト・切れ目なし。
+> 最後の `recv 0 bytes` は送信側 nc の切断（EOF）。
+
+**この実験で得られた最大の知見（= Lesson 3 の核心）:**
+
+- 境界がデータに残らない → **アプリ層で境界を作るしかない** → IRC の `\r\n`
+- `recv` 1回 = メッセージ1個は**絶対に成立しない**（今回 1メッセージが 1000 回に割れた）
+- だから受信バッファに**溜めて** `\r\n` で切り出す実装が必須
 
 **重要な理解:**
 ```
