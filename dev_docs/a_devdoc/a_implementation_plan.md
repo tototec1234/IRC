@@ -46,6 +46,8 @@
 | 6 | 切断・エラー処理 | POLLERR/POLLHUP 検出、`recv == 0` 切断、`_disconnectClient`（`ServerState::removeClient` + `delete Connection` + `_removeFd`）、`shouldDisconnect`(QUIT) 処理、SIGINT/SIGPIPE | `Ctrl+C` `nc` 切断や `QUIT` 受信でクラッシュせず、`_connections` から正しく除去 | ❌ |
 | 7 | ノンブロッキング化 | `fcntl(fd, F_SETFL, O_NONBLOCK)` を listen fd と accept した cs に適用、accept ループ化（多重受付）、`EAGAIN` 正常系扱い | ノンブロッキング要件を満たす（評価で 0 点回避） | ❌ |
 | 8 | 仕上げ | `usleep` 削除、`#include` 整理、エラーメッセージ統一、定数の `MAX_CLIENTS` 廃止/再考、ホスト設定 (`inet_ntoa` → `Client::setHost`)、コメント整理 | 提出可能水準 | ❌ |
+> **事前ナレッジ（nc 実験）:** Phase 3 の `\r\n` 行切り出しの前提（TCP ストリーム・CRLF のバイト差）は [tcp_stream_and_crlf_nc_experiment.md](../knowledge/tcp_stream_and_crlf_nc_experiment.md) を参照（Ubuntu 実証後に改定予定）。
+=======
 
 ---
 
@@ -94,6 +96,9 @@ private:
 
 コンストラクタ初期化リストに `_state(password)` を追加。
 
+> **事前ナレッジ（nc 実験）:** Phase 3 の `\r\n` 行切り出しの前提（TCP ストリーム・CRLF のバイト差）は [tcp_stream_and_crlf_nc_experiment.md](../knowledge/tcp_stream_and_crlf_nc_experiment.md) を参照（Ubuntu 実証後に改定予定）。
+
+=======
 ### 4.2 `src/a/Connection.cpp` 実装（Phase 3 + Phase 5）
 
 ```cpp

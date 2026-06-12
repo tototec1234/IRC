@@ -5,3 +5,5 @@ tests/*/test_runner
 *.code-workspace
 bircd/LOG
 bircd/LOG2
+a_tmp/
+a_header_tmp/
