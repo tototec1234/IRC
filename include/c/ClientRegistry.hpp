@@ -12,7 +12,7 @@ class ClientRegistry {
   ClientRegistry();
   ~ClientRegistry();
 
-  void addClient(int fd);
+  void addClient(int fd, const std::string& host);
   void removeClient(int fd);
   Client* getClientByFd(int fd);
   Client* getClientByNick(const std::string& nick);

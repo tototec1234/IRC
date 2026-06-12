@@ -13,11 +13,11 @@ ClientRegistry::~ClientRegistry() {
   }
 }
 
-void ClientRegistry::addClient(int fd) {
+void ClientRegistry::addClient(int fd, const std::string& host) {
   if (getClientByFd(fd)) {
     return;
   }
-  Client* client = new Client(fd);
+  Client* client = new Client(fd, host);
   _fdToClient.insert(std::make_pair(fd, client));
 }
 
