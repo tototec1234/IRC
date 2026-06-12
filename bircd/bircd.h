@@ -30,6 +30,7 @@ typedef struct	s_fd
 	void	(*fct_read)(struct s_env *, int);	//差し替え
 	void	(*fct_write)(struct s_env *, int);	//差し替え
 
+	int buf_read_len; // C++のstd::stringは長さを別持ち（メンバ変数に格納？）してるのでこれ不要
   char	buf_read[BUF_SIZE + 1];
   char	buf_write[BUF_SIZE + 1];
 }		t_fd;
@@ -54,6 +55,7 @@ void	srv_create(t_env *e, int port);
 void	srv_accept(t_env *e, int s);
 void	client_read(t_env *e, int cs);
 void	client_write(t_env *e, int cs);
+void	broadcast_message(t_env *e, int cs, char *msg); //　クライアント転送なし、stdoutするだけのスタブ
 void	clean_fd(t_fd *fd);
 int	x_int(int err, int res, char *str, char *file, int line);
 void	*x_void(void *err, void *res, char *str, char *file, int line);
