@@ -1,9 +1,1 @@
-.DS_Store
-.vscode/
-*.o
-tests/*/test_runner
-*.code-workspace
-bircd/LOG
-bircd/LOG2
-a_tmp/
-a_header_tmp/
+yon_ni_subjects/
