@@ -21,3 +21,14 @@ nc localhost 6667
 nc localhost 6667
 
 */
+
+
+/*
+MacOSのターミナルでテストする時は下記に注意
+macOS BSD nc は LF のみ送る → CRLF 必須実装では生 nc が無反応
+
+printf 'PING :hello\r\n' | nc localhost 6667
+
+printf '...\r\n' や Ctrl-V Ctrl-M（^M）で CR を明示すれば動く
+
+*/

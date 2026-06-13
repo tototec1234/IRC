@@ -6,7 +6,7 @@
 /*   By: toruinoue <toruinoue@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/09 12:14:14 by torinoue          #+#    #+#             */
-/*   Updated: 2026/06/12 14:15:53 by toruinoue        ###   ########.fr       */
+/*   Updated: 2026/06/14 03:39:51 by toruinoue        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,6 +115,7 @@ static void	extract_and_consume(t_env *e, int cs, int crlf_end)
 {
 	e->fds[cs].buf_read[crlf_end - 2] = '\0';
 	broadcast_message(e, cs, e->fds[cs].buf_read);
+	// 送信済み部分削除
 	ft_memmove(e->fds[cs].buf_read,
 		e->fds[cs].buf_read + crlf_end,
 		e->fds[cs].buf_read_len - crlf_end + 1);

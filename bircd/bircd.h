@@ -32,6 +32,7 @@ typedef struct	s_fd
 
 	int buf_read_len; // C++のstd::stringは長さを別持ち（メンバ変数に格納？）してるのでこれ不要
   char	buf_read[BUF_SIZE + 1];
+	int	buf_write_len; //
   char	buf_write[BUF_SIZE + 1];
 }		t_fd;
 
