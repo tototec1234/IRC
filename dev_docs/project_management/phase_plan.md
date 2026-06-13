@@ -369,7 +369,6 @@ Inception と同様の Navigator/Driver モデルを採用。
 | -------------------------------- | ------ | ------------------ |
 | `0100_socket_pre_quiz.md`        | 1      | ソケット基礎（書籍読了前）      |
 | `0100_socket_post_quiz.md`       | 1      | ソケット基礎（書籍読了後）      |
-| `0150_bircd_dispatch_write_path_quiz.md` | bircd Lesson 3.2/3.4 | FD イベントディスパッチ・呼ばれない client_write（作成計画 0.5h、2026-06-12 作成済み） |
 | `0200_irc_protocol_pre_quiz.md`  | 2      | IRC プロトコル（RFC 読了前） |
 | `0200_irc_protocol_post_quiz.md` | 2      | IRC プロトコル（RFC 読了後） |
 | `0300_design_review_quiz.md`     | 3      | 詳細設計レビュー           |

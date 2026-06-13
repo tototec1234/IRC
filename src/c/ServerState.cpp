@@ -12,7 +12,9 @@ ServerState::~ServerState() {
 
 const std::string& ServerState::getPassword() const { return _password; }
 
-void ServerState::addClient(int fd) { _client.addClient(fd); }
+void ServerState::addClient(int fd, const std::string& host) {
+  _client.addClient(fd, host);
+}
 
 Channel* ServerState::addClientToChannel(Client* client,
                                          const std::string& channelName) {

@@ -24,6 +24,7 @@ A層 ─complete line→ B層 ─CommandResult→ A層
 | A→B | 入力 | complete line（`\r\n` 区切り文字列） |
 | B→A | 出力 | `CommandResult`（送信先fd + 送信文字列） |
 | B↔C | 双方向 | `ServerState`, `Client`, `Channel`, `ChannelModes` 操作API |
+| A→C | 接続 lifecycle | accept / disconnect 時に `ServerState` facade を呼び、Client 作成・削除を行う |
 
 ---
 
@@ -137,6 +138,7 @@ C層は IRC 上の状態を管理する。
 | Value-like state | `ChannelModes` | `+i`, `+t`, `+k`, `+l` の状態 |
 
 B層は `ServerState` を C層の主な窓口として使う。  
+また、A層は接続 lifecycle のために `ServerState` facade を呼ぶ。Client 登録時の host 情報は A層だけが知るため、accept 時に A層が fd と接続元 host を渡して `ServerState::addClient(fd, host)` を呼ぶ。
 ただし、B層は reply / protocol 判断のために `Client`, `Channel`, `ChannelModes` の公開 getter / 局所状態 API を参照・操作してよい。
 
 Client と Channel の関係を作る/壊す操作は `ServerState` 経由で行う。
@@ -146,7 +148,7 @@ Client と Channel の関係を作る/壊す操作は `ServerState` 経由で行
 | 関数 | 戻り値 | 呼び出し元 | 説明 |
 |------|--------|-----------|------|
 | `const std::string& getPassword() const` | `const std::string&` | B | サーバパスワード |
-| `void addClient(int fd)` | `void` | A / Server | Client作成 |
+| `void addClient(int fd, const std::string& host)` | `void` | A / Server | accept 時に fd と接続元 host を渡して Client 作成 |
 | `Channel* addClientToChannel(Client*, const std::string&)` | `Channel*` | B | Client と Channel の参加関係を同期し、必要なら Channel 作成 |
 | `void removeClientFromChannel(Client*, const std::string&)` | `void` | B | Client と Channel の参加関係を解除し、空 Channel を削除 |
 | `void inviteClientToChannel(Client*, Channel*)` | `void` | B | invite list に Client を追加する C層窓口 |
@@ -174,7 +176,7 @@ Client と Channel の関係を作る/壊す操作は `ServerState` 経由で行
 | `std::string getFullPrefix() const` | `std::string` | B | `nick!user@host` を返す |
 | `void setUsername(const std::string&)` | `void` | B | username設定 |
 | `void setRealname(const std::string&)` | `void` | B | realname設定 |
-| `void setHost(const std::string&)` | `void` | A | host設定（接続時） |
+| `void setHost(const std::string&)` | `void` | C / internal | host再設定用。接続時の初期化は原則 `ServerState::addClient(fd, host)` 経由 |
 | `void _unsafe_setNick(const std::string&)` | `void` | ServerState / ClientRegistry | nick cache 更新用。B層は直接呼ばない |
 | `void _unsafe_joinChannel(Channel*)` | `void` | ServerState | 所属Channel cache追加。B層は直接呼ばない |
 | `void _unsafe_leaveChannel(Channel*)` | `void` | ServerState | 所属Channel cache削除。B層は直接呼ばない |
@@ -235,7 +237,20 @@ B層は `ClientRegistry` を直接触らず、`ServerState` の facade API を�
 
 ## 5. 重要ルール
 
-### 5.1 【実装】nick変更は ServerState 経由
+### 5.1 【設計】Client登録とhost初期化は ServerState 経由
+
+```cpp
+// ❌ NG
+state.addClient(fd, "");
+client.setHost(host);
+
+// ✅ OK
+state.addClient(fd, host);
+```
+
+Client 登録時の host 情報は A層だけが知る。A層は accept 時に接続元 host を取得し、`ServerState::addClient(fd, host)` で Client 作成と host 初期化を同時に行う。
+
+### 5.2 【実装】nick変更は ServerState 経由
 
 ```cpp
 // ❌ NG
@@ -245,7 +260,7 @@ client._unsafe_setNick("newNick");
 state.updateNick(client, "newNick");
 ```
 
-### 5.2 【設計】Client-Channel関係の変更は ServerState 経由
+### 5.3 【設計】Client-Channel関係の変更は ServerState 経由
 
 ```cpp
 // ❌ NG
@@ -258,7 +273,7 @@ state.addClientToChannel(&client, "#channel");
 
 JOIN / PART / KICK / QUIT / disconnect によって Client と Channel の関係を作る・壊す処理は `ServerState` が同期する。
 
-### 5.3 【設計】Client削除は ServerState 経由
+### 5.4 【設計】Client削除は ServerState 経由
 
 ```cpp
 // ServerState::removeClient(fd) が自動処理:
@@ -267,7 +282,7 @@ JOIN / PART / KICK / QUIT / disconnect によって Client と Channel の関係
 // - 空Channelの削除
 ```
 
-### 5.4 【設計】operator権限は Channel が管理
+### 5.5 【設計】operator権限は Channel が管理
 
 ```cpp
 // ❌ NG
@@ -277,12 +292,12 @@ client.setOperator(true);
 channel.setOperator(&client, true);
 ```
 
-### 5.5 【設計】Channel は Client を所有しない
+### 5.6 【設計】Channel は Client を所有しない
 
 - `Channel` は `Client*` を保持するだけ
 - `delete` は `ServerState` の責務
 
-### 5.6 【設計】B層は送信処理を行わない
+### 5.7 【設計】B層は送信処理を行わない
 
 - `CommandDispatcher` は `send()` を呼ばない
 - 結果は `CommandResult` に詰めて返す
