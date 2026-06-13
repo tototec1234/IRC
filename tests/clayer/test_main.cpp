@@ -45,7 +45,7 @@ void expectEqual(const T& expected, const U& actual, const std::string& expr,
               __LINE__)
 
 Client* addClientWithNick(ServerState& state, int fd, const std::string& nick) {
-  state.addClient(fd);
+  state.addClient(fd, "host.example");
   Client* client = state.getClientByFd(fd);
   if (client) {
     state.updateNick(*client, nick);
@@ -72,8 +72,9 @@ void testClientRegistryNickUpdate() {
   EXPECT_TRUE(taro != NULL);
   EXPECT_TRUE(hanako != NULL);
   EXPECT_EQ(taro, state.getClientByFd(10));
-  state.addClient(10);
+  state.addClient(10, "other.example");
   EXPECT_EQ(taro, state.getClientByFd(10));
+  EXPECT_EQ(std::string("host.example"), taro->getHost());
   EXPECT_EQ(taro, state.getClientByNick("taro"));
   EXPECT_EQ(std::string("taro"), taro->getNick());
   EXPECT_FALSE(state.updateNick(*hanako, "taro"));
@@ -83,8 +84,22 @@ void testClientRegistryNickUpdate() {
   EXPECT_EQ(std::string("TARO"), taro->getNick());
 }
 
+void testClientFullPrefix() {
+  Client client(20, "irc.example");
+
+  client._unsafe_setNick("taro");
+  client.setUsername("user");
+  client.setRealname("Real Name");
+
+  EXPECT_EQ(std::string("irc.example"), client.getHost());
+  EXPECT_EQ(std::string("taro!user@irc.example"), client.getFullPrefix());
+
+  client.setHost("remote.example");
+  EXPECT_EQ(std::string("taro!user@remote.example"), client.getFullPrefix());
+}
+
 void testChannelModesAndLocalState() {
-  Client client(20);
+  Client client(20, "local.example");
   Channel channel("#local");
   ChannelModes& modes = channel.getModes();
 
@@ -227,6 +242,7 @@ void runTest(const std::string& name, void (*test)()) {
 
 int main() {
   runTest("client registry nick update", testClientRegistryNickUpdate);
+  runTest("client full prefix", testClientFullPrefix);
   runTest("channel modes and local state", testChannelModesAndLocalState);
   runTest("server state membership", testServerStateMembership);
   runTest("invite cleanup", testInviteCleanup);

@@ -52,6 +52,10 @@ Message makeMessage(const std::string& command, const std::string& p0) {
   return Message(command, params);
 }
 
+void addClient(ServerState& state, int fd) {
+  state.addClient(fd, "client.example");
+}
+
 Message makeUserMessage() {
   std::vector<std::string> params;
   params.push_back("user");
@@ -81,7 +85,7 @@ void testParserBasicMessage() {
 
 void testPingReturnsPong() {
   ServerState state("pw");
-  state.addClient(10);
+  addClient(state, 10);
   CommandDispatcher dispatcher;
 
   CommandResult result =
@@ -96,7 +100,7 @@ void testPingReturnsPong() {
 
 void testRegistrationFlowUsesRealCState() {
   ServerState state("pw");
-  state.addClient(20);
+  addClient(state, 20);
   Client* client = state.getClientByFd(20);
   CommandDispatcher dispatcher;
 
@@ -111,6 +115,7 @@ void testRegistrationFlowUsesRealCState() {
   EXPECT_EQ(static_cast<size_t>(0), nickResult.replies.size());
   EXPECT_TRUE(client->isPassOk());
   EXPECT_EQ(std::string("taro"), client->getNick());
+  EXPECT_EQ(std::string("taro!user@client.example"), client->getFullPrefix());
   EXPECT_EQ(client, state.getClientByNick("taro"));
   EXPECT_TRUE(client->isRegistered());
   EXPECT_EQ(static_cast<size_t>(1), userResult.replies.size());
@@ -119,7 +124,7 @@ void testRegistrationFlowUsesRealCState() {
 
 void testNickBeforePassIsRejected() {
   ServerState state("pw");
-  state.addClient(25);
+  addClient(state, 25);
   Client* client = state.getClientByFd(25);
   CommandDispatcher dispatcher;
 
@@ -137,7 +142,7 @@ void testNickBeforePassIsRejected() {
 
 void testUserBeforePassIsRejected() {
   ServerState state("pw");
-  state.addClient(26);
+  addClient(state, 26);
   Client* client = state.getClientByFd(26);
   CommandDispatcher dispatcher;
 
@@ -154,8 +159,8 @@ void testUserBeforePassIsRejected() {
 
 void testNickConflictReturnsNumeric() {
   ServerState state("pw");
-  state.addClient(30);
-  state.addClient(31);
+  addClient(state, 30);
+  addClient(state, 31);
   CommandDispatcher dispatcher;
 
   dispatcher.dispatch(30, makeMessage("PASS", "pw"), state);
