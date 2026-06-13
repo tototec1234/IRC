@@ -1,12 +1,13 @@
 #include "c/Client.hpp"
 
+#include <string>
 #include <vector>
 
-Client::Client(int fd)
+Client::Client(int fd, const std::string& host)
     : _nickname(""),
       _username(""),
       _realname(""),
-      _host(""),
+      _host(host),
       _fd(fd),
       _passOk(false),
       _registered(false) {}
@@ -29,8 +30,12 @@ void Client::setUsername(const std::string& username) { _username = username; }
 void Client::setRealname(const std::string& realname) { _realname = realname; }
 void Client::setHost(const std::string& host) { _host = host; }
 void Client::_unsafe_setNick(const std::string& nick) { _nickname = nick; }
-void Client::_unsafe_joinChannel(Channel* channel) { _channels.insert(channel); }
-void Client::_unsafe_leaveChannel(Channel* channel) { _channels.erase(channel); }
+void Client::_unsafe_joinChannel(Channel* channel) {
+  _channels.insert(channel);
+}
+void Client::_unsafe_leaveChannel(Channel* channel) {
+  _channels.erase(channel);
+}
 void Client::setPassOk(bool passOk) { _passOk = passOk; }
 bool Client::isPassOk() const { return _passOk; }
 bool Client::isRegistered() const { return _registered; }
