@@ -170,7 +170,7 @@ B層の現状
 | 登録完了 | PASS+NICK+USER 揃いで 001 を 1 回 |
 | JOIN 成功 | `addClientToChannel()` + member へ JOIN broadcast（初参加者は C が operator 付与） |
 | PART / KICK | `removeClientFromChannel()` |
-| QUIT | `shouldDisconnect=true` + 任意 QUIT broadcast（Client 削除は A の `_disconnectClient` が `removeClient(fd)` を呼ぶ） |
+| QUIT | `shouldDisconnect=true` + QUIT broadcast（Client 削除は A の `_disconnectClient` が `removeClient(fd)` を呼ぶ） |
 | TOPIC `#ch` / MODE `#ch`（param なし） | 照会（331/332, 324）。状態変更なし |
 | PRIVMSG channel | 送信者以外の member へ broadcast |
 | PRIVMSG nick | 対象 fd のみ |
