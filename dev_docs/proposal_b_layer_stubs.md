@@ -58,7 +58,7 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg, ServerStat
 |---------|------|
 | `PING` | `PONG :<servername>` を `CommandResult` に追加 |
 | その他 | echo: `":<prefix> ECHO :" + 原文` または固定 `OK`（A 層結合確認用） |
-| `QUIT` | （将来）`state.removeClient(fd)` + `shouldDisconnect = true` |
+| `QUIT` | （将来）`shouldDisconnect = true`。Client 削除は A 層の disconnect 処理に委譲 |
 
 **依存:** `ServerState` スタブ（C1）。Channel スタブ（C2）は echo 段階では不要。
 

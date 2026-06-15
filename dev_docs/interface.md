@@ -153,7 +153,6 @@ Client と Channel の関係を作る/壊す操作は `ServerState` 経由で行
 | `void removeClientFromChannel(Client*, const std::string&)` | `void` | B | Client と Channel の参加関係を解除し、空 Channel を削除 |
 | `void inviteClientToChannel(Client*, Channel*)` | `void` | B | invite list に Client を追加する C層窓口 |
 | `void removeInviteFromChannel(Client*, Channel*)` | `void` | B | invite list から Client を削除する C層窓口 |
-| `void removeClientFromAllInvites(Client*)` | `void` | ServerState / cleanup | 全 Channel の invite list から Client を削除 |
 | `void removeClient(int fd)` | `void` | A | disconnect 時に Client 削除（Channel参照、invite、辞書を cleanup） |
 | `Client* getClientByFd(int fd)` | `Client*` | B | fdからClient取得 |
 | `Client* getClientByNick(const std::string&)` | `Client*` | B | nickからClient取得 |
@@ -283,6 +282,7 @@ JOIN / PART / KICK / QUIT / disconnect によって Client と Channel の関係
 ```
 
 `ServerState::removeClient(fd)` は A層が disconnect 処理で呼ぶ。B層は QUIT などで `CommandResult.shouldDisconnect` を立てて A層へ切断を依頼し、Client 削除は呼ばない。
+全 Channel の invite list から Client を削除する処理は `removeClient(fd)` 内部の cleanup 責務であり、公開 API として外部層から呼ばない。
 
 ### 5.5 【設計】operator権限は Channel が管理
 
@@ -322,6 +322,7 @@ channel.setOperator(&client, true);
 | 自作 template | 不使用 | `decision_no_custom_templates.md` |
 | エラー・所有権 | 起動時例外 / ループは bool+Result / ServerState 所有 | `decision_error_handling.md` |
 | `removeClientFromAllChannels` | ServerState **private**。A は lifecycle API として `removeClient(fd)` を呼ぶ。B は Client 削除を呼ばない | `decision_invite_and_removal.md` |
+| `removeClientFromAllInvites` | ServerState **private/internal cleanup**。`removeClient(fd)` 内部からのみ呼ばれ、外部層は直接呼ばない | `#28` |
 | ClientRegistry | `ServerState` 内部実装として分離済み。B は直接触らない | `knowledge/facade_delegation_update_nick.md` |
 | invite 管理 | `ServerState` 経由。通知と招待券は別概念 | `decision_invite_responsibility.md`, `knowledge/invite_ticket_policy.md` |
 | invite 系命名 | `Channel::addInvite` + `ReplyBuilder::invite`（B）共存 | `decision_invite_and_removal.md` |

@@ -14,8 +14,8 @@
 |----------|------|
 | `dev_docs/` 全 md | B 層の公開契約（`interface.md`）に `removeClientFromAllChannels` **なし** |
 | `b_implementation_reader.md` | 公開 API 表に誤って記載（0004 で「例:」文言に修正済みだが行は残存） |
-| B 層が呼ぶ API | **`removeClient(int fd)` のみ**（`interface.md` L153: 呼び出し元 Server / B） |
-| B 層の典型シーン | **QUIT** — 状態掃除後に `removeClient(fd)`。Channel 掃除はその内部処理 |
+| A 層が呼ぶ API | **`removeClient(int fd)` のみ**（disconnect lifecycle） |
+| B 層の典型シーン | **QUIT** — `CommandResult.shouldDisconnect=true` を立てる。Client 削除は A 層の `_disconnectClient` に委ねる |
 | 参考実装 | `references/ft_IRC-InternetRelayChat-`: Quit から `removeClientFromAllChannels` を呼ぶが、本設計では `removeClient` に集約 |
 | 過去チャット | [0004 設計整合性チャット](79d56ff9-fd4a-4f05-821a-7458b04dcdac): プライベートメソッドとして記述に留める合意 |
 
@@ -25,18 +25,21 @@
 |------|------|
 | 公開 API | `ServerState::removeClient(int fd)` のみ |
 | `removeClientFromAllChannels` | **private**。実装フェーズで `.hpp` に記載 |
-| B 層 | `removeClient(fd)` を呼ぶ。**`removeClientFromAllChannels` は呼ばない** |
+| `removeClientFromAllInvites` | **private/internal cleanup**。`removeClient(fd)` 内部からのみ呼ぶ |
+| A 層 | disconnect 時に `removeClient(fd)` を呼ぶ |
+| B 層 | QUIT 時も `removeClient(fd)` を呼ばない。`CommandResult.shouldDisconnect=true` で A 層へ切断を依頼する |
 | ドキュメント | 公開 API 表から削除。削除ルール節に「内部 private メソッド（例: …）」として言及 |
 
-### 1.3 B 層が `removeClient` を呼ぶ流れ（QUIT）
+### 1.3 QUIT / disconnect の削除経路
 
 ```text
 Client が QUIT 送信
   → B: CommandDispatcher が QUIT 処理
   → B: （任意）QUIT メッセージを CommandResult に追加
-  → B: state.removeClient(fd)
-       └─ ServerState 内部: removeClientFromAllChannels → delete Client → 辞書更新
-  → A: CommandResult 適用、必要なら disconnect
+  → B: CommandResult.shouldDisconnect=true
+  → A: CommandResult 適用後、_disconnectClient(fd)
+  → A: state.removeClient(fd)
+       └─ ServerState 内部: removeClientFromAllChannels / removeClientFromAllInvites → delete Client → 辞書更新
 ```
 
 **PART / KICK** では Client 本体は削除しない。Channel から外すだけ（`Channel::removeMember` 等）。
@@ -103,7 +106,8 @@ MVP では `ChannelService` 未分離。`CommandDispatcher` が `canInvite` 判�
 | ファイル | 変更 |
 |----------|------|
 | `b_implementation_reader.md` | `removeClientFromAllChannels` を公開 API 表から削除 |
-| `interface.md` | 本決定へのリンク、invite 命名注釈 |
+| `interface.md` | 本決定へのリンク、invite 命名注釈、`removeClientFromAllInvites` の private/internal cleanup 化 |
+| `class_overview_diagram.md` | `removeClientFromAllInvites` を層間 public API から除外 |
 | `decision_error_handling.md` | 所有権・削除経路 |
 
 ---
@@ -113,3 +117,4 @@ MVP では `ChannelService` 未分離。`CommandDispatcher` が `canInvite` 判�
 | 日付 | 内容 |
 |------|------|
 | 2026-05-29 | 初版（セッション #0006。B 層調査 + 0004 合意の確定） |
+| 2026-06-15 | #27 / #28: Client 削除を A 層 lifecycle に集約し、`removeClientFromAllInvites` を private/internal cleanup として整理 |
