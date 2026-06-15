@@ -3,7 +3,7 @@
 > 作成日: 2026-06-09
 > 対象: `src/a/Server.{cpp,hpp}` / `src/a/Connection.{cpp,hpp}`
 > 前提:
-> - **B 層 `src/b/` は完成済み**（Parser / Message / CommandDispatcher / CommandResult / ReplyBuilder）
+> - **B 層 `src/b/`**: Parser / Message / CommandResult / CommandDispatcher / ReplyBuilder は PASS/NICK/USER/PING(PONG)/登録(001) まで実装済み。channel/配送/切断系は未実装（`b_devdoc/b_implementation_plan.md` 参照）
 > - **C 層 `src/c/` も完成済み**（Client / ServerState / Channel / ChannelModes / ClientRegistry）
 > - A 層は **WIP コミット中**（直近 `5e5c8df` で listen + poll 骨格）
 > - **結合テスト合格基準: `nc` で `PING :foo` 送ったら `PONG :foo` が返る**
@@ -41,13 +41,12 @@
 | **1** | Listen ソケット | `socket` / `bind` / `listen` / `_addFd(listen, POLLIN)` | `nc localhost 6667` で **接続だけ**できる（その後沈黙） | ✅ |
 | **2** | poll ループ骨格 + Accept | `run()` の `while + poll`、POLLIN 時に `_acceptClient` で `accept` | 複数 `nc` が **同時接続できる**（沈黙）。fd は `_pollfds` に積まれる | ⚠️ WIP（`usleep` 仮置きあり、Connection 生成なし） |
 | **3** | Connection クラス + 受信バッファ | `Connection::readFromSocket/hasCompleteLine/popLine` 実装、`Server::_connections` 追加、`_acceptClient` で `new Connection`、`_handleRead` で `popLine` まで | `nc` で入力した文字列が `\r\n` で行単位に切り出せる（まだサーバは何も返さない） | ❌ |
-| **4** | B 層連携（recv → Parse → Dispatch） | `Server::_state`/`_dispatcher` 追加、`_acceptClient` で `_state.addClient(cs)`、`_handleRead` で `Parser::parse → _dispatcher.dispatch`、`CommandResult` 取得 | recv した行が B 層を通って `CommandResult` まで生成される（**ただしまだ送り返せない**） | ❌ |
+| **4** | B 層連携（recv → Parse → Dispatch） | `Server::_state`/`_dispatcher` 追加、`_acceptClient` で host を `inet_ntoa` 取得し `_state.addClient(cs, host)`、`_handleRead` で `Parser::parse → _dispatcher.dispatch`、`CommandResult` 取得 | recv した行が B 層を通って `CommandResult` まで生成される（**ただしまだ送り返せない**） | ❌ |
 | **5** | 🎯 送信経路 (POLLOUT + send) | `Connection::bufferSend/writeToSocket/hasPendingOutput` 実装、`Server::applyCommandResult/_enablePollout/_disablePollout/_handleWrite` 実装、`run()` で POLLOUT 分岐 | **🎯 PING/PONG 結合テスト合格**。`nc` で `PING :foo` → `PONG :foo` が返る | ❌ |
 | 6 | 切断・エラー処理 | POLLERR/POLLHUP 検出、`recv == 0` 切断、`_disconnectClient`（`ServerState::removeClient` + `delete Connection` + `_removeFd`）、`shouldDisconnect`(QUIT) 処理、SIGINT/SIGPIPE | `Ctrl+C` `nc` 切断や `QUIT` 受信でクラッシュせず、`_connections` から正しく除去 | ❌ |
 | 7 | ノンブロッキング化 | `fcntl(fd, F_SETFL, O_NONBLOCK)` を listen fd と accept した cs に適用、accept ループ化（多重受付）、`EAGAIN` 正常系扱い | ノンブロッキング要件を満たす（評価で 0 点回避） | ❌ |
-| 8 | 仕上げ | `usleep` 削除、`#include` 整理、エラーメッセージ統一、定数の `MAX_CLIENTS` 廃止/再考、ホスト設定 (`inet_ntoa` → `Client::setHost`)、コメント整理 | 提出可能水準 | ❌ |
+| 8 | 仕上げ | `usleep` 削除、`#include` 整理、エラーメッセージ統一、定数の `MAX_CLIENTS` 廃止/再考、コメント整理 | 提出可能水準 | ❌ |
 > **事前ナレッジ（nc 実験）:** Phase 3 の `\r\n` 行切り出しの前提（TCP ストリーム・CRLF のバイト差）は [tcp_stream_and_crlf_nc_experiment.md](../knowledge/tcp_stream_and_crlf_nc_experiment.md) を参照（Ubuntu 実証後に改定予定）。
-=======
 
 ---
 
@@ -57,7 +56,7 @@
 
 理由:
 1. **recv 経路** (Phase 3) … `nc` から `"PING :foo\r\n"` が `Connection::popLine()` で取れる
-2. **B 層通過** (Phase 4) … `Parser::parse → CommandDispatcher::dispatch` で `CommandResult` が返る（B 層完成済みなので `PONG :foo\r\n` の `OutgoingMessage` が入っている）
+2. **B 層通過** (Phase 4) … `Parser::parse → CommandDispatcher::dispatch` で `CommandResult` が返る（B 層の PING 処理は実装済みなので `PONG :foo\r\n` の `OutgoingMessage` が入っている）
 3. **send 経路** (Phase 5) … `applyCommandResult` が `Connection` の send buffer に積み、POLLOUT で `send` する
 
 → Phase 6（切断処理）は**結合テスト合格には不要**。Phase 7（ノンブロッキング）も `nc` 1 本のテストではブロックしないので暫定動く。**ただし課題要件としては Phase 7 まで必須**（fcntl なし提出は 0 点）。
@@ -96,9 +95,6 @@ private:
 
 コンストラクタ初期化リストに `_state(password)` を追加。
 
-> **事前ナレッジ（nc 実験）:** Phase 3 の `\r\n` 行切り出しの前提（TCP ストリーム・CRLF のバイト差）は [tcp_stream_and_crlf_nc_experiment.md](../knowledge/tcp_stream_and_crlf_nc_experiment.md) を参照（Ubuntu 実証後に改定予定）。
-
-=======
 ### 4.2 `src/a/Connection.cpp` 実装（Phase 3 + Phase 5）
 
 ```cpp
@@ -147,11 +143,12 @@ bool Connection::writeToSocket() {
 ```cpp
 // Phase 3: _acceptClient() に Connection 生成を追加
 void Server::_acceptClient() {
-    // ... 既存 accept ...
+    // ... 既存 accept（sockaddr_in clientAddr も取得）...
+    std::string host = inet_ntoa(clientAddr.sin_addr);   // 接続元 host
     Connection* conn = new Connection(cs);
     _connections[cs] = conn;
     _addFd(cs, POLLIN);
-    _state.addClient(cs);   // Phase 4 のため C 層に登録
+    _state.addClient(cs, host);   // Phase 4: host も渡して C 層に登録（reader §7.2）
 }
 
 // Phase 4
@@ -236,7 +233,6 @@ kill $SERVER
 | SIGPIPE 無視 (`signal(SIGPIPE, SIG_IGN)`) | 6 | 必須（クラッシュ防止） |
 | ループ中の `_pollfds` インデックス安全化 | 6 | 中（**走査中の `erase` 問題**） |
 | `usleep(100ms)` の削除 | 8 | 必須（無意味かつパフォーマンス劣化） |
-| `inet_ntoa` で `Client::setHost` | 8 | 推奨（B 層 ReplyBuilder の `getFullPrefix` 用） |
 | `MAX_CLIENTS` 廃止 → `vector` 動的に | 8 | 推奨 |
 
 ---
