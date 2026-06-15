@@ -22,13 +22,18 @@ A層: 対象fdのConnectionを探し、send bufferへ積む
 
 ```cpp
 struct OutgoingMessage {
-  int fd;
+  int         fd;
   std::string message;
+
+  OutgoingMessage(int targetFd, const std::string& text);
 };
 
 struct CommandResult {
   std::vector<OutgoingMessage> replies;
-  bool shouldDisconnect;
+  bool                         shouldDisconnect;
+
+  CommandResult();
+  void addReply(int fd, const std::string& message);  // OutgoingMessage を replies に積む
 };
 ```
 
@@ -65,7 +70,27 @@ B層の `CommandDispatcher` は `Message` の意味を解釈する。
 ```text
 NICK -> ServerState::updateNick()
 JOIN -> ServerState::addClientToChannel()
-QUIT -> ServerState::removeClient()
+QUIT -> result.shouldDisconnect = true   // 削除は呼ばない。A の _disconnectClient に委ねる
+```
+
+### 2.1 実シグネチャ（A層が1行ごとに呼ぶ B層エントリポイント）
+
+```cpp
+Message       Parser::parse(const std::string& line);                          // static
+CommandResult CommandDispatcher::dispatch(int fd, const Message& msg, ServerState& state);
+```
+
+`dispatch` は `Client` ではなく `int fd` と `ServerState&` を受け取り、`fd` から `Client` を内部解決する。  
+現状の `dispatch` は内部で `handlePass` / `handleNick` / `handleUser` へ振り分け、登録完了時に `maybeRegister` が `001 RPL_WELCOME` を積む（JOIN / PRIVMSG 等は未実装）。
+
+A層の呼び出し側（抜粋。全体は [a_implementation_plan.md](../a_devdoc/a_implementation_plan.md) の `Server::_handleRead`）:
+
+```cpp
+while (conn->hasCompleteLine()) {
+    Message       msg    = Parser::parse(conn->popLine());
+    CommandResult result = _dispatcher.dispatch(fd, msg, _state);
+    applyCommandResult(result);
+}
 ```
 
 ---
@@ -89,15 +114,19 @@ return result;
 
 A層は `CommandResult.replies` を走査し、各 `OutgoingMessage.fd` に対応する `Connection` の send buffer へ `OutgoingMessage.message` を積む。
 
-```text
-CommandResult
-  replies[0] = { fd: 10, message: ":irc.local 433 * taro :Nickname is already in use\r\n" }
-
-A / Server
-  -> get Connection by fd 10
-  -> bufferSend(message)
-  -> POLLOUT enabled
+```cpp
+// A / Server::applyCommandResult（抜粋。全体は ../a_devdoc/a_implementation_plan.md）
+for (size_t i = 0; i < result.replies.size(); ++i) {
+    const OutgoingMessage& out = result.replies[i];
+    std::map<int, Connection*>::iterator it = _connections.find(out.fd);
+    if (it == _connections.end()) continue;   // 既に切断済みの fd は skip
+    it->second->bufferSend(out.message);        // send buffer へ積むだけ（まだ send しない）
+    _enablePollout(out.fd);                      // 当該 fd の POLLOUT を立てる
+}
 ```
+
+`bufferSend()` は文字列を `Connection::_sendBuffer` に追加するだけで `send()` は呼ばない。  
+実送信は後続の `poll()` で POLLOUT が立った fd について `_handleWrite() -> Connection::writeToSocket()` が行い、送り切ったら `_disablePollout()` で POLLOUT を下ろす（部分送信対応）。
 
 この分離により、A層は IRC コマンドの意味を知らなくてよい。
 また、B層は socket や non-blocking I/O の詳細を知らなくてよい。
@@ -149,23 +178,24 @@ A層は各fdの send buffer に積むだけで、channel membership を知らな
 
 ### 4.3 切断要求
 
-`QUIT` では、B層が IRC 状態を cleanup し、A層へ切断を依頼する。
+`QUIT` では、B層は `shouldDisconnect=true` を立てて A層へ切断を依頼するだけで、`removeClient` などの C 状態 cleanup は呼ばない。Client 削除は A層の `_disconnectClient` が全切断経路（QUIT / `recv==0` / POLLHUP）で一元的に行う（reader「`removeClient` は A の lifecycle」原則）。
 
 ```text
 input:
   fd 10 -> "QUIT :bye"
 
 B / Dispatcher:
-  ServerState::removeClient(10)
-  result.shouldDisconnect = true
+  result.shouldDisconnect = true   // C 状態の削除は呼ばない。A の _disconnectClient に委ねる
 
-A / Server:
-  result.replies を必要に応じてsend bufferへ積む
-  fd 10 をdisconnectする
+A / Server（Phase 6）:
+  1. applyCommandResult(result)        // replies を各 fd の send buffer へ積む
+  2. result.shouldDisconnect == true なら source fd を _disconnectClient(fd)
+     // _disconnectClient = ServerState::removeClient(fd) + delete Connection + _removeFd(fd)
 ```
 
 `CommandResult.shouldDisconnect` は「B層からA層への切断要求」である。
 B層は `close()` を呼ばない。
+`QUIT` は通常 reply を持たないため即時切断で問題ない。reply を伴う切断（将来の `ERROR` 等）では、send buffer を flush してから閉じる判断が要る。
 
 ### 4.4 返信なしの成功
 
