@@ -3,11 +3,11 @@
 > 対象: B層（Protocol / Command）実装者 — 他層 API 参照用も含む  
 > 作成日: 2026-06-01  
 > 作成者: torinoue  
-> 更新日: 2026-06-01  
+> 更新日: 2026-06-15  
 > 更新者: torinoue  
 > **役割**: 実装時の**読み物**（SSOT ではない）。Processing Flow、依存方針、呼び出し元、Open Questions 等  
-> **公開 API の正**: [`diagrams/class_overview_diagram.md`](./diagrams/class_overview_diagram.md)  
-> **契約憲章の正**: [`interface.md`](./interface.md)
+> **公開 API の正**: [`diagrams/class_overview_diagram.md`](../diagrams/class_overview_diagram.md)  
+> **契約憲章の正**: [`interface.md`](../interface.md)
 
 ## 1. Purpose
 
@@ -18,8 +18,8 @@
 - 各 API の呼び出し元・利用コンテキスト
 - 未決事項（Open Questions）
 
-公開 API のメソッド名・シグネチャは [`class_overview_diagram.md`](./diagrams/class_overview_diagram.md) を正とする。  
-層間契約の理由・禁止事項・設計決定は [`interface.md`](./interface.md)（契約憲章）を正とする。
+公開 API のメソッド名・シグネチャは [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) を正とする。  
+層間契約の理由・禁止事項・設計決定は [`interface.md`](../interface.md)（契約憲章）を正とする。
 
 全体設計・責務分割は `dev_docs/design.md` に記載する。
 実装状況・変更予定・未実装項目は `dev_docs/roadmap.md` に記載する。
@@ -40,10 +40,10 @@
 - Bは送信処理を直接行わない。
 - Bはコマンド処理結果を `CommandResult` として返す。
 - A / Server は `CommandResult` を受け取り、対象fdのsend bufferへ積む。
-- C1はClientとServerStateを管理する。
-- C2はChannelとChannelModesを管理する。
+- C層は責務で見る: `ServerState` が facade / 所有、`ClientRegistry` が内部 registry、`Client` / `Channel` が entity、`ChannelModes` が値的状態。
+- `ServerState` が Client / Channel を所有し、Client-Channel 関係を同期する。
 - ChannelはClientを所有しない。`Client*` を参照するだけ。
-- Clientの生成・削除はC1が担当する。
+- Clientの生成・削除は `ServerState` が担当する。
 
 ---
 
@@ -80,7 +80,7 @@ A / Connection
 
 ### 4.1 `OutgoingMessage`
 
-> 公開 API・構造: [class_overview_diagram.md — **`CommandResult`** / **`OutgoingMessage`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API・構造: [class_overview_diagram.md — **`CommandResult`** / **`OutgoingMessage`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 送信対象fdと送信文字列を表す。
 
@@ -103,7 +103,7 @@ struct OutgoingMessage {
 
 ### 4.2 `CommandResult`
 
-> 公開 API・構造: [class_overview_diagram.md — **`CommandResult`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API・構造: [class_overview_diagram.md — **`CommandResult`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 1つのIRCコマンド処理結果を表す。
 
@@ -137,7 +137,7 @@ AはIRCコマンドの意味を知らない。
 
 ### 5.1 `Server`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Server`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Server`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -157,7 +157,7 @@ AはIRCコマンドの意味を知らない。
 
 ### 5.2 `Connection`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Connection`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Connection`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -189,7 +189,7 @@ AはIRCコマンドの意味を知らない。
 
 `Poller` は必要に応じて `Server` から分離する。
 
-> 公開 API（メソッド名・シグネチャ）: optional クラス — [class_overview_diagram.md — +optional の根拠](./diagrams/class_overview_diagram.md#optional-の根拠)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: optional クラス — [class_overview_diagram.md — +optional の根拠](../diagrams/class_overview_diagram.md#optional-の根拠)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -215,7 +215,7 @@ AはIRCコマンドの意味を知らない。
 
 `ConnectionManager` は必要に応じて `Server` から分離する。
 
-> 公開 API（メソッド名・シグネチャ）: optional クラス — [class_overview_diagram.md — +optional の根拠](./diagrams/class_overview_diagram.md#optional-の根拠)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: optional クラス — [class_overview_diagram.md — +optional の根拠](../diagrams/class_overview_diagram.md#optional-の根拠)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -247,7 +247,7 @@ BはAのNetwork / IOクラスに依存しない。
 
 ### 6.1 `Message`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Message`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Message`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -288,7 +288,7 @@ params  = ["#room", "hello world"]
 
 ### 6.2 `Parser`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Parser`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Parser`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -305,7 +305,7 @@ recv bufferからcomplete lineを切り出すのはA / Connectionの責務。
 
 ### 6.3 `CommandDispatcher`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`CommandDispatcher`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`CommandDispatcher`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -337,7 +337,9 @@ recv bufferからcomplete lineを切り出すのはA / Connectionの責務。
 
 ### 6.4 `ReplyBuilder`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`ReplyBuilder`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`ReplyBuilder`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
+
+> **注**: 下表は B 層が最終的に必要とする reply の計画一覧（aspirational）。現行の実装スケルトンでは `pong()` / `welcome()` / `needMoreParams()` / `alreadyRegistered()` / `passwordMismatch()` / `nickInUse()` / `unknownCommand()` のみ実装済み。残りは未着手。実 header は [`include/b/ReplyBuilder.hpp`](../../include/b/ReplyBuilder.hpp)。
 
 #### 呼び出し元・利用コンテキスト
 
@@ -366,34 +368,40 @@ recv bufferからcomplete lineを切り出すのはA / Connectionの責務。
 | `noTopic()` | `CommandDispatcher` | `331` topic未設定を生成する |
 | `mode()` | `CommandDispatcher` | MODE通知を生成する |
 | `channelModeIs()` | `CommandDispatcher` | `324` mode照会を生成する |
+| `pong()` | `CommandDispatcher` | PING に対する PONG を生成する（非 numeric） |
+| `unknownCommand()` | `CommandDispatcher` | `421` 未知コマンドを生成する |
 
 ---
 
-## 7. C1: Client / ServerState Interface
+## 7. C: ServerState / Client / ClientRegistry Interface
 
-担当: C1
+担当: C (tyamaoka)
 
-C1はClientの状態、Clientの生死、サーバ全体の辞書を管理する。
+`ServerState` が facade として Client の状態・生死・サーバ全体の辞書を管理し、辞書の実体は内部の `ClientRegistry` に委譲する。B層は `ServerState` を窓口に使い、`ClientRegistry` を直接触らない。
 
 ---
 
 ### 7.1 `Client`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Client`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Client`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
 | メソッド | 利用者 | 内容 |
 | -------- | ------ | ---- |
-| `getFd()` | B / C2 | Clientに対応するfdを取得する |
-| `getNick()` | B / C2 | nickを取得する |
+| `getFd()` | B / Channel・ReplyBuilder | Clientに対応するfdを取得する |
+| `getNick()` | B / Channel・ReplyBuilder | nickを取得する |
 | `getUsername()` | B | usernameを取得する |
 | `getRealname()` | B | realnameを取得する |
 | `getHost()` | B | hostを取得する |
+| `getChannels()` | B / ServerState | 所属Channel一覧を取得する |
 | `getFullPrefix()` | B | `nick!user@host` 形式を返す（RFC 1459 Section 2.3 準拠） |
 | `setUsername()` | B | usernameを設定する |
 | `setRealname()` | B | realnameを設定する |
-| `setHost()` | A | hostを設定する（接続時） |
+| `setHost()` | C / internal | host再設定用。接続時の初期化は原則 `ServerState::addClient(fd, host)` 経由 |
+| `_unsafe_setNick()` | ServerState / ClientRegistry | nick cache更新用。B層は直接呼ばず `ServerState::updateNick()` 経由 |
+| `_unsafe_joinChannel()` | ServerState | 所属Channel cache追加。B層は直接呼ばない |
+| `_unsafe_leaveChannel()` | ServerState | 所属Channel cache削除。B層は直接呼ばない |
 | `setPassOk()` | B | PASS成功状態を設定する |
 | `isPassOk()` | B | PASS済みか確認する |
 | `isRegistered()` | B | 登録完了済みか確認する |
@@ -402,7 +410,7 @@ C1はClientの状態、Clientの生死、サーバ全体の辞書を管理する
 
 #### 注意
 
-`Client::setNick()` は外部から直接呼ばない。
+`Client::_unsafe_setNick()` は外部から直接呼ばない。
 
 nick変更は必ず `ServerState::updateNick()` を通す。
 
@@ -414,15 +422,20 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 
 ### 7.2 `ServerState`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`ServerState`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`ServerState`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
 | メソッド | 利用者 | 内容 |
 | -------- | ------ | ---- |
-| `password()` | B | サーバpasswordを取得する |
-| `addClient()` | Server | 新規接続時にClientを作成する |
-| `removeClient()` | Server / B | 切断時にClientを削除する（Channel掃除・delete含む） |
+| `getPassword()` | B | サーバpasswordを取得する |
+| `addClient(fd, host)` | Server | accept 時に fd と接続元 host を渡して Client を作成し host を初期化する |
+| `addClientToChannel()` | B | Client と Channel の参加関係を同期し、必要なら Channel 作成 |
+| `removeClientFromChannel()` | B | Client と Channel の参加関係を解除し、空 Channel を削除 |
+| `inviteClientToChannel()` | B | invite list に Client を追加する C層窓口 |
+| `removeInviteFromChannel()` | B | invite list から Client を削除する C層窓口 |
+| `removeClientFromAllInvites()` | ServerState / cleanup | 全 Channel の invite list から Client を削除 |
+| `removeClient()` | Server / B | 切断時にClientを削除する（Channel掃除・invite・辞書 cleanup・delete含む） |
 | `getClientByFd()` | B | fdからClientを取得する |
 | `getClientByNick()` | B | nickからClientを取得する |
 | `nickExists()` | B | nick重複を確認する |
@@ -445,13 +458,13 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 
 ---
 
-### 7.3 `ClientRegistry` optional
+### 7.3 `ClientRegistry`（分離確定・内部実装）
 
-`ClientRegistry` は `ServerState` が肥大化した場合に分離する。
+`ClientRegistry` は `ServerState` の内部実装として既に分離済み（`ServerState` が `ClientRegistry` を所有し、fd / nick 辞書を委譲する）。
 
-初期実装では必須ではない。
+B層は `ClientRegistry` を直接触らず、`ServerState` の facade API を使う。
 
-> 公開 API（メソッド名・シグネチャ）: optional クラス — [class_overview_diagram.md — +optional の根拠](./diagrams/class_overview_diagram.md#optional-の根拠)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`ClientRegistry`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -466,40 +479,39 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 
 ---
 
-## 8. C2: Channel Interface
+## 8. C: Channel / ChannelModes Interface
 
-担当: C2
+担当: C (tyamaoka)
 
-C2はChannel内部状態とChannelModesを管理する。
+`Channel` と `ChannelModes` は Channel 内部状態を管理する entity / 値的状態。所有は `ServerState`。
 
 ---
 
 ### 8.1 `Channel`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Channel`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`Channel`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
 | メソッド | 利用者 | 内容 |
 | -------- | ------ | ---- |
-| `name()` | B / C1 | channel名を取得する |
+| `getName()` | B / C | channel名を取得する |
+| `getTopic()` | B | topicを取得する |
+| `setTopic()` | B | topicを設定する |
 | `hasMember()` | B | Clientが参加済みか確認する |
-| `addMember()` | B | memberを追加する |
-| `removeMember()` | B | memberを削除する |
-| `removeClient()` | B / C1 | member / operator / invited list からまとめて削除する |
-| `members()` | B | member一覧を取得する |
+| `_unsafe_addMember()` | ServerState | member追加。B層は直接呼ばず `ServerState::addClientToChannel()` 経由 |
+| `_unsafe_removeMember()` | ServerState | member削除。B層は直接呼ばず `ServerState::removeClientFromChannel()` 経由 |
+| `_unsafe_removeClientState()` | ServerState | member / operator / invite をまとめて cleanup。B層は直接呼ばない |
+| `getMembers()` | B | member一覧を取得する |
 | `memberCount()` | B | member数を取得する |
 | `isOperator()` | B | Clientがchannel operatorか確認する |
-| `addOperator()` | B | operator権限を付与する |
-| `removeOperator()` | B | operator権限を剥奪する |
-| `addInvite()` | B | 招待リストに追加する |
+| `setOperator(client, bool)` | B | operator権限の付与・剥奪 |
+| `addInvite()` | ServerState | invite list追加。B層は `ServerState::inviteClientToChannel()` 経由 |
 | `isInvited()` | B | 招待済みか確認する |
-| `removeInvite()` | B | 招待状態を解除する |
-| `setTopic()` | B | topicを設定する |
-| `topic()` | B | topicを取得する |
-| `modes()` | B | mode変更用 |
-| `modes() const` | B | mode参照用 |
-| `isEmpty()` | B / C1 | memberが0人か確認する |
+| `removeInvite()` | ServerState | invite list削除。B層は `ServerState::removeInviteFromChannel()` 経由 |
+| `getModes()` | B | mode変更用 |
+| `getModes() const` | B | mode参照用 |
+| `isEmpty()` | B / ServerState | memberが0人か確認する |
 
 #### 補足
 
@@ -508,31 +520,31 @@ C2はChannel内部状態とChannelModesを管理する。
 
 #### JOIN時のoperator初期化
 
-新規作成されたChannelに最初のClientが参加する場合、参加処理は `addMember()` に加えて `addOperator()` も行う。
+新規作成されたChannelに最初のClientが参加する場合、参加処理は `ServerState::addClientToChannel()` で member 追加を行い、加えて `Channel::setOperator(client, true)` で operator 権限を付与する。
 
-この判定は `CommandDispatcher` または `ChannelService::join()` が行う。
+この判定は `CommandDispatcher`（分離時は `ChannelService::join()`）が行う。
 
 ---
 
 ### 8.2 `ChannelModes`
 
-> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`ChannelModes`**](./diagrams/class_overview_diagram.md)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: [class_overview_diagram.md — **`ChannelModes`**](../diagrams/class_overview_diagram.md)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
 | メソッド | 利用者 | 内容 |
 | -------- | ------ | ---- |
-| `inviteOnly()` | B | `+i` 状態を取得する |
-| `topicRestricted()` | B | `+t` 状態を取得する |
+| `isInviteOnly()` | B | `+i` 状態を取得する |
+| `isTopicRestricted()` | B | `+t` 状態を取得する |
 | `hasKey()` | B | `+k` 状態を取得する |
-| `key()` | B | channel keyを取得する |
-| `limit()` | B | user limitを取得する。無制限なら `-1` |
+| `getKey()` | B | channel keyを取得する |
+| `getLimit()` | B | user limitを取得する。無制限なら `-1` |
 | `setInviteOnly()` | B | `+i` / `-i` を設定する |
 | `setTopicRestricted()` | B | `+t` / `-t` を設定する |
 | `setKey()` | B | `+k` を設定する |
-| `unsetKey()` | B | `-k` を設定する |
+| `unSetKey()` | B | `-k` を設定する |
 | `setLimit()` | B | `+l` を設定する |
-| `unsetLimit()` | B | `-l` を設定する |
+| `unSetLimit()` | B | `-l` を設定する |
 
 ---
 
@@ -542,7 +554,7 @@ C2はChannel内部状態とChannelModesを管理する。
 
 初期実装では必須ではない。
 
-> 公開 API（メソッド名・シグネチャ）: optional クラス — [class_overview_diagram.md — +optional の根拠](./diagrams/class_overview_diagram.md#optional-の根拠)[^fn-api-ref]
+> 公開 API（メソッド名・シグネチャ）: optional クラス — [class_overview_diagram.md — +optional の根拠](../diagrams/class_overview_diagram.md#optional-の根拠)[^fn-api-ref]
 
 #### 呼び出し元・利用コンテキスト
 
@@ -565,7 +577,7 @@ C2はChannel内部状態とChannelModesを管理する。
 
 ## 9. Important Rules
 
-> 契約ルールの正: [`interface.md`](./interface.md)[^fn-rules-ssot]
+> 契約ルールの正: [`interface.md`](../interface.md)[^fn-rules-ssot]
 
 ### 9.1 B does not depend on A
 
@@ -600,7 +612,7 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 NG:
 
 ```cpp
-client.setNick(newNick);
+client._unsafe_setNick(newNick);
 ```
 
 OK:
@@ -613,9 +625,9 @@ state.updateNick(client, newNick);
 
 ### 9.4 Client ownership
 
-Clientの生成・削除はC1が担当する。
+Clientの生成・削除は `ServerState` が担当する。
 
-* `ServerState::addClient(fd)` で作成する。
+* `ServerState::addClient(fd, host)` で作成する（host は A が accept 時に渡す）。
 * `ServerState::removeClient(fd)` で削除する。
 * `Channel` は `Client*` を参照するだけ。
 * `Channel` は `Client*` を `delete` しない。
@@ -635,7 +647,7 @@ client.setOperator(true);
 OK:
 
 ```cpp
-channel.addOperator(&client);
+channel.setOperator(&client, true);
 ```
 
 理由:
@@ -701,13 +713,9 @@ send buffer管理が膨らむ場合、`ConnectionManager` へ分離する。
 
 ---
 
-### 10.3 `ClientRegistry` を分離するか
+### 10.3 `ClientRegistry` を分離するか（決定済み: 分離）
 
-現時点では optional。
-
-まずは `ServerState` が `fd -> Client` と `nick -> Client` を直接持つ。
-
-肥大化した場合に `ClientRegistry` へ分離する。
+`ServerState` の内部実装として分離済み。`ServerState` が `ClientRegistry` を所有し、`fd -> Client` / `nick -> Client` 辞書を委譲する。B層は `ServerState` facade のみ使う（§7.3 参照）。
 
 ---
 
@@ -721,8 +729,16 @@ send buffer管理が膨らむ場合、`ConnectionManager` へ分離する。
 
 ---
 
+## 変更履歴
+
+| 日付 | 内容 |
+|------|------|
+| 2026-06-15 | `interface.md` / `class_overview_diagram.md` に全面同期。C1/C2 区分を責務ベースへ、ClientRegistry を分離確定、Channel/ChannelModes/ServerState/Client のメソッド名刷新（`getName`/`getTopic`/`getModes`/`getPassword`/`isInviteOnly`/`getKey` 等、`_unsafe_*` 明示）、ServerState facade（`addClientToChannel` 等）追加 |
+
+---
+
 ## 脚注
 
-[^fn-api-ref]: メソッド名・シグネチャの正は [`class_overview_diagram.md`](./diagrams/class_overview_diagram.md)。下表のメソッド名は同図と一致させること。API 変更時は class_overview を先に更新し、本ガイド・[`interface.md`](./interface.md)・onboarding 等の参照（ファイル名・§番号・リンク）も合わせて更新すること。
+[^fn-api-ref]: メソッド名・シグネチャの正は [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md)。下表のメソッド名は同図と一致させること。API 変更時は class_overview を先に更新し、本ガイド・[`interface.md`](../interface.md)・onboarding 等の参照（ファイル名・§番号・リンク）も合わせて更新すること。
 
-[^fn-rules-ssot]: §9 の契約ルールの正は [`interface.md`](./interface.md)（契約憲章）。本ガイド §9 は B 層実装者向けの補足説明である。
+[^fn-rules-ssot]: §9 の契約ルールの正は [`interface.md`](../interface.md)（契約憲章）。本ガイド §9 は B 層実装者向けの補足説明である。
