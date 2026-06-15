@@ -21,8 +21,9 @@
 公開 API のメソッド名・シグネチャは [`class_overview_diagram.md`](../diagrams/class_overview_diagram.md) を正とする。  
 層間契約の理由・禁止事項・設計決定は [`interface.md`](../interface.md)（契約憲章）を正とする。
 
-全体設計・責務分割は `dev_docs/design.md` に記載する。
-実装状況・変更予定・未実装項目は `dev_docs/roadmap.md` に記載する。
+下記は現在実施されていない。
+- ~~全体設計・責務分割は `dev_docs/design.md` に記載する。~~
+- ~~実装状況・変更予定・未実装項目は `dev_docs/roadmap.md` に記載する。~~
 
 ---
 
@@ -129,7 +130,7 @@ struct CommandResult {
 
 ## 5. A: Network / IO Interface
 
-担当: A
+担当者: A (torinoue)
 
 Aはfd、socket、poll、recv buffer、send bufferを管理する。
 
@@ -237,7 +238,7 @@ Bは `CommandResult` を返し、A / Server が送信処理を行う。
 
 ## 6. B: Protocol / Command Interface
 
-担当: B
+担当者: B (tvaroux)
 
 BはIRCメッセージの解析、コマンド振り分け、返信生成を担当する。
 
@@ -294,7 +295,7 @@ params  = ["#room", "hello world"]
 
 | メソッド | 利用者 | 内容 |
 | -------- | ------ | ---- |
-| `parse()` | `Server` | 1行文字列をMessageへ変換する |
+| `parse()` | A | 1行文字列をMessageへ変換する |
 
 #### 補足
 
@@ -311,7 +312,7 @@ recv bufferからcomplete lineを切り出すのはA / Connectionの責務。
 
 | メソッド | 利用者 | 内容 |
 | -------- | ------ | ---- |
-| `dispatch()` | `Server` | IRC commandを実行し、結果を返す |
+| `dispatch()` | A | IRC commandを実行し、結果を返す |
 
 #### 補足
 
@@ -429,20 +430,22 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 | メソッド | 利用者 | 内容 |
 | -------- | ------ | ---- |
 | `getPassword()` | B | サーバpasswordを取得する |
-| `addClient(fd, host)` | Server | accept 時に fd と接続元 host を渡して Client を作成し host を初期化する |
+| `addClient(fd, host)` | A | accept 時に fd と接続元 host を渡して Client を作成し host を初期化する |
 | `addClientToChannel()` | B | Client と Channel の参加関係を同期し、必要なら Channel 作成 |
 | `removeClientFromChannel()` | B | Client と Channel の参加関係を解除し、空 Channel を削除 |
 | `inviteClientToChannel()` | B | invite list に Client を追加する C層窓口 |
 | `removeInviteFromChannel()` | B | invite list から Client を削除する C層窓口 |
 | `removeClientFromAllInvites()` | ServerState / cleanup | 全 Channel の invite list から Client を削除 |
-| `removeClient()` | Server / B | 切断時にClientを削除する（Channel掃除・invite・辞書 cleanup・delete含む） |
+| `removeClient()` | A, B | 切断時にClientを削除する（Channel掃除・invite・辞書 cleanup・delete含む） |
 | `getClientByFd()` | B | fdからClientを取得する |
 | `getClientByNick()` | B | nickからClientを取得する |
 | `nickExists()` | B | nick重複を確認する |
 | `updateNick()` | B | Clientのnickとnick辞書を同時に更新する |
 | `getChannel()` | B | Channelを取得する。なければNULL |
 | `getOrCreateChannel()` | B | Channelを取得する。なければ作成 |
-| `removeChannelIfEmpty()` | B / Server | 空Channelを削除する |
+| `removeChannelIfEmpty()` | B / ServerState | 空Channelを削除する |
+
+> **注**: 利用者が `A` の lifecycle API（`addClient` / `removeClient`）は、A層が accept / disconnect 時に **B層を介さず直接 C層（`ServerState` facade）を呼ぶ例外**。通常のコマンド処理は A→B→C だが、Client の生成・削除は host 情報を持つ A層が直接行うため。
 
 #### 削除ルール
 
@@ -481,7 +484,7 @@ B層は `ClientRegistry` を直接触らず、`ServerState` の facade API を�
 
 ## 8. C: Channel / ChannelModes Interface
 
-担当: C (tyamaoka)
+担当者: C (tyamaoka)
 
 `Channel` と `ChannelModes` は Channel 内部状態を管理する entity / 値的状態。所有は `ServerState`。
 
