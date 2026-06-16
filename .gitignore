@@ -6,3 +6,5 @@ tests/*/test_runner
 a_tmp/
 a_header_tmp/
 yon_ni_subjects/
+ircserv
+*.a
