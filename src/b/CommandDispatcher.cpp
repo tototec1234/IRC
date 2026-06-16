@@ -30,6 +30,8 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
     result = handleNick(fd, msg, state, client);
   } else if (command == "USER") {
     result = handleUser(fd, msg, client);
+  } else if (command == "JOIN") {
+	result = handleJoin(fd, msg, state, client);
   } else if (!command.empty()) {
     result.addReply(fd, ReplyBuilder::unknownCommand(client, command));
   }
@@ -104,6 +106,33 @@ CommandResult CommandDispatcher::handleUser(int fd, const Message& msg,
   client->setUsername(msg.getSingleParam(0));
   client->setRealname(msg.getSingleParam(3));
   maybeRegister(*client, result);
+  return result;
+}
+
+//
+CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
+                                            ServerState& state,
+                                            Client* client) {
+  CommandResult result;
+  if (!client) {
+    return result;
+  }
+  if (!msg.hasParam(0)) {
+    result.addReply(fd, ReplyBuilder::needMoreParams(client, "JOIN"));
+    return result;
+  }
+  if (!client->isPassOk()) {
+    result.addReply(fd, ReplyBuilder::passwordMismatch());
+    return result;
+  }
+  if (client->isRegistered()) {
+    result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
+    return result;
+  }
+  Channel *Channel = state.addClientToChannel(client, msg.getSingleParam(0));
+  if (!Channel)
+  	return result;
+
   return result;
 }
 

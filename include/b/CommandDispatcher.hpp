@@ -32,6 +32,8 @@ class CommandDispatcher {
   CommandResult handleNick(int fd, const Message& msg, ServerState& state,
                            Client* client);
   CommandResult handleUser(int fd, const Message& msg, Client* client);
+  CommandResult handleJoin(int fd, const Message& msg, ServerState& state,
+                           Client* client);
   /*
    * Registration completion is intentionally separate from PASS. Current B
    * policy requires PASS before NICK/USER can mutate Client registration data.
