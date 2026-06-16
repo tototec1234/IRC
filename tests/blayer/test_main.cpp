@@ -7,6 +7,7 @@
 #include "b/CommandResult.hpp"
 #include "b/Message.hpp"
 #include "b/Parser.hpp"
+#include "b/ReplyBuilder.hpp" //torinoue
 #include "c/ServerState.hpp"
 
 namespace {
@@ -172,6 +173,33 @@ void testNickConflictReturnsNumeric() {
   EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
   EXPECT_CONTAINS(result.replies[0].message, " 433 ");
   EXPECT_TRUE(state.getClientByFd(31)->getNick().empty());
+}
+
+/* test tuika*/
+void testNotRegistereReplyFormat() {
+  ServerState state("pw");
+  addClient(state, 40);
+// Client* client = state.getClientByFd(26);
+Client* client = state.getClientByFd(40);
+//   CommandDispatcher dispatcher;
+
+//   dispatcher.dispatch(30, makeMessage("PASS", "pw"), state);
+//   dispatcher.dispatch(31, makeMessage("PASS", "pw"), state);
+//   dispatcher.dispatch(30, makeMessage("NICK", "taro"), state);
+//   CommandResult result =
+//       dispatcher.dispatch(31, makeMessage("NICK", "TARO"), state);
+
+	std::string reply = ReplyBuilder::noRegistered(client);
+
+//   EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+//   EXPECT_CONTAINS(result.replies[0].message, " 433 ");
+//   EXPECT_TRUE(state.getClientByFd(31)->getNick().empty());
+	EXPECT_TRUE(client != NULL);
+	EXPECT_FALSE(client->isRegistered());
+	EXPECT_CONTAINS(reply, " 451 ");
+	EXPECT_CONTAINS(reply, " 451 * ");
+	EXPECT_CONTAINS(reply, "You have not registered");
+	
 }
 
 void runTest(const std::string& name, void (*test)()) {
