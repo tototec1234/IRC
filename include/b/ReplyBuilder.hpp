@@ -17,6 +17,7 @@ class ReplyBuilder {
   static std::string alreadyRegistered(const Client& client);
   static std::string passwordMismatch();
   static std::string nickInUse(const std::string& nick);
+  static std::string noRegistered(const Client& client);
   static std::string unknownCommand(const Client* client,
                                     const std::string& command);
 
