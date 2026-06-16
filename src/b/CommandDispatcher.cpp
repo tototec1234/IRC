@@ -129,10 +129,22 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
     result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
     return result;
   }
-  Channel *Channel = state.addClientToChannel(client, msg.getSingleParam(0));
-  if (!Channel)
+  Channel *channel = state.addClientToChannel(client, msg.getSingleParam(0));
+  if (!channel) {
+	result.addReply(fd, ReplyBuilder::torima_joinMissing(*client, "JOIN"));
   	return result;
+  }
 
+  std::string joinMsg = ReplyBuilder::join(channel->getName(), "JOIN");
+  
+  std::vector<Client*> member = channel->getMembers();	// ディープコピーじゃなくていいのかな？
+ 
+  for (Client* member : channel.members()) {
+      result.addReply(member->getFd(), joinMsg);
+  }
+
+//   result.addReply(fd, ReplyBuilder::join(channel->getName(), "JOIN"));	//Channelクラスのgetterを勝手に触っていいのだろうか。。。？
+//   ReplyBuilder::join(msg.getSingleParam(0), "JOIN");
   return result;
 }
 

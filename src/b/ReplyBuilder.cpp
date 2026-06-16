@@ -86,8 +86,23 @@ std::string ReplyBuilder::noRegistered(const Client& client) {
                       ":You have not registered");
 }
 
+std::string ReplyBuilder::join(const std::string & ChannelName,
+                               const std::string& command) {
+  return std::string(":") + SERVER_NAME + command + "#" + ChannelName + "\r\n";
+}
+
 std::string ReplyBuilder::unknownCommand(const Client* client,
                                          const std::string& command) {
   return numericReply(ERR_UNKNOWNCOMMAND, replyTarget(client), command,
                       "Unknown command");
+}
+
+
+
+
+//	torima ato de kesu
+std::string ReplyBuilder::torima_joinMissing(const Client& client,
+                                         const std::string& command) {
+  return numericReply("999", replyTarget(&client), command,
+	                  "じょいんみすった〜");
 }

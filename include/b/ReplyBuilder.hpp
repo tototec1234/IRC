@@ -21,6 +21,16 @@ class ReplyBuilder {
   static std::string unknownCommand(const Client* client,
                                     const std::string& command);
 
+
+
+  static std::string join(const std::string & ChannelName,
+                          const std::string& command);
+
+
+
+  static std::string torima_joinMissing(const Client& client,
+                                         const std::string& command);
+
  private:
   // Static utility class.
   ReplyBuilder();
