@@ -176,7 +176,7 @@ void testNickConflictReturnsNumeric() {
 }
 
 /* test tuika*/
-void testNotRegistereReplyFormat() {
+void testNotRegisteredReplyFormat() {
   ServerState state("pw");
   addClient(state, 40);
 // Client* client = state.getClientByFd(26);
@@ -189,7 +189,7 @@ Client* client = state.getClientByFd(40);
 //   CommandResult result =
 //       dispatcher.dispatch(31, makeMessage("NICK", "TARO"), state);
 
-	std::string reply = ReplyBuilder::noRegistered(client);
+	std::string reply = ReplyBuilder::noRegistered(*client);
 
 //   EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
 //   EXPECT_CONTAINS(result.replies[0].message, " 433 ");
@@ -222,6 +222,7 @@ int main() {
   runTest("nick before pass is rejected", testNickBeforePassIsRejected);
   runTest("user before pass is rejected", testUserBeforePassIsRejected);
   runTest("nick conflict returns numeric", testNickConflictReturnsNumeric);
+  runTest("not registered reply format", testNotRegisteredReplyFormat);
 
   std::cout << "Assertions passed: " << g_passed << std::endl;
   if (g_failed != 0) {
