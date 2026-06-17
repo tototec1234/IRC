@@ -6,19 +6,10 @@
 #include <vector>
 
 class Channel;
-/*
-  clientが所属channelを管理しない設計になっているが、
-  serverstateを親としてみたときchannelとclientは子供同士の関係であり
-  双方向に参照できても問題なさそう
-  client削除時に所属channelからclientを削除する処理が必要になるが
-  channel側でのみclientを管理していると全てのchannelを走査して
-  clientを削除する必要があるためchannel数に比例して処理時間が増える
-  そのため、client側からも所属channelを管理すべきではないか
-*/
 
 class Client {
  public:
-  Client(int fd);
+  Client(int fd, const std::string& host);
   ~Client();
 
   int getFd() const;

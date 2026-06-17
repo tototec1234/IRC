@@ -22,7 +22,7 @@ const char* ERR_UNKNOWNCOMMAND = "421";  // unknownCommand()
 const char* ERR_NICKNAMEINUSE = "433";  // nickInUse()
 // TODO: const char* ERR_USERNOTINCHANNEL = "441"; // userNotInChannel()
 // TODO: const char* ERR_NOTONCHANNEL = "442";     // notOnChannel()
-// TODO: const char* ERR_NOTREGISTERED = "451";    // notRegistered()
+const char* ERR_NOTREGISTERED = "451";    // notRegistered()
 const char* ERR_NEEDMOREPARAMS = "461";     // needMoreParams()
 const char* ERR_ALREADYREGISTERED = "462";  // alreadyRegistered()
 const char* ERR_PASSWDMISMATCH = "464";     // passwordMismatch()
@@ -81,8 +81,30 @@ std::string ReplyBuilder::nickInUse(const std::string& nick) {
                       "Nickname is already in use");
 }
 
+std::string ReplyBuilder::noRegistered(const Client& client) {
+  return numericReply(ERR_NOTREGISTERED, replyTarget(&client), "",
+                      ":You have not registered");
+}
+
+std::string ReplyBuilder::join(const std::string & ChannelName,
+							   const std::string & clientFullPrefix,
+                               const std::string& command) {
+  return std::string(":") + clientFullPrefix + " " + command +
+  		 " " + ChannelName + "\r\n";
+}
+
 std::string ReplyBuilder::unknownCommand(const Client* client,
                                          const std::string& command) {
   return numericReply(ERR_UNKNOWNCOMMAND, replyTarget(client), command,
                       "Unknown command");
+}
+
+
+
+
+//	torima ato de kesu
+std::string ReplyBuilder::torima_joinMissing(const Client& client,
+                                         const std::string& command) {
+  return numericReply("999", replyTarget(&client), command,
+	                  "じょいんみすった〜");
 }
