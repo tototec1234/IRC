@@ -24,6 +24,7 @@ class ReplyBuilder {
 
 
   static std::string join(const std::string & ChannelName,
+						  const std::string & clientFullPrefix,
                           const std::string& command);
 
 

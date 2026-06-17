@@ -87,8 +87,10 @@ std::string ReplyBuilder::noRegistered(const Client& client) {
 }
 
 std::string ReplyBuilder::join(const std::string & ChannelName,
+							   const std::string & clientFullPrefix,
                                const std::string& command) {
-  return std::string(":") + SERVER_NAME + command + "#" + ChannelName + "\r\n";
+  return std::string(":") + clientFullPrefix + " " + command +
+  		 " " + ChannelName + "\r\n";
 }
 
 std::string ReplyBuilder::unknownCommand(const Client* client,

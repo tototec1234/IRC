@@ -136,7 +136,7 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
   	return result;
   }
 
-  std::string joinMsg = ReplyBuilder::join(channel->getName(), "JOIN");
+  std::string joinMsg = ReplyBuilder::join(channel->getName(), client->getFullPrefix(), "JOIN");
   
   std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
  

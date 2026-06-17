@@ -243,8 +243,11 @@ void testJoinBeforeRegistrationReturns451() {
 	EXPECT_TRUE(result.replies.size() >= static_cast<size_t>(1));
 	EXPECT_EQ(43, result.replies[0].fd);
 	EXPECT_CONTAINS(result.replies[0].message, "JOIN" );
+	EXPECT_CONTAINS(result.replies[0].message, ":taro!user@client.example JOIN #taros_room" );
+	// std::cout << std::endl << result.replies[0].message << std::endl;
   }
 
+#include <stdio.h>
 
 int main() {
   runTest("parser basic message", testParserBasicMessage);
@@ -262,6 +265,8 @@ int main() {
 
   runTest("join after registration echoes to self",
 			testJoinAfterRegistrationEchoesToSelf);
+
+			// printf("------%d------------", __LINE__ );
 
   std::cout << "Assertions passed: " << g_passed << std::endl;
   if (g_failed != 0) {
