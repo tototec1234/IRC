@@ -29,7 +29,7 @@ class ReplyBuilder {
 
 
 
-  static std::string torima_joinMissing(const Client& client,
+  static std::string torima_Missing(const Client& client,
                                          const std::string& command);
 
  private:
