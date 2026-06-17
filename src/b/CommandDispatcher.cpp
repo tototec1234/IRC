@@ -1,6 +1,9 @@
 #include "b/CommandDispatcher.hpp"
 #include "b/ReplyBuilder.hpp"
 #include "c/ServerState.hpp"
+#include <iterator>
+#include <type_traits>
+#include <vector>
 
 // #include "CommandDispatcher.hpp"
 
@@ -121,12 +124,10 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
     result.addReply(fd, ReplyBuilder::needMoreParams(client, "JOIN"));
     return result;
   }
-  if (!client->isPassOk()) {
-    result.addReply(fd, ReplyBuilder::passwordMismatch());
-    return result;
-  }
-  if (client->isRegistered()) {
-    result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
+//   if (!client->isPassOk()) {
+  if (!client->isRegistered()) {
+    // result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
+    result.addReply(fd, ReplyBuilder::noRegistered(*client));
     return result;
   }
   Channel *channel = state.addClientToChannel(client, msg.getSingleParam(0));
@@ -137,12 +138,17 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
 
   std::string joinMsg = ReplyBuilder::join(channel->getName(), "JOIN");
   
-  std::vector<Client*> member = channel->getMembers();	// ディープコピーじゃなくていいのかな？
+  std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
  
-  for (Client* member : channel.members()) {
-      result.addReply(member->getFd(), joinMsg);
-  }
-
+//   for (Client* member : channel.members()) {
+// 	result.addReply(member->getFd(), joinMsg);
+//   }
+	for (std::vector<Client*>::const_iterator it = members.begin();
+			it != members.end();
+			++it)
+		{
+			result.addReply((*it)->getFd(), joinMsg);	
+		}		
 //   result.addReply(fd, ReplyBuilder::join(channel->getName(), "JOIN"));	//Channelクラスのgetterを勝手に触っていいのだろうか。。。？
 //   ReplyBuilder::join(msg.getSingleParam(0), "JOIN");
   return result;
