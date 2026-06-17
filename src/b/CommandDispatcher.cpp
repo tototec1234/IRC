@@ -137,10 +137,11 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
 
   std::string joinMsg = ReplyBuilder::join(channel->getName(), "JOIN");
   
-  std::vector<Client*> member = channel->getMembers();	// ディープコピーじゃなくていいのかな？
+  std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
  
-  for (Client* member : channel.members()) {
-      result.addReply(member->getFd(), joinMsg);
+  for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
+      Client * client = *it;
+	  result.addReply(client->getFd(), joinMsg);
   }
 
 //   result.addReply(fd, ReplyBuilder::join(channel->getName(), "JOIN"));	//Channelクラスのgetterを勝手に触っていいのだろうか。。。？
