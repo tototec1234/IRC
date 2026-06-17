@@ -2,7 +2,7 @@
 #include "b/ReplyBuilder.hpp"
 #include "c/ServerState.hpp"
 #include <iterator>
-#include <type_traits>
+// #include <type_traits>　c++11 なぜまぎれこんでる？
 #include <vector>
 
 // #include "CommandDispatcher.hpp"
