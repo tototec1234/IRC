@@ -232,26 +232,17 @@ void testJoinBeforeRegistrationReturns451() {
 
   void testJoinAfterRegistrationEchoesToSelf() {
 	ServerState state("pw");
-	addClient(state, 20);
-	Client* client = state.getClientByFd(20);
+	addClient(state, 43);
 	CommandDispatcher dispatcher;
-  
-	EXPECT_TRUE(client != NULL);
-	CommandResult passResult =
-		dispatcher.dispatch(20, makeMessage("PASS", "pw"), state);
-	CommandResult nickResult =
-		dispatcher.dispatch(20, makeMessage("NICK", "taro"), state);
-	CommandResult userResult = dispatcher.dispatch(20, makeUserMessage(), state);
-  
-	EXPECT_EQ(static_cast<size_t>(0), passResult.replies.size());
-	EXPECT_EQ(static_cast<size_t>(0), nickResult.replies.size());
-	EXPECT_TRUE(client->isPassOk());
-	EXPECT_EQ(std::string("taro"), client->getNick());
-	EXPECT_EQ(std::string("taro!user@client.example"), client->getFullPrefix());
-	EXPECT_EQ(client, state.getClientByNick("taro"));
-	EXPECT_TRUE(client->isRegistered());
-	EXPECT_EQ(static_cast<size_t>(1), userResult.replies.size());
-	EXPECT_CONTAINS(userResult.replies[0].message, " 001 taro ");
+	dispatcher.dispatch(43, makeMessage("PASS", "pw"), state);
+	dispatcher.dispatch(43, makeMessage("NICK", "taro"), state);
+	dispatcher.dispatch(43, makeUserMessage(), state);
+	CommandResult result =
+		dispatcher.dispatch(43, makeMessage("JOIN", "#taros_room"), state);
+	EXPECT_TRUE(state.getClientByFd(43)->isRegistered());
+	EXPECT_TRUE(result.replies.size() >= static_cast<size_t>(1));
+	EXPECT_EQ(43, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message, "JOIN" );
   }
 
 
