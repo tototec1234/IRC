@@ -11,7 +11,8 @@
 
 #define MAX_CLIENTS 42  //とりあえず最大同時接続42名　	ft_irc（提出）ではvector<pollfd> 動的　で上限は　実質 OS の fd 上限の予定？
 
-# define BUF_SIZE	4096
+// # define BUF_SIZE	4096
+# define BUF_SIZE	100 //Lesson3で分割送信を体感するため
 
 # define Xv(err,res,str)	(x_void(err,res,str,__FILE__,__LINE__))
 # define X(err,res,str)		(x_int(err,res,str,__FILE__,__LINE__))
@@ -29,7 +30,9 @@ typedef struct	s_fd
 	void	(*fct_read)(struct s_env *, int);	//差し替え
 	void	(*fct_write)(struct s_env *, int);	//差し替え
 
+	int buf_read_len; // C++のstd::stringは長さを別持ち（メンバ変数に格納？）してるのでこれ不要
   char	buf_read[BUF_SIZE + 1];
+	int	buf_write_len; //
   char	buf_write[BUF_SIZE + 1];
 }		t_fd;
 
@@ -53,6 +56,7 @@ void	srv_create(t_env *e, int port);
 void	srv_accept(t_env *e, int s);
 void	client_read(t_env *e, int cs);
 void	client_write(t_env *e, int cs);
+void	broadcast_message(t_env *e, int cs, char *msg); //　クライアント転送なし、stdoutするだけのスタブ
 void	clean_fd(t_fd *fd);
 int	x_int(int err, int res, char *str, char *file, int line);
 void	*x_void(void *err, void *res, char *str, char *file, int line);

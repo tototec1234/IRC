@@ -141,9 +141,11 @@ void Server::run() {
 				{
 					std::cout << "_acceptClient(); " << std::endl;
 					_acceptClient(); // ここで accept
-					continue; // Phase3以降ではアクセプトしたら次のfdに進む必要あり
+					continue; 
 				}
 			}
+			if (rev & POLLIN)
+				_handleRead(fd);
 		}
 	}
 }
@@ -177,13 +179,18 @@ void Server::_acceptClient()
 		<< RESET_COLOR << std::endl;
 		return; // （→ accept は 1 回 1 fd なので return で十分）
 	}
+	// accept 成功後（cs が有効）
+	Connection* conn = new Connection(cs);
+	_connections[cs] = conn;
 	_addFd(cs, POLLIN);
+	// host 文字列（Phase4 の addClient 用）
+	std::string host = inet_ntoa(csin.sin_addr);
+	
 	std::cout << GREEN_COLOR
 	<< "New client #" << cs // csはクラアントのfd　#1 stdin  #2 stdout  #3 stderr #4 listenソケット なので必ず#4から 
-	<< " from " << inet_ntoa(csin.sin_addr)
+	<< " from " << host
 	<< ":" << ntohs(csin.sin_port)
 	<< RESET_COLOR << std::endl;
-
 }
 
 /* #include <netinet/in.h> でsockaddr_inの中身確認するとこうなってる
@@ -198,6 +205,22 @@ void Server::_acceptClient()
 };
 */
 
+// bircd: client_read() 本体に対応。
+//   read_and_store → while(get_crlf_pos){ extract_and_consume } の構造を
+//   A層では readFromSocket → while(hasCompleteLine){ popLine } に置換。
+//   bircd は extract 内で broadcast するが、A層は popLine で取り出した行を
+//   Phase4 で B層(Parser→dispatch)へ渡す（今はログ確認のみ）。
+void Server::_handleRead(int fd) {
+    Connection* conn = _connections[fd];
+    if (!conn->readFromSocket()) {
+        // bircd: r<=0 で close+clean_fd。A層は Phase6 の _disconnectClient に集約予定
+        return;  // TODO(Phase6)
+    }
+    while (conn->hasCompleteLine()) {
+        std::string line = conn->popLine();
+        std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
+    }
+}
 
 /*
 これは挙動確認用関数です
