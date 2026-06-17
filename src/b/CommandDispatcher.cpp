@@ -1,6 +1,9 @@
 #include "b/CommandDispatcher.hpp"
 #include "b/ReplyBuilder.hpp"
 #include "c/ServerState.hpp"
+#include <iterator>
+// #include <type_traits>　c++11 なぜまぎれこんでる？
+#include <vector>
 
 // #include "CommandDispatcher.hpp"
 
@@ -30,6 +33,8 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
     result = handleNick(fd, msg, state, client);
   } else if (command == "USER") {
     result = handleUser(fd, msg, client);
+  } else if (command == "JOIN") {
+	result = handleJoin(fd, msg, state, client);
   } else if (!command.empty()) {
     result.addReply(fd, ReplyBuilder::unknownCommand(client, command));
   }
@@ -104,6 +109,48 @@ CommandResult CommandDispatcher::handleUser(int fd, const Message& msg,
   client->setUsername(msg.getSingleParam(0));
   client->setRealname(msg.getSingleParam(3));
   maybeRegister(*client, result);
+  return result;
+}
+
+//
+CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
+                                            ServerState& state,
+                                            Client* client) {
+  CommandResult result;
+  if (!client) {
+    return result;
+  }
+  if (!msg.hasParam(0)) {
+    result.addReply(fd, ReplyBuilder::needMoreParams(client, "JOIN"));
+    return result;
+  }
+//   if (!client->isPassOk()) {
+  if (!client->isRegistered()) {
+    // result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
+    result.addReply(fd, ReplyBuilder::noRegistered(*client));
+    return result;
+  }
+  Channel *channel = state.addClientToChannel(client, msg.getSingleParam(0));
+  if (!channel) {
+	result.addReply(fd, ReplyBuilder::torima_joinMissing(*client, "JOIN"));
+  	return result;
+  }
+
+  std::string joinMsg = ReplyBuilder::join(channel->getName(), client->getFullPrefix(), "JOIN");
+  
+  std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
+ 
+//   for (Client* member : channel.members()) {
+// 	result.addReply(member->getFd(), joinMsg);
+//   }
+	for (std::vector<Client*>::const_iterator it = members.begin();
+			it != members.end();
+			++it)
+		{
+			result.addReply((*it)->getFd(), joinMsg);	
+		}		
+//   result.addReply(fd, ReplyBuilder::join(channel->getName(), "JOIN"));	//Channelクラスのgetterを勝手に触っていいのだろうか。。。？
+//   ReplyBuilder::join(msg.getSingleParam(0), "JOIN");
   return result;
 }
 
