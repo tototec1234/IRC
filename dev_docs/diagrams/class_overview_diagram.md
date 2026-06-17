@@ -106,7 +106,7 @@ classDiagram
     %% === C layer: facade / registry / entities ===
     class ServerState {
         <<C: Facade / Owner>>
-        +addClient(fd)
+        +addClient(fd, host)
         +removeClient(fd)
         +updateNick(client, nick) bool
         +addClientToChannel(client, name) Channel*
@@ -190,6 +190,8 @@ classDiagram
     style Channel fill:#6C7A89,stroke:#45515C,color:#fff
     style ChannelModes fill:#D8DEE4,stroke:#6C7A89,color:#263238
 ```
+
+`ServerState::removeClientFromAllInvites(Client*)` は `removeClient(fd)` 内部の private/internal cleanup であり、層間 public API には含めない。
 
 
 

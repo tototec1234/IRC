@@ -122,7 +122,7 @@ struct CommandResult {
 #### 役割
 
 * コマンド処理後に送るべきメッセージを保持する。
-* 必要に応じて切断要求を表す。
+* 必要に応じて切断要求（`shouldDisconnect`）を表す。QUIT 等の切断は B が `shouldDisconnect=true` を立てるだけで、`removeClient` は A の `_disconnectClient` が呼ぶ。
 * BからAへ返される。
 * BがAの `Connection` や `Server` を直接触らないための境界になる。
 
@@ -435,8 +435,7 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 | `removeClientFromChannel()` | B | Client と Channel の参加関係を解除し、空 Channel を削除 |
 | `inviteClientToChannel()` | B | invite list に Client を追加する C層窓口 |
 | `removeInviteFromChannel()` | B | invite list から Client を削除する C層窓口 |
-| `removeClientFromAllInvites()` | ServerState / cleanup | 全 Channel の invite list から Client を削除 |
-| `removeClient()` | A, B | 切断時にClientを削除する（Channel掃除・invite・辞書 cleanup・delete含む） |
+| `removeClient()` | A | 切断時にClientを削除する（Channel掃除・invite・辞書 cleanup・delete含む）。QUIT 含め切断は A の `_disconnectClient` が呼ぶ。B は呼ばず `shouldDisconnect=true` を立てるのみ |
 | `getClientByFd()` | B | fdからClientを取得する |
 | `getClientByNick()` | B | nickからClientを取得する |
 | `nickExists()` | B | nick重複を確認する |
@@ -449,7 +448,7 @@ nick変更は必ず `ServerState::updateNick()` を通す。
 
 #### 削除ルール
 
-`removeClient(int fd)` はClientを削除する前に、**private** メソッド（例: `removeClientFromAllChannels(Client&)`）で以下を削除する必要がある。B 層は `removeClient(fd)` のみ呼び、`removeClientFromAllChannels` は直接呼ばない（`decision_invite_and_removal.md` 参照）。
+`removeClient(int fd)` はClientを削除する前に、**private/internal cleanup**（例: `removeClientFromAllChannels(Client&)`, `removeClientFromAllInvites(Client*)`）で以下を削除する必要がある。`removeClient` 以外の cleanup API は B 層が直接呼ぶものではなく、切断時に A 層の `_disconnectClient` が `removeClient(fd)` を1回呼ぶ（`decision_invite_and_removal.md`, `#28` 参照）。
 
 削除対象:
 

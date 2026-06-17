@@ -170,7 +170,7 @@ B層の現状
 | 登録完了 | PASS+NICK+USER 揃いで 001 を 1 回 |
 | JOIN 成功 | `addClientToChannel()` + member へ JOIN broadcast（初参加者は C が operator 付与） |
 | PART / KICK | `removeClientFromChannel()` |
-| QUIT | `removeClient(fd)` + `shouldDisconnect=true` + 任意 QUIT broadcast |
+| QUIT | `shouldDisconnect=true` + QUIT broadcast（Client 削除は A の `_disconnectClient` が `removeClient(fd)` を呼ぶ） |
 | TOPIC `#ch` / MODE `#ch`（param なし） | 照会（331/332, 324）。状態変更なし |
 | PRIVMSG channel | 送信者以外の member へ broadcast |
 | PRIVMSG nick | 対象 fd のみ |
@@ -233,7 +233,7 @@ B層の現状
 | 1 | 未登録ガード(451) | `dispatch` 入口 or 各 handler 先頭で `isRegistered()` 判定 | `Client::isRegistered()` 既存 |
 | 2 | JOIN | +i/+k/+l 検証 → `addClientToChannel` → JOIN broadcast + 331/332 + 353/366 | `addClientToChannel`, `Channel::{getMembers,isInvited,getModes,getTopic}` 既存 |
 | 3 | PRIVMSG | nick/ch 配送、404/401/403 | `getClientByNick`, `getChannel`, `Channel::{getMembers,hasMember}` 既存 |
-| 4 | QUIT | `removeClient(fd)`, `shouldDisconnect=true`, member へ QUIT 通知 | `removeClient`, `Client::getChannels`, `Channel::getMembers` 既存 |
+| 4 | QUIT | `shouldDisconnect=true`, member へ QUIT 通知（Client 削除は A に委譲） | `Client::getChannels`, `Channel::getMembers` 既存 |
 
 ### P1 — MVP 直後
 

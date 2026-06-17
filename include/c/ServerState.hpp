@@ -23,7 +23,6 @@ class ServerState {
   void removeClientFromChannel(Client* client, const std::string& channelName);
   void inviteClientToChannel(Client* client, Channel* channel);
   void removeInviteFromChannel(Client* client, Channel* channel);
-  void removeClientFromAllInvites(Client* client);
   /*
    * @summary clientが切断、またはQUITによりserverから離脱した場合の処理
    * @param fd 切断されたclientのファイルディスクリプタ
@@ -59,6 +58,8 @@ class ServerState {
     公開APIは窓口として、実管理はClientRegistryに任せる
   */
   ClientRegistry _client;
+
+  void removeClientFromAllInvites(Client* client);
 
   ServerState();
   ServerState(const ServerState&);
