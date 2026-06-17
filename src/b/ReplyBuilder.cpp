@@ -103,8 +103,8 @@ std::string ReplyBuilder::unknownCommand(const Client* client,
 
 
 //	torima ato de kesu
-std::string ReplyBuilder::torima_joinMissing(const Client& client,
+std::string ReplyBuilder::torima_Missing(const Client& client,
                                          const std::string& command) {
   return numericReply("999", replyTarget(&client), command,
-	                  "じょいんみすった〜");
+	                  "みすった〜");
 }
