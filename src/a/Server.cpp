@@ -102,7 +102,7 @@ void Server::run() {
 			tmp = ret;
 			std::cout
 			<< BLUE_COLOR
-			<< "ret=" << ret // ret = ready な fd の総数（listen 限定ではない）
+			<< "ret=" << ret		// ret = ready な fd の総数（listen 限定ではない）
 			<< " fd=" << _pollfds[0].fd
 			<< " nfds=" << _pollfds.size()
 			<< " [listen] fd=" << _pollfds[0].fd
@@ -134,18 +134,37 @@ void Server::run() {
 			int		fd = _pollfds[i].fd;
 			if (rev == 0)
 				continue;
-
-			if (fd == _listenFd)
-			{
+			// (1) listen fd を最初に処理。client 系処理には流さない
+			if (fd == _listenFd){
 				if (rev & POLLIN)
 				{
 					std::cout << "_acceptClient(); " << std::endl;
 					_acceptClient(); // ここで accept
-					continue; 
+				}
+				continue; // Phase3以降ではアクセプトしたら次のfdに進む必要あり
+			} 
+			// (2) 以下は client fd のみ
+			
+			
+			// (3) まず読む。recv==0(EOF) なら _handleRead が false → 切断
+			if (rev & POLLIN) {
+				if (!_handleRead(fd)) {     // recv<=0 等で false
+					_disconnectClient(fd);
+					--i;
+					continue;
 				}
 			}
-			if (rev & POLLIN)
-				_handleRead(fd);
+			// (4) 読み切った後で HUP/ERR を判定して切断
+			/*
+			POLLHUP は「もう書き込めない」を意味するが、受信バッファに未読データが残っていることがある。
+			POLLHUP が立っていても、POLLIN もたっているケースがあるので
+			(3)で先に読み切る！！
+			*/
+			if (rev & (POLLERR | POLLHUP | POLLNVAL)) {
+				_disconnectClient(fd);
+				--i;            // _pollfds が縮むので添字を戻す（走査中erase対策）
+				continue;
+			}
 		}
 	}
 }
@@ -210,16 +229,40 @@ void Server::_acceptClient()
 //   A層では readFromSocket → while(hasCompleteLine){ popLine } に置換。
 //   bircd は extract 内で broadcast するが、A層は popLine で取り出した行を
 //   Phase4 で B層(Parser→dispatch)へ渡す（今はログ確認のみ）。
-void Server::_handleRead(int fd) {
-    Connection* conn = _connections[fd];
-    if (!conn->readFromSocket()) {
-        // bircd: r<=0 で close+clean_fd。A層は Phase6 の _disconnectClient に集約予定
-        return;  // TODO(Phase6)
-    }
-    while (conn->hasCompleteLine()) {
-        std::string line = conn->popLine();
-        std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
-    }
+bool Server::_handleRead(int fd) {
+	Connection* conn = _connections[fd];
+	if (!conn->readFromSocket()) {
+		return false;
+	}
+	while (conn->hasCompleteLine()) {
+		std::string line = conn->popLine();
+		std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
+	}
+	return true;
+}
+
+// bircd: client_read.c の close(cs); clean_fd(&e->fds[cs]); に対応。
+//   bircd は clean_fd で FD_FREE マーク → 次ループ init_fd が pollfds 再構築でスキップ。
+//   A層は _pollfds 持続なので close + _pollfds erase + Connection delete を自分でやる。
+void Server::_disconnectClient(int fd) {
+	close(fd);
+	_removeFd(fd);
+	std::map<int, Connection*>::iterator it = _connections.find(fd);
+	if (it != _connections.end()) {
+		delete it->second;
+		_connections.erase(it);
+	}
+    // TODO(Phase4): _state.removeClient(fd);	// C層からも除去（_state 追加後に有効化）
+	std::cout << "client #" << fd << " gone away" << std::endl;  // bircd の gone away 相当
+}
+
+void Server::_removeFd(int fd) {
+	for (size_t i = 0; i < _pollfds.size(); ++i) {
+		if (_pollfds[i].fd == fd) {
+			_pollfds.erase(_pollfds.begin() + i);
+			return;
+		}
+	}
 }
 
 /*
@@ -239,3 +282,22 @@ static void _printRevents(short revents)
 	if (revents & POLLHUP) std::cout << "HUP ";
 	std::cout << "]";
 }
+
+
+/*
+バッファ動作確認方法
+
+make && ./bircd 6667
+# 別ターミナル2枚:
+	# 受信側
+	nc localhost 6667
+
+	# 2メッセージ一括 → while の確認
+	printf 'PING :a\r\nPING :b\r\n' | nc localhost 6667
+
+	# 分割 → 累積の確認
+	(printf 'PI'; sleep 1; printf 'NG :x\r\n') | nc localhost 6667  
+
+	# \r\n無し200B → 切断の確認
+	python3 -c "import sys; sys.stdout.buffer.write(b'A'*200)" | nc localhost 6667
+*/
