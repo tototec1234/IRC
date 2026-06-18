@@ -138,6 +138,7 @@ C層は IRC 上の状態を管理する。
 | Value-like state | `ChannelModes` | `+i`, `+t`, `+k`, `+l` の状態 |
 
 B層は `ServerState` を C層の主な窓口として使う。  
+
 また、A層は接続 lifecycle のために `ServerState` facade を呼ぶ。accept 時は A層が fd と接続元 host を渡して `ServerState::addClient(fd, host)` を呼び、disconnect 時は A層が `ServerState::removeClient(fd)` を呼ぶ。Client の生成・削除は A層の接続 lifecycle 責務であり、B層は直接行わない。
 ただし、B層は reply / protocol 判断のために `Client`, `Channel`, `ChannelModes` の公開 getter / 局所状態 API を参照・操作してよい。
 
@@ -280,6 +281,7 @@ JOIN / PART / KICK / QUIT / disconnect によって Client と Channel の関係
 // - fd辞書・nick辞書の更新
 // - 空Channelの削除
 ```
+
 
 `ServerState::removeClient(fd)` は A層が disconnect 処理で呼ぶ。B層は QUIT などで `CommandResult.shouldDisconnect` を立てて A層へ切断を依頼し、Client 削除は呼ばない。
 全 Channel の invite list から Client を削除する処理は `removeClient(fd)` 内部の cleanup 責務であり、公開 API として外部層から呼ばない。

@@ -7,4 +7,6 @@ void	clean_fd(t_fd *fd)
   fd->type = FD_FREE;
   fd->fct_read = NULL;
   fd->fct_write = NULL;
+  fd->buf_read_len = 0;
+  fd->buf_write_len = 0;
 }

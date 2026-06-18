@@ -5,6 +5,7 @@ tests/*/test_runner
 *.code-workspace
 a_tmp/
 a_header_tmp/
+commit_comment.txt
 yon_ni_subjects/
 ircserv
 *.a
