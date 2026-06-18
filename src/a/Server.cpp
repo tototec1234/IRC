@@ -1,5 +1,6 @@
 #include "a/Server.hpp"
 #include <iostream>
+#include <locale>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
@@ -16,7 +17,7 @@
 static void _printRevents(short revents); 
 
 
-Server::Server(int port, const std::string& pw) : _listenFd(-1) {
+Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw) {
 
 	struct sockaddr_in	servAddr;	//ローカルアドレス
 
@@ -198,7 +199,7 @@ void Server::_acceptClient()
 	if (cs < 0)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return;	    // EAGAIN / EWOULDBLOCK は無視（Phase 7 で正式に扱う）
+			return;					// EAGAIN / EWOULDBLOCK は無視（Phase 7 で正式に扱う）
 		std::cerr
 		<< RED_COLOR
 		<< "accept() 失敗"
@@ -210,9 +211,14 @@ void Server::_acceptClient()
 	Connection* conn = new Connection(cs);
 	_connections[cs] = conn;
 	_addFd(cs, POLLIN);
-	// host 文字列（Phase4 の addClient 用）
 	std::string host = inet_ntoa(csin.sin_addr);
 	
+	/* 必須!!!! dispatch が client を NULL 前提で deref(参照) するため
+	  dispatch は PING/PASS 以外で client->isPassOk() を NULL チェックなしで呼ぶ
+	 accept 時に必ず addClient しておけば getClientByFd(fd) が非 NULL になり回避できる。
+	*/
+	_state.addClient(cs, host);
+
 	std::cout << GREEN_COLOR
 	<< "New client #" << cs // csはクラアントのfd　#1 stdin  #2 stdout  #3 stderr #4 listenソケット なので必ず#4から 
 	<< " from " << host
@@ -236,7 +242,7 @@ void Server::_acceptClient()
 //   read_and_store → while(get_crlf_pos){ extract_and_consume } の構造を
 //   A層では readFromSocket → while(hasCompleteLine){ popLine } に置換。
 //   bircd は extract 内で broadcast するが、A層は popLine で取り出した行を
-//   今はエコー（②）。Phase4 で bufferSend を Parser→dispatch→applyCommandResult に差し替える
+//   Parser に送り　dispatch→applyCommandResult 受け取る
 bool Server::_handleRead(int fd) {
 	Connection* conn = _connections[fd];
 	if (!conn->readFromSocket()) {
@@ -245,8 +251,10 @@ bool Server::_handleRead(int fd) {
 	while (conn->hasCompleteLine()) {
 		std::string line = conn->popLine();
 		std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
-		conn->bufferSend(line + "\r\n");   // ← エコー：送信バッファへ積む
-		_enablePollout(fd);                // ← 積んだので POLLOUT 監視ON
+		// conn->bufferSend(line + "\r\n");				// ← エコー：送信バッファへ積む
+		Message		msg = Parser::parse(line);
+		CommandResult result = _dispatcher.dispatch(fd, msg, _state);
+		applyCommandResult(result);						// 送信先ごとに bufferSend + _enablePollout 済み
 	}
 	return true;
 }
@@ -261,8 +269,8 @@ void Server::_disconnectClient(int fd) {
 	if (it != _connections.end()) {
 		delete it->second;
 		_connections.erase(it);
+		_state.removeClient(fd);			// C層からも除去
 	}
-	// TODO(Phase4): _state.removeClient(fd);	// C層からも除去（_state 追加後に有効化）
 	std::cout << "client #" << fd << " gone away" << std::endl;  // bircd の gone away 相当
 }
 
@@ -324,6 +332,21 @@ bool Server::_handleWrite(int fd) {
 	return true;
 }
 
+// B層が作った CommandResult を A層の送信経路へ流す。
+// 送信先 fd は source fd とは限らない（JOIN 等は他メンバーへブロードキャスト）。
+void Server::applyCommandResult(const CommandResult& result) {
+	for (size_t i = 0; i < result.replies.size(); ++i) {
+		int target = result.replies[i].fd;
+		std::map<int, Connection*>::iterator it = _connections.find(target);
+		if (it == _connections.end())
+			continue;					// 既に切断済み等。落とさない
+		it->second->bufferSend(result.replies[i].message);
+		_enablePollout(target);
+	}
+	//	TODO: result.shouldDisconnect が true なら source fd を切断。
+	//	現状 B は QUIT 未実装で常に false。配線は後続（flush後closeのgraceful論点込み）。
+}
+
 /*
 バッファ動作確認方法
 
@@ -349,4 +372,19 @@ make && ./bircd 6667
 (printf 'a\r\nb\r\nc\r\n'; sleep 1) | nc 127.0.0.1 6667
 # → a / b / c
 # POLLOUT が下りているか（送信後ビジーループしていないか）→ top で ircserv の CPU が張り付かないこと
+*/
+
+/*
+🎯 初の A↔B↔C 結合テスト — PING/PONG が B層経由で返ることを確認する。
+   Phase4 で _handleRead のエコーを Parser::parse → _dispatcher.dispatch
+   → applyCommandResult に差し替え。応答は A単体のエコー(PING :foo)ではなく、
+   B層 ReplyBuilder::pong 経由の prefix 付き (:irc.local PONG irc.local :foo) になる。
+   recv(A) → parse/dispatch(B) → ServerState(C) → CommandResult → 送信(A) が一本に繋がる初めての検証。
+
+	# B経由でPONGが返るか（prefix付きなので判定は " PONG " 含有で見る）
+(printf 'PING :foo\r\n'; sleep 1) | nc 127.0.0.1 6667
+# → :irc.local PONG irc.local :foo
+
+	# 登録フロー（PASS→NICK→USER）も通るか（B経由）
+(printf 'PASS pw\r\nNICK alice\r\nUSER a a a a\r\n'; sleep 1) | nc 127.0.0.1 6667
 */

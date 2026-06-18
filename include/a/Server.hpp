@@ -10,6 +10,11 @@
 #include "a/Connection.hpp"
 #include <map>
 
+#include "b/Parser.hpp"
+#include "b/CommandDispatcher.hpp"
+#include "b/CommandResult.hpp"
+#include "c/ServerState.hpp"
+
 #define MAX_CLIENTS 42  //とりあえず最大同時接続42名　	ft_irc（提出）ではvector<pollfd> 動的　で上限は　実質 OS の fd 上限の予定？
 
 class Server {
@@ -34,6 +39,10 @@ class Server {
 		void _disconnectClient(int fd);
 		void _removeFd(int fd);	
 
+		void applyCommandResult(const CommandResult& result); 
+		
+		ServerState			_state;		// password を保持。ctor で初期化必須
+		CommandDispatcher	_dispatcher;// ステートレス
 		Server();
 		Server(const Server&);
 		Server& operator=(const Server&);
