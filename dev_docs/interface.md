@@ -138,7 +138,8 @@ C層は IRC 上の状態を管理する。
 | Value-like state | `ChannelModes` | `+i`, `+t`, `+k`, `+l` の状態 |
 
 B層は `ServerState` を C層の主な窓口として使う。  
-また、A層は接続 lifecycle のために `ServerState` facade を呼ぶ。Client 登録時の host 情報は A層だけが知るため、accept 時に A層が fd と接続元 host を渡して `ServerState::addClient(fd, host)` を呼ぶ。
+
+また、A層は接続 lifecycle のために `ServerState` facade を呼ぶ。accept 時は A層が fd と接続元 host を渡して `ServerState::addClient(fd, host)` を呼び、disconnect 時は A層が `ServerState::removeClient(fd)` を呼ぶ。Client の生成・削除は A層の接続 lifecycle 責務であり、B層は直接行わない。
 ただし、B層は reply / protocol 判断のために `Client`, `Channel`, `ChannelModes` の公開 getter / 局所状態 API を参照・操作してよい。
 
 Client と Channel の関係を作る/壊す操作は `ServerState` 経由で行う。
@@ -148,13 +149,12 @@ Client と Channel の関係を作る/壊す操作は `ServerState` 経由で行
 | 関数 | 戻り値 | 呼び出し元 | 説明 |
 |------|--------|-----------|------|
 | `const std::string& getPassword() const` | `const std::string&` | B | サーバパスワード |
-| `void addClient(int fd, const std::string& host)` | `void` | A / Server | accept 時に fd と接続元 host を渡して Client 作成 |
+| `void addClient(int fd, const std::string& host)` | `void` | A | accept 時に fd と接続元 host を渡して Client 作成 |
 | `Channel* addClientToChannel(Client*, const std::string&)` | `Channel*` | B | Client と Channel の参加関係を同期し、必要なら Channel 作成 |
 | `void removeClientFromChannel(Client*, const std::string&)` | `void` | B | Client と Channel の参加関係を解除し、空 Channel を削除 |
 | `void inviteClientToChannel(Client*, Channel*)` | `void` | B | invite list に Client を追加する C層窓口 |
 | `void removeInviteFromChannel(Client*, Channel*)` | `void` | B | invite list から Client を削除する C層窓口 |
-| `void removeClientFromAllInvites(Client*)` | `void` | ServerState / cleanup | 全 Channel の invite list から Client を削除 |
-| `void removeClient(int fd)` | `void` | A / Server, B | Client削除（Channel参照、invite、辞書を cleanup） |
+| `void removeClient(int fd)` | `void` | A | disconnect 時に Client 削除（Channel参照、invite、辞書を cleanup） |
 | `Client* getClientByFd(int fd)` | `Client*` | B | fdからClient取得 |
 | `Client* getClientByNick(const std::string&)` | `Client*` | B | nickからClient取得 |
 | `bool nickExists(const std::string&) const` | `bool` | B | nick重複確認 |
@@ -282,6 +282,10 @@ JOIN / PART / KICK / QUIT / disconnect によって Client と Channel の関係
 // - 空Channelの削除
 ```
 
+
+`ServerState::removeClient(fd)` は A層が disconnect 処理で呼ぶ。B層は QUIT などで `CommandResult.shouldDisconnect` を立てて A層へ切断を依頼し、Client 削除は呼ばない。
+全 Channel の invite list から Client を削除する処理は `removeClient(fd)` 内部の cleanup 責務であり、公開 API として外部層から呼ばない。
+
 ### 5.5 【設計】operator権限は Channel が管理
 
 ```cpp
@@ -319,7 +323,8 @@ channel.setOperator(&client, true);
 |------|------|------|
 | 自作 template | 不使用 | `decision_no_custom_templates.md` |
 | エラー・所有権 | 起動時例外 / ループは bool+Result / ServerState 所有 | `decision_error_handling.md` |
-| `removeClientFromAllChannels` | ServerState **private**。B は `removeClient(fd)` のみ | `decision_invite_and_removal.md` |
+| `removeClientFromAllChannels` | ServerState **private**。A は lifecycle API として `removeClient(fd)` を呼ぶ。B は Client 削除を呼ばない | `decision_invite_and_removal.md` |
+| `removeClientFromAllInvites` | ServerState **private/internal cleanup**。`removeClient(fd)` 内部からのみ呼ばれ、外部層は直接呼ばない | `#28` |
 | ClientRegistry | `ServerState` 内部実装として分離済み。B は直接触らない | `knowledge/facade_delegation_update_nick.md` |
 | invite 管理 | `ServerState` 経由。通知と招待券は別概念 | `decision_invite_responsibility.md`, `knowledge/invite_ticket_policy.md` |
 | invite 系命名 | `Channel::addInvite` + `ReplyBuilder::invite`（B）共存 | `decision_invite_and_removal.md` |
@@ -348,3 +353,4 @@ channel.setOperator(&client, true);
 | 2026-05-23 | 初版作成 |
 | 2026-05-26 | 層間API契約書として再構成、外部リポジトリ依存削除 |
 | 2026-06-01 | MTG決定: 契約憲章（SSOT）として位置づけ明確化 |
+| 2026-06-15 | MTG決定: removeClientの呼び出し元をA層のdisconnectに集約。B層はClient削除を呼ばない |

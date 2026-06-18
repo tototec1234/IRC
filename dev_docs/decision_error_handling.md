@@ -108,18 +108,17 @@ C++98 では `auto_ptr` があるが、本プロジェクトでは **採用し�
 
 ---
 
-## 5. Client 削除 API（B 層との関係）
+## 5. Client 削除 API（A 層 lifecycle との関係）
 
-### 5.1 B が呼ぶのは `removeClient(fd)` のみ
+### 5.1 A が lifecycle API として `removeClient(fd)` を呼ぶ
 
 | 呼び出し元 | API | 典型シーン |
 |-----------|-----|-----------|
-| **B** | `ServerState::removeClient(fd)` | QUIT コマンド、`CommandResult.shouldDisconnect` 後 |
-| **A / Server** | `ServerState::removeClient(fd)` | I/O 切断、disconnect 処理 |
+| **A** | `ServerState::removeClient(fd)` | I/O 切断、QUIT 後の disconnect 処理 |
 
-B は **`removeClientFromAllChannels` を直接呼ばない**。
+B は QUIT 時も Client 削除を直接呼ばず、`CommandResult.shouldDisconnect=true` で A 層へ切断を依頼する。
 
-### 5.2 `removeClientFromAllChannels` は private
+### 5.2 `removeClientFromAllChannels` / `removeClientFromAllInvites` は private/internal cleanup
 
 `ServerState::removeClient(fd)` の内部実装詳細。公開 API には載せない。
 
