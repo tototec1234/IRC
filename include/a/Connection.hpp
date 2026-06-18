@@ -10,6 +10,7 @@
 # define BUF_SIZE	4096
 
 #include <string>
+#include <sys/socket.h> //send
 
 class Connection {
  public:

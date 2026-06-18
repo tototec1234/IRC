@@ -24,21 +24,15 @@ class Server {
 		void _addFd(int fd, short events);
 		void _acceptClient();
 		void _setupListenSocket();
-		std::map<int, Connection*>  _connections;	// ← Phase 3 追加。fd → Connection*
-		bool _handleRead(int fd);					// ← 戻り値を bool に変更（false=切断要求）
+		std::map<int, Connection*>  _connections;
+		bool _handleRead(int fd);
 
-		/*
-		切断後 POLLHUP で busy-loop　の対策
-
-		Phase6 を先行し _disconnectClient(close+_pollfds除去+delete)で対応
-		run() は for (size_t i; i<_pollfds.size(); ++i) で添字走査している。
-		ループ途中で 	_pollfds から要素を erase すると後ろが前へ詰まり、++i で 1 個飛ばす。
-		とりま対策は
-		「erase したら --i で添字を戻す」。
-
-		*/
-		void _disconnectClient(int fd);		// ← 追加
-		void _removeFd(int fd);				// ← 追加
+		bool _handleWrite(int fd);		// bircd: check_fd.c の POLLOUT 分岐
+		void _enablePollout(int fd);	// 送信データを積んだとき POLLOUT 監視ON
+		void _disablePollout(int fd);	// 送り切ったとき OFF（空POLLOUTのbusy回避）
+		
+		void _disconnectClient(int fd);
+		void _removeFd(int fd);	
 
 		Server();
 		Server(const Server&);

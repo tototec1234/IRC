@@ -22,16 +22,16 @@ int Connection::getFd() const { return _fd; }
 //     呼び出し側(Server, Phase6)に委ねる（recv と切断処理の責務分離）
 // ─────────────────────────────────────────────────────────────
 bool Connection::readFromSocket() {
-    char buf[BUF_SIZE + 1]; // マクロはcppライクでない、、、
-    ssize_t n = recv(_fd, buf, sizeof(buf), 0);
-    if (n == 0)
-        return false; /*FIN。bircd の r==0 → gone away 相当） */
-    if (n < 0)
-        return false; /* エラー。bircd の r<0 も切断扱い
-                  Phase7 で EAGAIN を「切断せずスキップ=true」に分ける
-                     (client_read.c L94 のメモ) */
-    _recvBuffer.append(buf, n);
-    return true;
+	char buf[BUF_SIZE + 1]; // マクロはcppライクでない、、、
+	ssize_t n = recv(_fd, buf, sizeof(buf), 0);
+	if (n == 0)
+		return false; /*FIN。bircd の r==0 → gone away 相当） */
+	if (n < 0)
+		return false; /* エラー。bircd の r<0 も切断扱い
+				  Phase7 で EAGAIN を「切断せずスキップ=true」に分ける
+					 (client_read.c L94 のメモ) */
+	_recvBuffer.append(buf, n);
+	return true;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ bool Connection::readFromSocket() {
 //   RFC2812 2.3: https://datatracker.ietf.org/doc/html/rfc2812#section-2.3
 // ─────────────────────────────────────────────────────────────
 bool Connection::hasCompleteLine() const {
-    return _recvBuffer.find("\r\n") != std::string::npos ;
+	return _recvBuffer.find("\r\n") != std::string::npos ;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -58,9 +58,38 @@ bool Connection::hasCompleteLine() const {
 //   - 前詰め memmove は std::string::erase で代替。
 // ─────────────────────────────────────────────────────────────
 std::string Connection::popLine() {
-	size_t pos = _recvBuffer.find("\r\n");          // bircd: get_crlf_pos
-	std::string line = _recvBuffer.substr(0, pos)  ;      // bircd: buf_read[crlf_end-2]='\0'
-	_recvBuffer.erase(0, pos + 2)  ;          // bircd: ft_memmove で前詰め
+	size_t pos = _recvBuffer.find("\r\n");			// bircd: get_crlf_pos
+	std::string line = _recvBuffer.substr(0, pos);	// bircd: buf_read[crlf_end-2]='\0'
+	_recvBuffer.erase(0, pos + 2);					// bircd: ft_memmove で前詰め
 	return line;
-    // ※ 呼び出し規約: hasCompleteLine()==true のときだけ呼ぶ
+	// ※ 呼び出し規約: hasCompleteLine()==true のときだけ呼ぶ
+}
+
+// ─────────────────────────────────────────────────────────────
+// bircd(lesson3.5): client_write.c に対応。
+//   if (buf_write_len == 0) return;              ← 送るもの無し
+//   sent = send(cs, buf_write, buf_write_len, 0);
+//   if (sent <= 0) { close; clean_fd; return; }  ← 失敗で切断
+//   ft_memmove(buf_write, buf_write+sent, ...);  ← 送信済みを前詰め
+// A層の違い:
+//   - buf_write(固定長)+buf_write_len → std::string(_sendBuffer)（長さ内包）
+//   - writeToSocket は send 専念で bool 返却。切断は呼び出し側(_handleWrite→Server)
+//   - 1回の POLLOUT イベントにつき send 1回（残りは次の POLLOUT で）
+// ─────────────────────────────────────────────────────────────
+void Connection::bufferSend(const std::string& msg) {
+	_sendBuffer += msg;
+}
+
+bool Connection::hasPendingOutput() const {
+	return !_sendBuffer.empty();				// 中身があるとき true
+}
+
+bool Connection::writeToSocket() {
+	if (_sendBuffer.empty())
+		return true;							// bircd: buf_write_len==0 return
+	ssize_t sent = send(_fd, _sendBuffer.c_str(), _sendBuffer.size(), 0);
+	if (sent <= 0)
+		return false;							// bircd: sent<=0 → 切断。Phase7でEAGAINは別扱い
+	_sendBuffer.erase(0, sent);					// bircd: ft_memmove で前詰め
+	return true;
 }

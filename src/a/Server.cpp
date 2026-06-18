@@ -139,7 +139,7 @@ void Server::run() {
 				if (rev & POLLIN)
 				{
 					std::cout << "_acceptClient(); " << std::endl;
-					_acceptClient(); // ここで accept
+					_acceptClient();		// ここで accept
 				}
 				continue; // Phase3以降ではアクセプトしたら次のfdに進む必要あり
 			} 
@@ -148,12 +148,20 @@ void Server::run() {
 			
 			// (3) まず読む。recv==0(EOF) なら _handleRead が false → 切断
 			if (rev & POLLIN) {
-				if (!_handleRead(fd)) {     // recv<=0 等で false
+				if (!_handleRead(fd)) {		// recv<=0 等で false
 					_disconnectClient(fd);
 					--i;
 					continue;
 				}
 			}
+			// (3.5) 書ける状態なら送る  bircd: check_fd.c の if(revents & POLLOUT) fct_write
+			if (rev & POLLOUT) {
+				if (!_handleWrite(fd)) {	// send 失敗で false
+					_disconnectClient(fd);
+					--i;
+					continue;
+				}
+}
 			// (4) 読み切った後で HUP/ERR を判定して切断
 			/*
 			POLLHUP は「もう書き込めない」を意味するが、受信バッファに未読データが残っていることがある。
@@ -162,7 +170,7 @@ void Server::run() {
 			*/
 			if (rev & (POLLERR | POLLHUP | POLLNVAL)) {
 				_disconnectClient(fd);
-				--i;            // _pollfds が縮むので添字を戻す（走査中erase対策）
+				--i;						// _pollfds が縮むので添字を戻す（走査中erase対策）
 				continue;
 			}
 		}
@@ -228,7 +236,7 @@ void Server::_acceptClient()
 //   read_and_store → while(get_crlf_pos){ extract_and_consume } の構造を
 //   A層では readFromSocket → while(hasCompleteLine){ popLine } に置換。
 //   bircd は extract 内で broadcast するが、A層は popLine で取り出した行を
-//   Phase4 で B層(Parser→dispatch)へ渡す（今はログ確認のみ）。
+//   今はエコー（②）。Phase4 で bufferSend を Parser→dispatch→applyCommandResult に差し替える
 bool Server::_handleRead(int fd) {
 	Connection* conn = _connections[fd];
 	if (!conn->readFromSocket()) {
@@ -237,6 +245,8 @@ bool Server::_handleRead(int fd) {
 	while (conn->hasCompleteLine()) {
 		std::string line = conn->popLine();
 		std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
+		conn->bufferSend(line + "\r\n");   // ← エコー：送信バッファへ積む
+		_enablePollout(fd);                // ← 積んだので POLLOUT 監視ON
 	}
 	return true;
 }
@@ -252,7 +262,7 @@ void Server::_disconnectClient(int fd) {
 		delete it->second;
 		_connections.erase(it);
 	}
-    // TODO(Phase4): _state.removeClient(fd);	// C層からも除去（_state 追加後に有効化）
+	// TODO(Phase4): _state.removeClient(fd);	// C層からも除去（_state 追加後に有効化）
 	std::cout << "client #" << fd << " gone away" << std::endl;  // bircd の gone away 相当
 }
 
@@ -285,6 +295,36 @@ static void _printRevents(short revents)
 
 
 /*
+bircd: init_fd.c の「strlen(buf_write)>0 で events|=POLLOUT」に対応。
+bircd は毎ループ pollfds を作り直すが、A は持続配列なので明示トグル。
+*/
+
+void Server::_enablePollout(int fd) {
+	for (size_t i = 0; i < _pollfds.size(); ++i)
+	/*　データを積んだとき → _enablePollout（init_fd.c L59-60 の「strlen(buf_write)>0 で立てる」を、
+		積んだ瞬間に手動でやる）　*/
+		if (_pollfds[i].fd == fd) { _pollfds[i].events |= POLLOUT; return; }	// enable　|= FLAG で立てる
+}
+
+void Server::_disablePollout(int fd) {
+	for (size_t i = 0; i < _pollfds.size(); ++i)
+	/*　送り切ったとき → _disablePollout（bircd なら次ループで自動的に下りる部分を、手動で下ろす）*/
+	if (_pollfds[i].fd == fd) { _pollfds[i].events &= ~POLLOUT; return; }	// disable　&= ~FLAG で下ろす
+}
+
+// send 部分: bircd client_write.c に対応（send + 送信済み消費）。
+// _disablePollout 部分: bircd は init_fd.c が毎ループ POLLOUT を計算し直すので
+//   buf_write が空になれば自動で下りる。A は _pollfds 持続のため明示的に下ろす。
+bool Server::_handleWrite(int fd) {
+	Connection* conn = _connections[fd];
+	if (!conn->writeToSocket())
+		return false;						// send 失敗 → 呼び出し側で切断
+	if (!conn->hasPendingOutput())
+		_disablePollout(fd);				// 空POLLOUTで poll が回り続けるのを防ぐ
+	return true;
+}
+
+/*
 バッファ動作確認方法
 
 make && ./bircd 6667
@@ -300,4 +340,13 @@ make && ./bircd 6667
 
 	# \r\n無し200B → 切断の確認
 	python3 -c "import sys; sys.stdout.buffer.write(b'A'*200)" | nc localhost 6667
+*/
+
+/*
+送信経路（POLLOUT + send）動作確認方法 — エコーで自己検証（B層非依存）
+
+	# 複数行が順に返るか（while ループ＋送信）
+(printf 'a\r\nb\r\nc\r\n'; sleep 1) | nc 127.0.0.1 6667
+# → a / b / c
+# POLLOUT が下りているか（送信後ビジーループしていないか）→ top で ircserv の CPU が張り付かないこと
 */
