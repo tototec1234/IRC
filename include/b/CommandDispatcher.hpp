@@ -36,6 +36,8 @@ class CommandDispatcher {
                            Client* client);
   CommandResult handlePart(int fd, const Message& msg,ServerState& state,
                            Client* client);
+  CommandResult handlePrivmsg(int fd, const Message& msg,ServerState& state,
+                           Client* client);
   /*
    * Registration completion is intentionally separate from PASS. Current B
    * policy requires PASS before NICK/USER can mutate Client registration data.

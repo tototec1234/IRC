@@ -40,8 +40,8 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
 	result = handleJoin(fd, msg, state, client);
   } else if (command == "PART") {
 	result = handlePart(fd, msg, state, client);
-//   } else if (command == "PRIVMSG") {
-// 	result = handlePrivmsg(fd, msg, state, client);
+  } else if (command == "PRIVMSG") {
+	result = handlePrivmsg(fd, msg, state, client);
 //   } else if (command == "NOTICE") {
 // 	result = handleNotice(fd, msg, state, client);
 //   } else if (command == "QUIT") {
@@ -192,7 +192,7 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
     result.addReply(fd, ReplyBuilder::noRegistered(*client));
     return result;
   }
-  if (msg.hasParam(0)) {
+  if (!msg.hasParam(0)) {
     result.addReply(fd, ReplyBuilder::needMoreParams(client, "PART"));
     return result;
   }
@@ -210,11 +210,90 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
 }
 
 
-// "PRIVMSG"
+CommandResult CommandDispatcher::handlePrivmsg(int fd, const Message& msg,
+                                               ServerState& state,
+                                               Client* client) {
+  CommandResult result;
+  if (!client) {
+      return result;
+  }
+  if (!client->isRegistered()) {
+    result.addReply(fd, ReplyBuilder::noRegistered(*client));
+    return result;
+  }
+  if (msg.getParamCount() < 2) {
+    result.addReply(fd, ReplyBuilder::needMoreParams(client, "PRIVMSG"));
+    return result;
+  }
+
+  const std::string& targetName = msg.getSingleParam(0);
+  const std::string& text   = msg.getSingleParam(1);
+
+  std::string privmsgMsg = ReplyBuilder::privmsg(client->getFullPrefix(), targetName, text);
+
+  if (targetName.empty() || targetName[0] == '#') {
+      Channel* channel = state.getChannel(targetName);
+      if (channel == NULL) {
+      result.addReply(fd, ReplyBuilder::noSuchChannel(*client, targetName));
+      return result;
+      }
+      if (!channel->hasMember(client)) {
+      result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
+      return result;
+      }
+    std::vector<Client*> members = channel->getMembers();    // ディープコピーじゃなくていいのかな？
+    for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
+      Client* member = *it;
+      if (member->getFd() == fd) {
+        result.addReply(member->getFd(), privmsgMsg);
+      }
+    }
+  } else {
+      Client* targetClient = state.getClientByNick(targetName);
+    if (targetClient == NULL) {
+        result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetName));
+        return result;
+    }
+      result.addReply(targetClient->getFd(), privmsgMsg);
+  }
+  return result;
+}
+
+
 // CommandResult CommandDispatcher::handlePrivmsg(int fd, const Message& msg,
 //                                             ServerState& state,
 //                                             Client* client) {
+//   CommandResult result;
+//   if (!client) {
+//     return result;
+//   }
+// //   if (!client->isPassOk()) {
+// //     result.addReply(fd, ReplyBuilder::passwordMismatch());
+// //     return result;
+// //   }
+//   if (!client->isRegistered()) {
+//     // result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
+//     result.addReply(fd, ReplyBuilder::noRegistered(*client));
+//     return result;
+//   }
+//   if (msg.hasParam(0)) {
+//     result.addReply(fd, ReplyBuilder::needMoreParams(client, "PRIVMSG"));
+//     return result;
+//   }
 
+//   const std::string receiverName = msg.getSingleParam(0);
+//   const std::vector<std::string>& textToSend = msg.getParams();
+
+//   const std::string channelName = msg.getSingleParam(0);
+//   Channel* channel = state.getChannel(channelName);
+//   state.removeClientFromChannel(client, channelName);
+//   std::string partMsg = ReplyBuilder::join(channelName, client->getFullPrefix(), "PRIVMSG");
+//   std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
+//   for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
+//       Client * client = *it;
+// 	  result.addReply(client->getFd(), partMsg);
+//   }
+//   return result;
 // }
 
 
