@@ -247,6 +247,25 @@ void testJoinBeforeRegistrationReturns451() {
 	// std::cout << std::endl << result.replies[0].message << std::endl;
   }
 
+  void testPartSingleMemberEchoesToSelf() {
+	ServerState state("pw");
+	addClient(state, 45);
+	CommandDispatcher dispatcher;
+	dispatcher.dispatch(45, makeMessage("PASS", "pw"), state);
+	dispatcher.dispatch(45, makeMessage("NICK", "taro"), state);
+	dispatcher.dispatch(45, makeUserMessage(), state);
+	dispatcher.dispatch(45, makeMessage("JOIN", "#solo"), state);
+
+	CommandResult result =
+		dispatcher.dispatch(45, makeMessage("PART", "#solo"), state);
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(45, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message,
+					":taro!user@client.example PART #solo");
+	EXPECT_TRUE(state.getChannel("#solo") == NULL);
+  }
+
   void testQuitBeforeRegistrationDisconnects() {
 	ServerState state("pw");
 	addClient(state, 44);
@@ -277,6 +296,8 @@ int main() {
 
   runTest("join after registration echoes to self",
 			testJoinAfterRegistrationEchoesToSelf);
+  runTest("part single member echoes to self",
+			testPartSingleMemberEchoesToSelf);
   runTest("quit before registration disconnects",
 			testQuitBeforeRegistrationDisconnects);
 

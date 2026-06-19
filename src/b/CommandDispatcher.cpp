@@ -176,13 +176,7 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
   }
 
   std::string joinMsg = ReplyBuilder::join(client->getFullPrefix(), "JOIN", channelName);
-
-  std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
-
-  for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-      Client * client = *it;
-	  result.addReply(client->getFd(), joinMsg);
-  }
+  addRepliesToMembers(result, channel->getMembers(), joinMsg, -1);
 
   return result;
 }
@@ -210,13 +204,18 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
 
   const std::string channelName = msg.getSingleParam(0);
   Channel* channel = state.getChannel(channelName);
-  state.removeClientFromChannel(client, channelName);
-  std::string partMsg = ReplyBuilder::part(client->getFullPrefix(), "PART", channelName);
-  std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
-  for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-      Client * client = *it;
-	  result.addReply(client->getFd(), partMsg);
+  if (!channel) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(*client, channelName));
+    return result;
   }
+  if (!channel->hasMember(client)) {
+    result.addReply(fd, ReplyBuilder::notOnChannel(*client, channelName));
+    return result;
+  }
+  std::string partMsg = ReplyBuilder::part(client->getFullPrefix(), "PART", channelName);
+  std::vector<Client*> members = channel->getMembers();
+  addRepliesToMembers(result, members, partMsg, -1);
+  state.removeClientFromChannel(client, channelName);
   return result;
 }
 
@@ -252,13 +251,7 @@ CommandResult CommandDispatcher::handlePrivmsg(int fd, const Message& msg,
       result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
       return result;
       }
-    std::vector<Client*> members = channel->getMembers();    // ディープコピーじゃなくていいのかな？
-    for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-      Client* member = *it;
-      if (member->getFd() != fd) {
-        result.addReply(member->getFd(), privmsgMsg);
-      }
-    }
+    addRepliesToMembers(result, channel->getMembers(), privmsgMsg, fd);
   } else {
       Client* targetClient = state.getClientByNick(targetName);
     if (!targetClient) {
@@ -302,13 +295,7 @@ CommandResult CommandDispatcher::handleNotice(int fd, const Message& msg,
     //   result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
       return result;
       }
-    std::vector<Client*> members = channel->getMembers();    // ディープコピーじゃなくていいのかな？
-    for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-      Client* member = *it;
-      if (member->getFd() != fd) {
-        result.addReply(member->getFd(), noticeMsg);
-      }
-    }
+    addRepliesToMembers(result, channel->getMembers(), noticeMsg, fd);
   } else {
       Client* targetClient = state.getClientByNick(targetName);
     if (!targetClient) {
@@ -483,11 +470,7 @@ CommandResult CommandDispatcher::handleTopic(int fd, const Message& msg,
 
   //	ブロードキャスト！
   std::string topicMsg = ReplyBuilder::topic(client->getFullPrefix(), "TOPIC",channelName, topic);
-  std::vector<Client*> members = channel->getMembers();
-  for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-    Client* member = *it;
-    result.addReply(member->getFd(), topicMsg);
-  }
+  addRepliesToMembers(result, channel->getMembers(), topicMsg, -1);
 
   return result;
 }
@@ -513,5 +496,17 @@ void CommandDispatcher::maybeRegister(Client& client, CommandResult& result) {
   if (!client.isRegistered() && client.canRegister()) {
     client.markRegistered();
     result.addReply(client.getFd(), ReplyBuilder::welcome(client));
+  }
+}
+
+void CommandDispatcher::addRepliesToMembers(
+    CommandResult& result, const std::vector<Client*>& members,
+    const std::string& message, int exceptFd) {
+  for (std::vector<Client*>::const_iterator it = members.begin();
+       it != members.end(); ++it) {
+    Client* member = *it;
+    if (member && member->getFd() != exceptFd) {
+      result.addReply(member->getFd(), message);
+    }
   }
 }

@@ -3,6 +3,8 @@
 
 #include "CommandResult.hpp"
 #include "Message.hpp"
+#include <string>
+#include <vector>
 
 class ServerState;
 class Client;
@@ -57,6 +59,9 @@ class CommandDispatcher {
    * policy requires PASS before NICK/USER can mutate Client registration data.
    */
   void maybeRegister(Client& client, CommandResult& result);
+  void addRepliesToMembers(CommandResult& result,
+                           const std::vector<Client*>& members,
+                           const std::string& message, int exceptFd);
 
   // CommandDispatcher is stateless for now; copying is disabled explicitly.
   CommandDispatcher(const CommandDispatcher&);
