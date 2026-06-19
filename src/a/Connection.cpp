@@ -1,7 +1,6 @@
 #include "a/Connection.hpp"
 #include <string>
 #include <sys/socket.h>   // recv
-#include <cerrno>         // errno
 
 Connection::Connection(int fd) : _fd(fd) {}
 Connection::~Connection() {}
