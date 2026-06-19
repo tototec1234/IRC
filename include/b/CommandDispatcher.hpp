@@ -42,6 +42,10 @@ class CommandDispatcher {
                               Client* client);
   CommandResult handleNotice(int fd, const Message& msg,ServerState& state,
                              Client* client);
+  CommandResult handleTextMessage(int fd, const Message& msg,
+                                  ServerState& state, Client* client,
+                                  const std::string& command,
+                                  bool replyOnError);
   CommandResult handleQuit(int fd, const Message& msg, ServerState& state,
                            Client* client);
 //   CommandResult handleKick(int fd, const Message& msg, ServerState& state,

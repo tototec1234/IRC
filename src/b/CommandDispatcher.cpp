@@ -223,86 +223,74 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
 CommandResult CommandDispatcher::handlePrivmsg(int fd, const Message& msg,
                                                ServerState& state,
                                                Client* client) {
-  CommandResult result;
-  if (!client) {
-      return result;
-  }
-  if (!client->isRegistered()) {
-    result.addReply(fd, ReplyBuilder::noRegistered(*client));
-    return result;
-  }
-  if (msg.getParamCount() < 2) {
-    result.addReply(fd, ReplyBuilder::needMoreParams(client, "PRIVMSG"));
-    return result;
-  }
-
-  const std::string& targetName = msg.getSingleParam(0);
-  const std::string& text   = msg.getSingleParam(1);
-
-  std::string privmsgMsg = ReplyBuilder::privmsg(client->getFullPrefix(), "PRIVMSG", targetName, text);
-
-  if (targetName.empty() || targetName[0] == '#') {
-      Channel* channel = state.getChannel(targetName);
-      if (!channel) {
-      result.addReply(fd, ReplyBuilder::noSuchChannel(*client, targetName));
-      return result;
-      }
-      if (!channel->hasMember(client)) {
-      result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
-      return result;
-      }
-    addRepliesToMembers(result, channel->getMembers(), privmsgMsg, fd);
-  } else {
-      Client* targetClient = state.getClientByNick(targetName);
-    if (!targetClient) {
-        result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetName));
-        return result;
-    }
-      result.addReply(targetClient->getFd(), privmsgMsg);
-  }
-  return result;
+  return handleTextMessage(fd, msg, state, client, "PRIVMSG", true);
 }
 
 // "NOTICE"
 CommandResult CommandDispatcher::handleNotice(int fd, const Message& msg,
                                               ServerState& state,
                                               Client* client) {
+  return handleTextMessage(fd, msg, state, client, "NOTICE", false);
+}
+
+CommandResult CommandDispatcher::handleTextMessage(int fd, const Message& msg,
+                                                   ServerState& state,
+                                                   Client* client,
+                                                   const std::string& command,
+                                                   bool replyOnError) {
   CommandResult result;
   if (!client) {
-      return result;
+    return result;
   }
   if (!client->isRegistered()) {
-    // result.addReply(fd, ReplyBuilder::noRegistered(*client));
+    if (replyOnError) {
+      result.addReply(fd, ReplyBuilder::noRegistered(*client));
+    }
     return result;
   }
   if (msg.getParamCount() < 2) {
-    // result.addReply(fd, ReplyBuilder::needMoreParams(client, "notice"));
+    if (replyOnError) {
+      result.addReply(fd, ReplyBuilder::needMoreParams(client, command));
+    }
     return result;
   }
 
   const std::string& targetName = msg.getSingleParam(0);
   const std::string& text   = msg.getSingleParam(1);
 
-  std::string noticeMsg = ReplyBuilder::notice(client->getFullPrefix(), "NOTICE", targetName, text);
+  std::string message;
+  if (command == "NOTICE") {
+    message =
+        ReplyBuilder::notice(client->getFullPrefix(), command, targetName, text);
+  } else {
+    message =
+        ReplyBuilder::privmsg(client->getFullPrefix(), command, targetName, text);
+  }
 
   if (targetName.empty() || targetName[0] == '#') {
       Channel* channel = state.getChannel(targetName);
       if (!channel) {
-    //   result.addReply(fd, ReplyBuilder::noSuchChannel(*client, targetName));
+      if (replyOnError) {
+        result.addReply(fd, ReplyBuilder::noSuchChannel(*client, targetName));
+      }
       return result;
       }
       if (!channel->hasMember(client)) {
-    //   result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
+      if (replyOnError) {
+        result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
+      }
       return result;
       }
-    addRepliesToMembers(result, channel->getMembers(), noticeMsg, fd);
+    addRepliesToMembers(result, channel->getMembers(), message, fd);
   } else {
       Client* targetClient = state.getClientByNick(targetName);
     if (!targetClient) {
-        // result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetName));
+      if (replyOnError) {
+        result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetName));
+      }
         return result;
     }
-      result.addReply(targetClient->getFd(), noticeMsg);
+      result.addReply(targetClient->getFd(), message);
   }
   return result;
 }

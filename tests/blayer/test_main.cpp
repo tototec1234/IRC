@@ -7,7 +7,7 @@
 #include "b/CommandResult.hpp"
 #include "b/Message.hpp"
 #include "b/Parser.hpp"
-#include "b/ReplyBuilder.hpp" //torinoue
+#include "b/ReplyBuilder.hpp"
 #include "c/ServerState.hpp"
 
 namespace {
@@ -53,8 +53,12 @@ Message makeMessage(const std::string& command, const std::string& p0) {
   return Message(command, params);
 }
 
-void addClient(ServerState& state, int fd) {
-  state.addClient(fd, "client.example");
+Message makeMessage(const std::string& command, const std::string& p0,
+                    const std::string& p1) {
+  std::vector<std::string> params;
+  params.push_back(p0);
+  params.push_back(p1);
+  return Message(command, params);
 }
 
 Message makeUserMessage() {
@@ -65,6 +69,44 @@ Message makeUserMessage() {
   params.push_back("Real Name");
   return Message("USER", params);
 }
+
+struct TestClient {
+  TestClient(int clientFd, const std::string& clientNick)
+      : fd(clientFd), nick(clientNick) {}
+
+  int fd;
+  std::string nick;
+};
+
+struct TestContext {
+  TestContext() : state("pw") {}
+
+  TestClient addClient(int fd) {
+	state.addClient(fd, "client.example");
+	return TestClient(fd, "");
+  }
+
+  TestClient registerClient(int fd, const std::string& nick) {
+	addClient(fd);
+	dispatch(fd, makeMessage("PASS", "pw"));
+	dispatch(fd, makeMessage("NICK", nick));
+	dispatch(fd, makeUserMessage());
+	return TestClient(fd, nick);
+  }
+
+  CommandResult dispatch(int fd, const Message& msg) {
+	return dispatcher.dispatch(fd, msg, state);
+  }
+
+  Client* client(int fd) { return state.getClientByFd(fd); }
+
+  CommandResult join(int fd, const std::string& channelName) {
+	return dispatch(fd, makeMessage("JOIN", channelName));
+  }
+
+  ServerState state;
+  CommandDispatcher dispatcher;
+};
 
 void expectContains(const std::string& text, const std::string& needle,
 					const std::string& file, int line) {
@@ -85,69 +127,62 @@ void testParserBasicMessage() {
 }
 
 void testPingReturnsPong() {
-  ServerState state("pw");
-  addClient(state, 10);
-  CommandDispatcher dispatcher;
+  TestContext ctx;
+  TestClient taro = ctx.addClient(10);
 
-  CommandResult result =
-	  dispatcher.dispatch(10, makeMessage("PING", "token"), state);
+  CommandResult result = ctx.dispatch(taro.fd, makeMessage("PING", "token"));
 
   EXPECT_FALSE(result.shouldDisconnect);
   EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
-  EXPECT_EQ(10, result.replies[0].fd);
+  EXPECT_EQ(taro.fd, result.replies[0].fd);
   EXPECT_CONTAINS(result.replies[0].message, " PONG ");
   EXPECT_CONTAINS(result.replies[0].message, "token");
 }
 
 void testRegistrationFlowUsesRealCState() {
-  ServerState state("pw");
-  addClient(state, 20);
-  Client* client = state.getClientByFd(20);
-  CommandDispatcher dispatcher;
+  TestContext ctx;
+  TestClient taro = ctx.addClient(20);
+  Client* client = ctx.client(taro.fd);
 
   EXPECT_TRUE(client != NULL);
-  CommandResult passResult =
-	  dispatcher.dispatch(20, makeMessage("PASS", "pw"), state);
+  CommandResult passResult = ctx.dispatch(taro.fd, makeMessage("PASS", "pw"));
   CommandResult nickResult =
-	  dispatcher.dispatch(20, makeMessage("NICK", "taro"), state);
-  CommandResult userResult = dispatcher.dispatch(20, makeUserMessage(), state);
+	  ctx.dispatch(taro.fd, makeMessage("NICK", "taro"));
+  CommandResult userResult = ctx.dispatch(taro.fd, makeUserMessage());
 
   EXPECT_EQ(static_cast<size_t>(0), passResult.replies.size());
   EXPECT_EQ(static_cast<size_t>(0), nickResult.replies.size());
   EXPECT_TRUE(client->isPassOk());
   EXPECT_EQ(std::string("taro"), client->getNick());
   EXPECT_EQ(std::string("taro!user@client.example"), client->getFullPrefix());
-  EXPECT_EQ(client, state.getClientByNick("taro"));
+  EXPECT_EQ(client, ctx.state.getClientByNick("taro"));
   EXPECT_TRUE(client->isRegistered());
   EXPECT_EQ(static_cast<size_t>(1), userResult.replies.size());
   EXPECT_CONTAINS(userResult.replies[0].message, " 001 taro ");
 }
 
 void testNickBeforePassIsRejected() {
-  ServerState state("pw");
-  addClient(state, 25);
-  Client* client = state.getClientByFd(25);
-  CommandDispatcher dispatcher;
+  TestContext ctx;
+  TestClient taro = ctx.addClient(25);
+  Client* client = ctx.client(taro.fd);
 
-  CommandResult result =
-	  dispatcher.dispatch(25, makeMessage("NICK", "taro"), state);
+  CommandResult result = ctx.dispatch(taro.fd, makeMessage("NICK", "taro"));
 
   EXPECT_TRUE(client != NULL);
   EXPECT_FALSE(client->isPassOk());
   EXPECT_TRUE(client->getNick().empty());
-  EXPECT_TRUE(state.getClientByNick("taro") == NULL);
+  EXPECT_TRUE(ctx.state.getClientByNick("taro") == NULL);
   EXPECT_FALSE(client->isRegistered());
   EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
   EXPECT_CONTAINS(result.replies[0].message, " 464 ");
 }
 
 void testUserBeforePassIsRejected() {
-  ServerState state("pw");
-  addClient(state, 26);
-  Client* client = state.getClientByFd(26);
-  CommandDispatcher dispatcher;
+  TestContext ctx;
+  TestClient taro = ctx.addClient(26);
+  Client* client = ctx.client(taro.fd);
 
-  CommandResult result = dispatcher.dispatch(26, makeUserMessage(), state);
+  CommandResult result = ctx.dispatch(taro.fd, makeUserMessage());
 
   EXPECT_TRUE(client != NULL);
   EXPECT_FALSE(client->isPassOk());
@@ -159,47 +194,32 @@ void testUserBeforePassIsRejected() {
 }
 
 void testNickConflictReturnsNumeric() {
-  ServerState state("pw");
-  addClient(state, 30);
-  addClient(state, 31);
-  CommandDispatcher dispatcher;
+  TestContext ctx;
+  TestClient taro = ctx.addClient(30);
+  TestClient hanako = ctx.addClient(31);
 
-  dispatcher.dispatch(30, makeMessage("PASS", "pw"), state);
-  dispatcher.dispatch(31, makeMessage("PASS", "pw"), state);
-  dispatcher.dispatch(30, makeMessage("NICK", "taro"), state);
-  CommandResult result =
-	  dispatcher.dispatch(31, makeMessage("NICK", "TARO"), state);
+  ctx.dispatch(taro.fd, makeMessage("PASS", "pw"));
+  ctx.dispatch(hanako.fd, makeMessage("PASS", "pw"));
+  ctx.dispatch(taro.fd, makeMessage("NICK", "taro"));
+  CommandResult result = ctx.dispatch(hanako.fd, makeMessage("NICK", "TARO"));
 
   EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
   EXPECT_CONTAINS(result.replies[0].message, " 433 ");
-  EXPECT_TRUE(state.getClientByFd(31)->getNick().empty());
+  EXPECT_TRUE(ctx.client(hanako.fd)->getNick().empty());
 }
 
-/* test tuika*/
 void testNotRegisteredReplyFormat() {
-  ServerState state("pw");
-  addClient(state, 40);
-// Client* client = state.getClientByFd(26);
-Client* client = state.getClientByFd(40);
-//   CommandDispatcher dispatcher;
-
-//   dispatcher.dispatch(30, makeMessage("PASS", "pw"), state);
-//   dispatcher.dispatch(31, makeMessage("PASS", "pw"), state);
-//   dispatcher.dispatch(30, makeMessage("NICK", "taro"), state);
-//   CommandResult result =
-//       dispatcher.dispatch(31, makeMessage("NICK", "TARO"), state);
+  TestContext ctx;
+  TestClient taro = ctx.addClient(40);
+  Client* client = ctx.client(taro.fd);
 
 	std::string reply = ReplyBuilder::noRegistered(*client);
 
-//   EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
-//   EXPECT_CONTAINS(result.replies[0].message, " 433 ");
-//   EXPECT_TRUE(state.getClientByFd(31)->getNick().empty());
 	EXPECT_TRUE(client != NULL);
 	EXPECT_FALSE(client->isRegistered());
 	EXPECT_CONTAINS(reply, " 451 ");
 	EXPECT_CONTAINS(reply, " 451 * ");
 	EXPECT_CONTAINS(reply, "You have not registered");
-	
 }
 
 void runTest(const std::string& name, void (*test)()) {
@@ -212,73 +232,131 @@ void runTest(const std::string& name, void (*test)()) {
   }
 }
 
-}  // namespace
-
 void testJoinBeforeRegistrationReturns451() {
-	ServerState state("pw");
-	addClient(state, 42);
-	Client* client = state.getClientByFd(42);
-	CommandDispatcher dispatcher;
+	TestContext ctx;
+	TestClient taro = ctx.addClient(42);
+	Client* client = ctx.client(taro.fd);
   
-	CommandResult result =
-		dispatcher.dispatch(42, makeMessage("JOIN", "#room42Tokyo"), state);
+	CommandResult result = ctx.join(taro.fd, "#room42Tokyo");
   
 	EXPECT_FALSE(client->isRegistered());
 	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
-	EXPECT_EQ(42, result.replies[0].fd);
+	EXPECT_EQ(taro.fd, result.replies[0].fd);
 	EXPECT_CONTAINS(result.replies[0].message, " 451 ");
   }
 
 
   void testJoinAfterRegistrationEchoesToSelf() {
-	ServerState state("pw");
-	addClient(state, 43);
-	CommandDispatcher dispatcher;
-	dispatcher.dispatch(43, makeMessage("PASS", "pw"), state);
-	dispatcher.dispatch(43, makeMessage("NICK", "taro"), state);
-	dispatcher.dispatch(43, makeUserMessage(), state);
-	CommandResult result =
-		dispatcher.dispatch(43, makeMessage("JOIN", "#taros_room"), state);
-	EXPECT_TRUE(state.getClientByFd(43)->isRegistered());
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(43, "taro");
+	CommandResult result = ctx.join(taro.fd, "#taros_room");
+	EXPECT_TRUE(ctx.client(taro.fd)->isRegistered());
 	EXPECT_TRUE(result.replies.size() >= static_cast<size_t>(1));
-	EXPECT_EQ(43, result.replies[0].fd);
+	EXPECT_EQ(taro.fd, result.replies[0].fd);
 	EXPECT_CONTAINS(result.replies[0].message, "JOIN" );
 	EXPECT_CONTAINS(result.replies[0].message, ":taro!user@client.example JOIN #taros_room" );
-	// std::cout << std::endl << result.replies[0].message << std::endl;
   }
 
   void testPartSingleMemberEchoesToSelf() {
-	ServerState state("pw");
-	addClient(state, 45);
-	CommandDispatcher dispatcher;
-	dispatcher.dispatch(45, makeMessage("PASS", "pw"), state);
-	dispatcher.dispatch(45, makeMessage("NICK", "taro"), state);
-	dispatcher.dispatch(45, makeUserMessage(), state);
-	dispatcher.dispatch(45, makeMessage("JOIN", "#solo"), state);
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(45, "taro");
+	ctx.join(taro.fd, "#solo");
 
-	CommandResult result =
-		dispatcher.dispatch(45, makeMessage("PART", "#solo"), state);
+	CommandResult result = ctx.dispatch(taro.fd, makeMessage("PART", "#solo"));
 
 	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
-	EXPECT_EQ(45, result.replies[0].fd);
+	EXPECT_EQ(taro.fd, result.replies[0].fd);
 	EXPECT_CONTAINS(result.replies[0].message,
 					":taro!user@client.example PART #solo");
-	EXPECT_TRUE(state.getChannel("#solo") == NULL);
+	EXPECT_TRUE(ctx.state.getChannel("#solo") == NULL);
   }
 
   void testQuitBeforeRegistrationDisconnects() {
-	ServerState state("pw");
-	addClient(state, 44);
-	CommandDispatcher dispatcher;
+	TestContext ctx;
+	TestClient taro = ctx.addClient(44);
+
+	CommandResult result = ctx.dispatch(taro.fd, makeMessage("QUIT", "bye"));
+
+  EXPECT_TRUE(result.shouldDisconnect);
+  EXPECT_EQ(static_cast<size_t>(0), result.replies.size());
+  }
+
+  void testPrivmsgToNickSendsOnlyTarget() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(50, "taro");
+	TestClient hanako = ctx.registerClient(51, "hanako");
+	ctx.registerClient(52, "jiro");
 
 	CommandResult result =
-		dispatcher.dispatch(44, makeMessage("QUIT", "bye"), state);
+		ctx.dispatch(taro.fd, makeMessage("PRIVMSG", hanako.nick, "hello"));
 
-	EXPECT_TRUE(result.shouldDisconnect);
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(hanako.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message,
+					":taro!user@client.example PRIVMSG hanako :hello");
+  }
+
+  void testPrivmsgToChannelSkipsSender() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(53, "taro");
+	TestClient hanako = ctx.registerClient(54, "hanako");
+	ctx.join(taro.fd, "#room");
+	ctx.join(hanako.fd, "#room");
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("PRIVMSG", "#room", "hello"));
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(hanako.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message,
+					":taro!user@client.example PRIVMSG #room :hello");
+  }
+
+  void testPrivmsgInvalidTargetReturnsNumeric() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(55, "taro");
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("PRIVMSG", "missing", "hello"));
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(taro.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message, " 401 ");
+  }
+
+  void testNoticeInvalidTargetReturnsNoReply() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(56, "taro");
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("NOTICE", "missing", "hello"));
+
 	EXPECT_EQ(static_cast<size_t>(0), result.replies.size());
   }
 
-#include <stdio.h>
+  void testNoticeDeliversToNickAndChannel() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(57, "taro");
+	TestClient hanako = ctx.registerClient(58, "hanako");
+	ctx.join(taro.fd, "#notice");
+	ctx.join(hanako.fd, "#notice");
+
+	CommandResult nickResult =
+		ctx.dispatch(taro.fd, makeMessage("NOTICE", hanako.nick, "direct"));
+	CommandResult channelResult =
+		ctx.dispatch(taro.fd, makeMessage("NOTICE", "#notice", "channel"));
+
+	EXPECT_EQ(static_cast<size_t>(1), nickResult.replies.size());
+	EXPECT_EQ(hanako.fd, nickResult.replies[0].fd);
+	EXPECT_CONTAINS(nickResult.replies[0].message,
+					":taro!user@client.example NOTICE hanako :direct");
+	EXPECT_EQ(static_cast<size_t>(1), channelResult.replies.size());
+	EXPECT_EQ(hanako.fd, channelResult.replies[0].fd);
+	EXPECT_CONTAINS(channelResult.replies[0].message,
+					":taro!user@client.example NOTICE #notice :channel");
+  }
+
+}  // namespace
 
 int main() {
   runTest("parser basic message", testParserBasicMessage);
@@ -300,8 +378,16 @@ int main() {
 			testPartSingleMemberEchoesToSelf);
   runTest("quit before registration disconnects",
 			testQuitBeforeRegistrationDisconnects);
-
-			// printf("------%d------------", __LINE__ );
+  runTest("privmsg to nick sends only target",
+			testPrivmsgToNickSendsOnlyTarget);
+  runTest("privmsg to channel skips sender",
+			testPrivmsgToChannelSkipsSender);
+  runTest("privmsg invalid target returns numeric",
+			testPrivmsgInvalidTargetReturnsNumeric);
+  runTest("notice invalid target returns no reply",
+			testNoticeInvalidTargetReturnsNoReply);
+  runTest("notice delivers to nick and channel",
+			testNoticeDeliversToNickAndChannel);
 
   std::cout << "Assertions passed: " << g_passed << std::endl;
   if (g_failed != 0) {
