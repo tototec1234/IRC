@@ -35,34 +35,26 @@ bool Connection::readFromSocket() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// bircd(lesson3.5): client_read.c の get_crlf_pos() に対応。
-//   bircd は len 走査で str[i]=='\r' && str[i+1]=='\n' を探し、
-//   見つかれば i+2（消費長）、無ければ 0 を返す。
-//   len 走査なのは '\0' 混入耐性のため。
-// A層: std::string::find は \0 を含んでもバイナリ安全なので find で代替可。
-//   RFC2812 2.3: https://datatracker.ietf.org/doc/html/rfc2812#section-2.3
+// 修正版: \r\n または \n 単独のどちらでも行の完了とみなす
 // ─────────────────────────────────────────────────────────────
 bool Connection::hasCompleteLine() const {
-	return _recvBuffer.find("\r\n") != std::string::npos ;
+	return _recvBuffer.find("\n") != std::string::npos ;
 }
 
 // ─────────────────────────────────────────────────────────────
-// bircd(lesson3.5): client_read.c の extract_and_consume() に対応。
-//   buf_read[crlf_end-2] = '\0';            ← CRLF 手前で行を確定
-//   broadcast_message(e, cs, buf_read);     ← bircd はここで送信まで実行
-//   ft_memmove(buf_read, buf_read+crlf_end, ...);  ← 消費分を前詰め
-// A層での違い:
-//   - popLine は「1行を取り出して返すだけ」。送信(broadcast/dispatch)は
-//     呼び出し側(_handleRead→B層)の責務。bircd は extract 内で broadcast まで
-//     やっており責務が混ざっている。A層は分離する。
-//   - 前詰め memmove は std::string::erase で代替。
+// 修正版: \n を基準に切り出し、直前に \r があれば取り除く
 // ─────────────────────────────────────────────────────────────
 std::string Connection::popLine() {
-	size_t pos = _recvBuffer.find("\r\n");			// bircd: get_crlf_pos
-	std::string line = _recvBuffer.substr(0, pos);	// bircd: buf_read[crlf_end-2]='\0'
-	_recvBuffer.erase(0, pos + 2);					// bircd: ft_memmove で前詰め
+	size_t n_pos = _recvBuffer.find('\n');
+	
+	size_t len = n_pos;
+	if (n_pos > 0 && _recvBuffer[n_pos -1] == '\r'){
+		len--;
+	}
+
+	std::string line = _recvBuffer.substr(0, len);
+	_recvBuffer.erase(0, n_pos + 1);
 	return line;
-	// ※ 呼び出し規約: hasCompleteLine()==true のときだけ呼ぶ
 }
 
 // ─────────────────────────────────────────────────────────────
