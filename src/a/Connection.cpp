@@ -7,6 +7,27 @@ Connection::Connection(int fd) : _fd(fd) {}
 Connection::~Connection() {}
 int Connection::getFd() const { return _fd; }
 
+// イシュー #21 の#6: 先頭行(最初の '\n' まで／'\n' が無ければバッファ全体)が
+//	512 バイトを超えていたら true。判定のみ。切断・出力は Server 側。
+bool Connection::isLineTooLong() const {
+	size_t n_pos = _recvBuffer.find('\n');
+	size_t line_len = (n_pos == std::string::npos) ? _recvBuffer.size() : n_pos;
+	return line_len > 512 + 1;			// IRCでの本文の長さは　512（本文+'\r\n' を含む生バイト　は512） '\n'だと１文字甘いが許容する
+}
+/*
+python3 -c "import sys; sys.stdout.buffer.write(b'A'*512); print('\r\n')" | nc localhost 6667
+↑これは当然OK
+
+python3 -c "import sys; sys.stdout.buffer.write(b'A'*513); print('\r\n')" | nc localhost 6667
+↑これは当然OUT
+
+しかし
+python3 -c "import sys; sys.stdout.buffer.write(b'A'*513); print('\n')" | nc localhost 6667
+↑これも通してしまう　\r　の１文字分甘い
+
+*/
+
+
 // ─────────────────────────────────────────────────────────────
 // bircd(lesson3.5): client_read.c の read_and_store() に対応。
 //   r = recv(cs, tmp, BUF_SIZE - buf_read_len, 0);

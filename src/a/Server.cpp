@@ -248,13 +248,20 @@ bool Server::_handleRead(int fd) {
 	if (!conn->readFromSocket()) {
 		return false;
 	}
+	
+	if (conn->isLineTooLong()) {									// pop する前に弾く
+		std::cerr << RED_COLOR << "line too long (#" << fd
+					<< ") 長すぎ切断" << RESET_COLOR << std::endl;	// 切断理由を決めるのはA層の責任　とりま　デバッグ出力
+		return false;												// run() が _disconnectClient(fd) を呼ぶ
+	}
+
 	while (conn->hasCompleteLine()) {
 		std::string line = conn->popLine();
 		std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
-		// conn->bufferSend(line + "\r\n");				// ← エコー：送信バッファへ積む
+		// conn->bufferSend(line + "\r\n");							// ← エコー：送信バッファへ積む
 		Message		msg = Parser::parse(line);
 		CommandResult result = _dispatcher.dispatch(fd, msg, _state);
-		applyCommandResult(result);						// 送信先ごとに bufferSend + _enablePollout 済み
+		applyCommandResult(result);									// 送信先ごとに bufferSend + _enablePollout 済み
 	}
 	return true;
 }
