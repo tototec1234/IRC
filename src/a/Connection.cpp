@@ -1,18 +1,28 @@
 #include "a/Connection.hpp"
 #include <string>
 #include <sys/socket.h>   // recv
-#include <cerrno>         // errno
 
-Connection::Connection(int fd) : _fd(fd) {}
+Connection::Connection(int fd) : _fd(fd) , _nlPos(std::string::npos){}
 Connection::~Connection() {}
 int Connection::getFd() const { return _fd; }
 
 // イシュー #21 の#6: 先頭行(最初の '\n' まで／'\n' が無ければバッファ全体)が
 //	512 バイトを超えていたら true。判定のみ。切断・出力は Server 側。
+#include <algorithm>   // std::min（cpp ファイル先頭に追加）
+
 bool Connection::isLineTooLong() const {
-	size_t n_pos = _recvBuffer.find('\n');
-	size_t line_len = (n_pos == std::string::npos) ? _recvBuffer.size() : n_pos;
-	return line_len > 512 + 1;			// IRCでの本文の長さは　512（本文+'\r\n' を含む生バイト　は512） '\n'だと１文字甘いが許容する
+	const size_t	max_ok	= 512;										// CRLF込みの生で512 までは許容
+
+	// まだ上限を超えていない未完了行は「長すぎ」ではない
+ 	if (_recvBuffer.size() <= max_ok)
+ 		return false;
+
+	size_t			scan_end = std::min(_recvBuffer.size(), max_ok);	// ここまで見れば判定できる
+	for (size_t i = 0; i < scan_end; ++i) {
+		if (_recvBuffer[i] == '\n')
+			return false;
+	}
+	return true;
 }
 /*
 python3 -c "import sys; sys.stdout.buffer.write(b'A'*512); print('\r\n')" | nc localhost 6667
@@ -30,23 +40,23 @@ python3 -c "import sys; sys.stdout.buffer.write(b'A'*513); print('\n')" | nc loc
 
 // ─────────────────────────────────────────────────────────────
 // bircd(lesson3.5): client_read.c の read_and_store() に対応。
-//   r = recv(cs, tmp, BUF_SIZE - buf_read_len, 0);
+//   r = recv(cs, tmp, buf_size - buf_read_len, 0);
 //   if (r <= 0) return r;            ← 0/負はそのまま返す
 //   ft_memcpy(buf_read + buf_read_len, tmp, r);  ← 累積
 // A層での違い:
 //   - 累積先を可変長 std::string(_recvBuffer) にした
 //     → bircd の buf_read_len 管理は不要（std::string が長さを持つ）
-//     → bircd の「BUF_SIZE 満杯で return -1（行長すぎ切断）」も自然には不要
+//     → bircd の「buf_size 満杯で return -1（行長すぎ切断）」も自然には不要
 //       ※ ただし無制限増加は DoS。上限を設けるかは後の設計判断(TODO)
 //   - recv は poll 駆動で1イベント1回（client_read.c L30-32 のメモ通り）
 //   - bircd は client_read 内で close+clean_fd するが、A層は bool 返却で
 //     呼び出し側(Server, Phase6)に委ねる（recv と切断処理の責務分離）
 // ─────────────────────────────────────────────────────────────
 bool Connection::readFromSocket() {
-	char buf[BUF_SIZE + 1]; // マクロはcppライクでない、、、
+	char buf[buf_size + 1]; // マクロはcppライクでない、、、
 	ssize_t n = recv(_fd, buf, sizeof(buf), 0);
 	if (n == 0)
-		return false; /*FIN。bircd の r==0 → gone away 相当） */
+		return false;
 	if (n < 0)
 		return false; /* エラー。bircd の r<0 も切断扱い
 				  Phase7 で EAGAIN を「切断せずスキップ=true」に分ける
@@ -59,14 +69,15 @@ bool Connection::readFromSocket() {
 // 修正版: \r\n または \n 単独のどちらでも行の完了とみなす
 // ─────────────────────────────────────────────────────────────
 bool Connection::hasCompleteLine() const {
-	return _recvBuffer.find("\n") != std::string::npos ;
+	_nlPos = _recvBuffer.find("\n");
+	return _nlPos != std::string::npos ;
 }
 
 // ─────────────────────────────────────────────────────────────
 // 修正版: \n を基準に切り出し、直前に \r があれば取り除く
 // ─────────────────────────────────────────────────────────────
 std::string Connection::popLine() {
-	size_t n_pos = _recvBuffer.find('\n');
+	size_t n_pos = _nlPos;
 	
 	size_t len = n_pos;
 	if (n_pos > 0 && _recvBuffer[n_pos -1] == '\r'){
@@ -75,6 +86,7 @@ std::string Connection::popLine() {
 
 	std::string line = _recvBuffer.substr(0, len);
 	_recvBuffer.erase(0, n_pos + 1);
+	_nlPos = std::string::npos ;	// 使い終わったら無効化
 	return line;
 }
 

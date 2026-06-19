@@ -9,13 +9,22 @@
 #include <arpa/inet.h> // inet_ntoa 用
 
 #include <cstring>
-#include <cerrno>
+#include <cerrno>	//　デバッグ出力用　後で消す
+#include <fcntl.h>
+#include <csignal>
+
+#include <fcntl.h>	// fcntl, F_SETFL, O_NONBLOCK
+#include <csignal>	// signal, SIGPIPE, SIG_IGN 
 
 /*
 これはrevents挙動確認用関数です 
 */
 static void _printRevents(short revents); 
 
+static void _setNonBlocking(int fd) {
+	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+		throw std::runtime_error("fcntl(O_NONBLOCK) failed");
+}
 
 Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw) {
 
@@ -25,10 +34,13 @@ Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw) {
 	struct sockaddr_in	clntAddr; //クライアントアドレス
 	*/
 
+	signal(SIGPIPE, SIG_IGN);	// send 先が切断済みでも 無視。 SIGPIPE で落ちない sendは-1を返す
+
 	/* 	soket	p41 着信接続用のソケットを作成*/
 	_listenFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_listenFd < 0)
 		throw std::runtime_error("socket() failed");
+	_setNonBlocking(_listenFd);		// ★追加: listen fd を non-blocking に
 
 	/*　ローカルのアドレス構造体を作成　*/	
 	memset(&servAddr, 0, sizeof(servAddr));
@@ -198,8 +210,6 @@ void Server::_acceptClient()
 	cs = accept(_listenFd, (struct sockaddr *)&csin, &csin_len);
 	if (cs < 0)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return;					// EAGAIN / EWOULDBLOCK は無視（Phase 7 で正式に扱う）
 		std::cerr
 		<< RED_COLOR
 		<< "accept() 失敗"
@@ -208,6 +218,8 @@ void Server::_acceptClient()
 		return; // （→ accept は 1 回 1 fd なので return で十分）
 	}
 	// accept 成功後（cs が有効）
+	_setNonBlocking(cs);		// ★追加: クライアント fd を non-blocking に
+
 	Connection* conn = new Connection(cs);
 	_connections[cs] = conn;
 	_addFd(cs, POLLIN);
@@ -254,7 +266,11 @@ bool Server::_handleRead(int fd) {
 					<< ") 長すぎ切断" << RESET_COLOR << std::endl;	// 切断理由を決めるのはA層の責任　とりま　デバッグ出力
 		return false;												// run() が _disconnectClient(fd) を呼ぶ
 	}
-
+/* 既知の問題点
+isLineTooLong() のチェックが readFromSocket() 直後に 1 回だけなので、
+1 回の recv で「短い1行 + 改行なしの巨大データ」を受け取った場合に、
+最初の短い行だけ pop して巨大な未完了行が _recvBuffer に残り続けます（次の recv が来ないと切断されない）
+*/
 	while (conn->hasCompleteLine()) {
 		std::string line = conn->popLine();
 		std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
