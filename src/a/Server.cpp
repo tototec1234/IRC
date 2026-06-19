@@ -9,7 +9,9 @@
 #include <arpa/inet.h> // inet_ntoa 用
 
 #include <cstring>
-#include <cerrno>
+// #include <cerrno>
+#include <fcntl.h>
+#include <csignal>
 
 /*
 これはrevents挙動確認用関数です 

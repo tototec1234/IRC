@@ -7,8 +7,6 @@
 
 #define MAX_CLIENTS 42  //とりあえず最大同時接続42名　	ft_irc（提出）ではvector<pollfd> 動的　で上限は　実質 OS の fd 上限の予定？
 
-# define BUF_SIZE	4096
-
 #include <string>
 #include <sys/socket.h> //send
 
@@ -29,7 +27,10 @@ class Connection {
 
 
  private:
+	static const size_t buf_size = 4096;
+
 	int			_fd;
+	mutable size_t _nlPos;		// mutable は、「const メンバ関数（状態を変えない関数）の中からでも、この変数だけは例外的に書き換えてもいいよ」とコンパイラに許可を与えるキーワード
 	std::string	_recvBuffer;
 	std::string	_sendBuffer;
 
