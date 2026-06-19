@@ -12,7 +12,7 @@ int Connection::getFd() const { return _fd; }
 bool Connection::isLineTooLong() const {
 	size_t n_pos = _recvBuffer.find('\n');
 	size_t line_len = (n_pos == std::string::npos) ? _recvBuffer.size() : n_pos;
-	return line_len > 512 + 1;			// IRCでの本文の長さは　512（本文+'\r\n' を含む生バイト　は512） '\n'だと１文字甘いが許容する
+	return line_len > 510 + 1;			// IRCでの本文の長さは　510（本文+'\r\n' を含む生バイト　は512） '\n'だと１文字甘いが許容する
 }
 /*
 python3 -c "import sys; sys.stdout.buffer.write(b'A'*512); print('\r\n')" | nc localhost 6667
@@ -46,7 +46,7 @@ bool Connection::readFromSocket() {
 	char buf[BUF_SIZE + 1]; // マクロはcppライクでない、、、
 	ssize_t n = recv(_fd, buf, sizeof(buf), 0);
 	if (n == 0)
-		return false; /*FIN。bircd の r==0 → gone away 相当） */
+		return false;
 	if (n < 0)
 		return false; /* エラー。bircd の r<0 も切断扱い
 				  Phase7 で EAGAIN を「切断せずスキップ=true」に分ける

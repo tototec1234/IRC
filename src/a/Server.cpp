@@ -198,8 +198,6 @@ void Server::_acceptClient()
 	cs = accept(_listenFd, (struct sockaddr *)&csin, &csin_len);
 	if (cs < 0)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return;					// EAGAIN / EWOULDBLOCK は無視（Phase 7 で正式に扱う）
 		std::cerr
 		<< RED_COLOR
 		<< "accept() 失敗"
