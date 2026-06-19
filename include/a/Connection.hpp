@@ -25,6 +25,8 @@ class Connection {
 	std::string	popLine();
 	void		bufferSend(const std::string& msg);
 	bool		hasPendingOutput() const;
+	bool		isLineTooLong() const;   // ★追加: 先頭行が 512B 超か（イシュー #21　の#6 対策で判定のみ）
+
 
  private:
 	int			_fd;
