@@ -14,14 +14,14 @@ const char* RPL_WELCOME = "001";  // welcome()
 // TODO: const char* RPL_NAMREPLY = "353";       // nameReply()
 // TODO: const char* RPL_ENDOFNAMES = "366";     // endOfNames()
 
-// TODO: const char* ERR_NOSUCHNICK = "401";       // noSuchNick()
-// TODO: const char* ERR_NOSUCHCHANNEL = "403";    // noSuchChannel()
-// TODO: const char* ERR_CANNOTSENDTOCHAN = "404"; // cannotSendToChan()
+const char* ERR_NOSUCHNICK = "401";       // noSuchNick()
+const char* ERR_NOSUCHCHANNEL = "403";    // noSuchChannel()
+const char* ERR_CANNOTSENDTOCHAN = "404"; // cannotSendToChan()
 const char* ERR_UNKNOWNCOMMAND = "421";  // unknownCommand()
 // TODO: const char* ERR_NONICKNAMEGIVEN = "431";  // noNicknameGiven()
 const char* ERR_NICKNAMEINUSE = "433";  // nickInUse()
-// TODO: const char* ERR_USERNOTINCHANNEL = "441"; // userNotInChannel()
-// TODO: const char* ERR_NOTONCHANNEL = "442";     // notOnChannel()
+const char* ERR_USERNOTINCHANNEL = "441"; // userNotInChannel()
+const char* ERR_NOTONCHANNEL = "442";     // notOnChannel()
 const char* ERR_NOTREGISTERED = "451";    // notRegistered()
 const char* ERR_NEEDMOREPARAMS = "461";     // needMoreParams()
 const char* ERR_ALREADYREGISTERED = "462";  // alreadyRegistered()
@@ -81,10 +81,45 @@ std::string ReplyBuilder::nickInUse(const std::string& nick) {
                       "Nickname is already in use");
 }
 
+
+
+std::string ReplyBuilder::noSuchNick(const Client& client,
+                                     const std::string& targetName) {
+  return numericReply(ERR_NOSUCHNICK, replyTarget(&client), targetName,
+                      "No such nick/channel");
+}
+
+std::string ReplyBuilder::noSuchChannel(const Client& client,
+                                        const std::string& ChannelName) {
+  return numericReply(ERR_NOSUCHCHANNEL, replyTarget(&client), ChannelName,
+                      "No such channel");
+}
+
+//                               //
+std::string ReplyBuilder::cannotSendToChan(const Client& client,
+                                           const std::string& ChannelName) {
+return numericReply(ERR_CANNOTSENDTOCHAN, replyTarget(&client), ChannelName,
+                    "Cannot send to channel");
+}
+
+std::string ReplyBuilder::userNotInChannel(const Client& client,
+                                           const std::string& ChannelName) {
+  return numericReply(ERR_USERNOTINCHANNEL, replyTarget(&client), ChannelName,
+                      "You are not on that channel");
+}
+
+std::string ReplyBuilder::notOnChannel(const Client& client,
+                                       const std::string& ChannelName) {
+  return numericReply(ERR_NOTONCHANNEL, replyTarget(&client), ChannelName,
+                      "You are not on that channel");
+}
+
 std::string ReplyBuilder::noRegistered(const Client& client) {
   return numericReply(ERR_NOTREGISTERED, replyTarget(&client), "",
                       ":You have not registered");
 }
+
+
 
 std::string ReplyBuilder::join(const std::string & ChannelName,
 							   const std::string & clientFullPrefix,
@@ -92,6 +127,14 @@ std::string ReplyBuilder::join(const std::string & ChannelName,
   return std::string(":") + clientFullPrefix + " " + command +
   		 " " + ChannelName + "\r\n";
 }
+
+std::string ReplyBuilder::privmsg(const std::string& client,
+                                  const std::string& target,
+                                  const std::string& text) {
+  return std::string(":") + client + " PRIVMSG " + target + " :" + text + "\r\n";
+}
+
+
 
 std::string ReplyBuilder::unknownCommand(const Client* client,
                                          const std::string& command) {

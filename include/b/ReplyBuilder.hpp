@@ -17,6 +17,16 @@ class ReplyBuilder {
   static std::string alreadyRegistered(const Client& client);
   static std::string passwordMismatch();
   static std::string nickInUse(const std::string& nick);
+  static std::string noSuchNick(const Client& client,
+         		                const std::string& targetName);
+  static std::string noSuchChannel(const Client& client,
+                                   const std::string& ChannelName);
+  static std::string cannotSendToChan(const Client& client,
+                                      const std::string& ChannelName);
+  static std::string userNotInChannel(const Client& client,
+                                      const std::string& ChannelName);
+  static std::string notOnChannel(const Client& client,
+                                  const std::string& ChannelName);
   static std::string noRegistered(const Client& client);
   static std::string unknownCommand(const Client* client,
                                     const std::string& command);
@@ -26,6 +36,9 @@ class ReplyBuilder {
   static std::string join(const std::string & ChannelName,
 						  const std::string & clientFullPrefix,
                           const std::string& command);
+  static std::string privmsg(const std::string& client,
+                             const std::string& target,
+                             const std::string& text);
 
 
 
