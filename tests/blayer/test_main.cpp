@@ -247,6 +247,18 @@ void testJoinBeforeRegistrationReturns451() {
 	// std::cout << std::endl << result.replies[0].message << std::endl;
   }
 
+  void testQuitBeforeRegistrationDisconnects() {
+	ServerState state("pw");
+	addClient(state, 44);
+	CommandDispatcher dispatcher;
+
+	CommandResult result =
+		dispatcher.dispatch(44, makeMessage("QUIT", "bye"), state);
+
+	EXPECT_TRUE(result.shouldDisconnect);
+	EXPECT_EQ(static_cast<size_t>(0), result.replies.size());
+  }
+
 #include <stdio.h>
 
 int main() {
@@ -265,6 +277,8 @@ int main() {
 
   runTest("join after registration echoes to self",
 			testJoinAfterRegistrationEchoesToSelf);
+  runTest("quit before registration disconnects",
+			testQuitBeforeRegistrationDisconnects);
 
 			// printf("------%d------------", __LINE__ );
 
