@@ -279,7 +279,7 @@ isLineTooLong() のチェックが readFromSocket() 直後に 1 回だけなの�
 		CommandResult result = _dispatcher.dispatch(fd, msg, _state);
 		applyCommandResult(result);
 		if (result.shouldDisconnect)
-			return true;							// 送信先ごとに bufferSend + _enablePollout 済み
+			return false;							// 送信先ごとに bufferSend + _enablePollout 済み
 	}
 	return true;
 }
