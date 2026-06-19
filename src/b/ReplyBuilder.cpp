@@ -8,9 +8,9 @@ const char* SERVER_NAME = "irc.local";
 
 const char* RPL_WELCOME = "001";  // welcome()
 // TODO: const char* RPL_CHANNELMODEIS = "324";  // channelModeIs()
-// TODO: const char* RPL_NOTOPIC = "331";        // noTopic()
-// TODO: const char* RPL_TOPIC = "332";          // topicReply()
-// TODO: const char* RPL_INVITING = "341";       // inviting()
+const char* RPL_NOTOPIC = "331";        // noTopic()
+const char* RPL_TOPIC = "332";          // topicReply()
+const char* RPL_INVITING = "341";       // inviting()
 // TODO: const char* RPL_NAMREPLY = "353";       // nameReply()
 // TODO: const char* RPL_ENDOFNAMES = "366";     // endOfNames()
 
@@ -22,14 +22,15 @@ const char* ERR_UNKNOWNCOMMAND = "421";  // unknownCommand()
 const char* ERR_NICKNAMEINUSE = "433";  // nickInUse()
 const char* ERR_USERNOTINCHANNEL = "441"; // userNotInChannel()
 const char* ERR_NOTONCHANNEL = "442";     // notOnChannel()
+const char* ERR_USERONCHANNEL = "443";    // userOnChannel()
 const char* ERR_NOTREGISTERED = "451";    // notRegistered()
 const char* ERR_NEEDMOREPARAMS = "461";     // needMoreParams()
 const char* ERR_ALREADYREGISTERED = "462";  // alreadyRegistered()
 const char* ERR_PASSWDMISMATCH = "464";     // passwordMismatch()
 // TODO: const char* ERR_CHANNELISFULL = "471";    // channelIsFull()
-// TODO: const char* ERR_INVITEONLYCHAN = "473";   // inviteOnlyChan()
+const char* ERR_INVITEONLYCHAN = "473";   // inviteOnlyChan()
 // TODO: const char* ERR_BADCHANNELKEY = "475";    // badChannelKey()
-// TODO: const char* ERR_CHANOPRIVSNEEDED = "482"; // chanOpPrivsNeeded()
+const char* ERR_CHANOPRIVSNEEDED = "482"; // chanOpPrivsNeeded()
 
 std::string replyTarget(const Client* client) {
   if (!client || client->getNick().empty()) {
@@ -95,6 +96,25 @@ std::string ReplyBuilder::noSuchChannel(const Client& client,
                       "No such channel");
 }
 
+std::string ReplyBuilder::noTopic(const Client& client,
+                                  const std::string& ChannelName) {
+  return numericReply(RPL_NOTOPIC, replyTarget(&client), ChannelName,
+                      "No topic is set");
+}
+
+std::string ReplyBuilder::topicReply(const Client& client,
+                                     const std::string& ChannelName,
+                                     const std::string& topic) {
+  return numericReply(RPL_TOPIC, replyTarget(&client), ChannelName, topic);
+}
+
+std::string ReplyBuilder::inviting(const Client& client,
+                                   const std::string& targetNick,
+                                   const std::string& ChannelName) {
+  return std::string(":") + SERVER_NAME + " " + RPL_INVITING + " " +
+         replyTarget(&client) + " " + targetNick + " " + ChannelName + "\r\n";
+}
+
 //                               //
 std::string ReplyBuilder::cannotSendToChan(const Client& client,
                                            const std::string& ChannelName) {
@@ -114,6 +134,26 @@ std::string ReplyBuilder::notOnChannel(const Client& client,
                       "You are not on that channel");
 }
 
+std::string ReplyBuilder::userOnChannel(const Client& client,
+                                        const std::string& targetNick,
+                                        const std::string& ChannelName) {
+  return numericReply(ERR_USERONCHANNEL, replyTarget(&client),
+                      targetNick + " " + ChannelName,
+                      "is already on channel");
+}
+
+std::string ReplyBuilder::chanOpPrivsNeeded(const Client& client,
+                                            const std::string& ChannelName) {
+  return numericReply(ERR_CHANOPRIVSNEEDED, replyTarget(&client), ChannelName,
+                      "You are not channel operator");
+}
+
+std::string ReplyBuilder::inviteOnlyChan(const Client& client,
+                                         const std::string& ChannelName) {
+  return numericReply(ERR_INVITEONLYCHAN, replyTarget(&client), ChannelName,
+                      "Cannot join channel (+i)");
+}
+
 std::string ReplyBuilder::noRegistered(const Client& client) {
   return numericReply(ERR_NOTREGISTERED, replyTarget(&client), "",
                       ":You have not registered");
@@ -121,20 +161,50 @@ std::string ReplyBuilder::noRegistered(const Client& client) {
 
 
 
-std::string ReplyBuilder::join(const std::string & ChannelName,
-							   const std::string & clientFullPrefix,
-                               const std::string& command) {
+std::string ReplyBuilder::join(const std::string& clientFullPrefix,
+                               const std::string& command,
+							   const std::string& ChannelName) {
+  return std::string(":") + clientFullPrefix + " " + command +
+  		 " " + ChannelName + "\r\n";
+}
+
+std::string ReplyBuilder::part(const std::string& clientFullPrefix,
+                               const std::string& command,
+							   const std::string& ChannelName) {
   return std::string(":") + clientFullPrefix + " " + command +
   		 " " + ChannelName + "\r\n";
 }
 
 std::string ReplyBuilder::privmsg(const std::string& client,
+                                  const std::string& command,
                                   const std::string& target,
                                   const std::string& text) {
-  return std::string(":") + client + " PRIVMSG " + target + " :" + text + "\r\n";
+  return std::string(":") + client + " " + command + " " + target +
+         " :" + text + "\r\n";
 }
 
+std::string ReplyBuilder::notice(const std::string& client,
+                                 const std::string& command,
+                                 const std::string& target,
+                                 const std::string& text) {
+  return std::string(":") + client + " " + command + " " + target +
+         " :" + text + "\r\n";
+}
 
+std::string ReplyBuilder::topic(const std::string& client,
+                                const std::string& command,
+                                const std::string& target,
+                                const std::string& text) {
+  return std::string(":") + client + " " + command + " " + target +
+         " :" + text + "\r\n";
+}
+
+std::string ReplyBuilder::invite(const std::string& client,
+                                 const std::string& target,
+                                 const std::string& ChannelName) {
+  return std::string(":") + client + " INVITE " + target + " :" +
+         ChannelName + "\r\n";
+}
 
 std::string ReplyBuilder::unknownCommand(const Client* client,
                                          const std::string& command) {
