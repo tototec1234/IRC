@@ -13,6 +13,9 @@
 #include <fcntl.h>
 #include <csignal>
 
+#include <fcntl.h>	// fcntl, F_SETFL, O_NONBLOCK
+#include <csignal>	// signal, SIGPIPE, SIG_IGN 
+
 /*
 これはrevents挙動確認用関数です 
 */
@@ -263,7 +266,11 @@ bool Server::_handleRead(int fd) {
 					<< ") 長すぎ切断" << RESET_COLOR << std::endl;	// 切断理由を決めるのはA層の責任　とりま　デバッグ出力
 		return false;												// run() が _disconnectClient(fd) を呼ぶ
 	}
-
+/* 既知の問題点
+isLineTooLong() のチェックが readFromSocket() 直後に 1 回だけなので、
+1 回の recv で「短い1行 + 改行なしの巨大データ」を受け取った場合に、
+最初の短い行だけ pop して巨大な未完了行が _recvBuffer に残り続けます（次の recv が来ないと切断されない）
+*/
 	while (conn->hasCompleteLine()) {
 		std::string line = conn->popLine();
 		std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認

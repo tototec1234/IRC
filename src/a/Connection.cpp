@@ -2,7 +2,7 @@
 #include <string>
 #include <sys/socket.h>   // recv
 
-Connection::Connection(int fd) : _fd(fd) {}
+Connection::Connection(int fd) : _fd(fd) , _nlPos(std::string::npos){}
 Connection::~Connection() {}
 int Connection::getFd() const { return _fd; }
 
@@ -12,6 +12,11 @@ int Connection::getFd() const { return _fd; }
 
 bool Connection::isLineTooLong() const {
 	const size_t	max_ok	= 512;										// CRLF込みの生で512 までは許容
+
+	// まだ上限を超えていない未完了行は「長すぎ」ではない
+ 	if (_recvBuffer.size() <= max_ok)
+ 		return false;
+
 	size_t			scan_end = std::min(_recvBuffer.size(), max_ok);	// ここまで見れば判定できる
 	for (size_t i = 0; i < scan_end; ++i) {
 		if (_recvBuffer[i] == '\n')

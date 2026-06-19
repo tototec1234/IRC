@@ -15,9 +15,6 @@
 #include "b/CommandResult.hpp"
 #include "c/ServerState.hpp"
 
-#include <fcntl.h>	// fcntl, F_SETFL, O_NONBLOCK
-#include <csignal>	// signal, SIGPIPE, SIG_IGN 
-
 #define MAX_CLIENTS 42  //とりあえず最大同時接続42名　	ft_irc（提出）ではvector<pollfd> 動的　で上限は　実質 OS の fd 上限の予定？
 
 class Server {
