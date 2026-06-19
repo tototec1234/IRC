@@ -277,7 +277,9 @@ isLineTooLong() のチェックが readFromSocket() 直後に 1 回だけなの�
 		// conn->bufferSend(line + "\r\n");							// ← エコー：送信バッファへ積む
 		Message		msg = Parser::parse(line);
 		CommandResult result = _dispatcher.dispatch(fd, msg, _state);
-		applyCommandResult(result);									// 送信先ごとに bufferSend + _enablePollout 済み
+		applyCommandResult(result);
+		if (result.shouldDisconnect)
+			return true;							// 送信先ごとに bufferSend + _enablePollout 済み
 	}
 	return true;
 }
