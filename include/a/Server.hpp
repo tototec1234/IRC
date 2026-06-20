@@ -7,6 +7,7 @@
 // #include <sys/poll.h>
 #include <vector>
 #include <poll.h>
+#include "Connection.hpp"
 #include "a/Connection.hpp"
 #include <map>
 
@@ -14,6 +15,9 @@
 #include "b/CommandDispatcher.hpp"
 #include "b/CommandResult.hpp"
 #include "c/ServerState.hpp"
+
+#include "b/DisconnectNotifier.hpp"
+#include "lifecycle/ConnectionHealthMonitor.hpp"
 
 #define MAX_CLIENTS 42  //とりあえず最大同時接続42名　	ft_irc（提出）ではvector<pollfd> 動的　で上限は　実質 OS の fd 上限の予定？
 
@@ -25,6 +29,7 @@ class Server {
 
 	private:
 		int _listenFd;
+
 		std::vector<struct pollfd> _pollfds;
 		void _addFd(int fd, short events);
 		void _acceptClient();
@@ -43,6 +48,9 @@ class Server {
 		
 		ServerState			_state;		// password を保持。ctor で初期化必須
 		CommandDispatcher	_dispatcher;// ステートレス
+
+		ConnectionHealthMonitor _healthMonitor;
+		DisconnectNotifier _disconnectNotifier;
 		Server();
 		Server(const Server&);
 		Server& operator=(const Server&);
