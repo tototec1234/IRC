@@ -52,6 +52,10 @@ std::string numericReply(const std::string& code, const std::string& target,
 
 }  // namespace
 
+std::string ReplyBuilder::ping(const std::string& token) {
+  return std::string(":") + SERVER_NAME + " PING :" + token + "\r\n";
+}
+
 std::string ReplyBuilder::pong(const std::string& token) {
   return std::string(":") + SERVER_NAME + " PONG " + SERVER_NAME + " :" +
          token + "\r\n";
@@ -204,6 +208,11 @@ std::string ReplyBuilder::invite(const std::string& client,
                                  const std::string& ChannelName) {
   return std::string(":") + client + " INVITE " + target + " :" +
          ChannelName + "\r\n";
+}
+
+std::string ReplyBuilder::quit(const std::string& client,
+                               const std::string& reason) {
+  return std::string(":") + client + " QUIT :" + reason + "\r\n";
 }
 
 std::string ReplyBuilder::unknownCommand(const Client* client,

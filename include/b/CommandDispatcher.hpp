@@ -8,6 +8,7 @@
 
 class ServerState;
 class Client;
+class ConnectionHealthMonitor;
 
 class CommandDispatcher {
  public:
@@ -23,6 +24,8 @@ class CommandDispatcher {
    * layer internal _unsafe_* APIs.
    */
   CommandResult dispatch(int fd, const Message& msg, ServerState& state);
+  CommandResult dispatch(int fd, const Message& msg, ServerState& state,
+                         ConnectionHealthMonitor& healthMonitor);
 
  private:
   /*
@@ -31,6 +34,8 @@ class CommandDispatcher {
    */
   CommandResult handlePass(int fd, const Message& msg, ServerState& state,
                            Client* client);
+  CommandResult dispatch(int fd, const Message& msg, ServerState& state,
+                         ConnectionHealthMonitor* healthMonitor);
   CommandResult handleNick(int fd, const Message& msg, ServerState& state,
                            Client* client);
   CommandResult handleUser(int fd, const Message& msg, Client* client);
@@ -48,6 +53,8 @@ class CommandDispatcher {
                                   bool replyOnError);
   CommandResult handleQuit(int fd, const Message& msg, ServerState& state,
                            Client* client);
+  CommandResult handlePong(int fd, const Message& msg, Client* client,
+                           ConnectionHealthMonitor* healthMonitor);
 //   CommandResult handleKick(int fd, const Message& msg, ServerState& state,
 //                            Client* client);
   CommandResult handleInvite(int fd, const Message& msg, ServerState& state,
@@ -55,8 +62,6 @@ class CommandDispatcher {
   CommandResult handleTopic(int fd, const Message& msg, ServerState& state,
                             Client* client);
 //   CommandResult handleMode(int fd, const Message& msg, ServerState& state,
-//                            Client* client);
-//   CommandResult handlePong(int fd, const Message& msg, ServerState& state,
 //                            Client* client);
   /*
    * Registration completion is intentionally separate from PASS. Current B

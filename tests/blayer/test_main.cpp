@@ -5,10 +5,13 @@
 #include "c/Client.hpp"
 #include "b/CommandDispatcher.hpp"
 #include "b/CommandResult.hpp"
+#include "b/DisconnectEvent.hpp"
+#include "b/DisconnectNotifier.hpp"
 #include "b/Message.hpp"
 #include "b/Parser.hpp"
 #include "b/ReplyBuilder.hpp"
 #include "c/ServerState.hpp"
+#include "lifecycle/ConnectionHealthMonitor.hpp"
 
 namespace {
 
@@ -70,6 +73,11 @@ Message makeUserMessage() {
   return Message("USER", params);
 }
 
+Message makeMessageNoParams(const std::string& command) {
+  std::vector<std::string> params;
+  return Message(command, params);
+}
+
 struct TestClient {
   TestClient(int clientFd, const std::string& clientNick)
       : fd(clientFd), nick(clientNick) {}
@@ -96,6 +104,11 @@ struct TestContext {
 
   CommandResult dispatch(int fd, const Message& msg) {
 	return dispatcher.dispatch(fd, msg, state);
+  }
+
+  CommandResult dispatchWithHealth(int fd, const Message& msg,
+                                   ConnectionHealthMonitor& monitor) {
+	return dispatcher.dispatch(fd, msg, state, monitor);
   }
 
   Client* client(int fd) { return state.getClientByFd(fd); }
@@ -356,6 +369,114 @@ void testJoinBeforeRegistrationReturns451() {
 					":taro!user@client.example NOTICE #notice :channel");
   }
 
+  void testConnectionHealthMonitorGeneratesPingAndTimesOut() {
+	ConnectionHealthMonitor monitor(10);
+
+	CommandResult result = monitor.generatePing(100, 1000);
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(100, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message, " PING ");
+	EXPECT_CONTAINS(result.replies[0].message, "irc.local-100-1000");
+	EXPECT_TRUE(monitor.isWaitingForPong(100));
+	EXPECT_EQ(std::string("irc.local-100-1000"),
+			  monitor.getExpectedPongToken(100));
+	EXPECT_FALSE(monitor.hasTimedOut(100, 1010));
+	EXPECT_TRUE(monitor.hasTimedOut(100, 1011));
+  }
+
+  void testConnectionHealthMonitorPongMatching() {
+	ConnectionHealthMonitor monitor(10);
+	monitor.generatePing(101, 2000);
+
+	monitor.markPongReceived(101, "wrong", 2001);
+	EXPECT_TRUE(monitor.isWaitingForPong(101));
+
+	monitor.markPongReceived(101, "irc.local-101-2000", 2002);
+	EXPECT_FALSE(monitor.isWaitingForPong(101));
+	EXPECT_FALSE(monitor.hasTimedOut(101, 3000));
+  }
+
+  void testConnectionHealthMonitorCollectsTimedOutClientsOnly() {
+	ConnectionHealthMonitor monitor(5);
+
+	monitor.generatePing(100, 1000);
+	monitor.generatePing(101, 1000);
+	monitor.markPongReceived(101, "irc.local-101-1000", 1001);
+
+	std::vector<int> timedOut = monitor.collectTimedOutClients(1006);
+	EXPECT_EQ(static_cast<size_t>(1), timedOut.size());
+	EXPECT_EQ(100, timedOut[0]);
+	EXPECT_TRUE(monitor.isWaitingForPong(100));
+  }
+
+  void testPongUpdatesHealthMonitor() {
+	TestContext ctx;
+	ConnectionHealthMonitor monitor(10);
+	TestClient taro = ctx.addClient(63);
+	monitor.generatePing(taro.fd, 3000);
+
+	CommandResult result =
+		ctx.dispatchWithHealth(taro.fd,
+							   makeMessage("PONG", "irc.local-63-3000"),
+							   monitor);
+
+	EXPECT_FALSE(result.shouldDisconnect);
+	EXPECT_EQ(static_cast<size_t>(0), result.replies.size());
+	EXPECT_FALSE(monitor.isWaitingForPong(taro.fd));
+  }
+
+  void testPongWithoutHealthMonitorIsNoOp() {
+	TestContext ctx;
+	TestClient taro = ctx.addClient(64);
+
+	CommandResult result = ctx.dispatch(taro.fd, makeMessage("PONG", "token"));
+
+	EXPECT_FALSE(result.shouldDisconnect);
+	EXPECT_EQ(static_cast<size_t>(0), result.replies.size());
+  }
+
+  void testPongWithoutTokenReturnsNeedMoreParams() {
+	TestContext ctx;
+	TestClient taro = ctx.addClient(65);
+
+	CommandResult result = ctx.dispatch(taro.fd, makeMessageNoParams("PONG"));
+
+	EXPECT_FALSE(result.shouldDisconnect);
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(taro.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message, " 461 ");
+	EXPECT_CONTAINS(result.replies[0].message, "PONG");
+  }
+
+  void testDisconnectNotifierBuildsQuitNotificationOnly() {
+	TestContext ctx;
+	DisconnectNotifier notifier;
+	TestClient taro = ctx.registerClient(60, "taro");
+	TestClient hanako = ctx.registerClient(61, "hanako");
+	TestClient jiro = ctx.registerClient(62, "jiro");
+	ctx.join(taro.fd, "#room");
+	ctx.join(hanako.fd, "#room");
+	ctx.join(taro.fd, "#shared2");
+	ctx.join(hanako.fd, "#shared2");
+	ctx.join(jiro.fd, "#other");
+
+	CommandResult result =
+		notifier.build(DisconnectEvent(taro.fd, "Inactivity timeout"),
+					   ctx.state);
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(hanako.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message,
+					":taro!user@client.example QUIT :Inactivity timeout");
+	EXPECT_TRUE(ctx.state.getClientByFd(taro.fd) != NULL);
+	EXPECT_TRUE(ctx.state.getChannel("#room") != NULL);
+	EXPECT_TRUE(ctx.state.getChannel("#shared2") != NULL);
+	EXPECT_TRUE(ctx.state.getChannel("#other") != NULL);
+	ctx.state.removeClient(taro.fd);
+	EXPECT_TRUE(ctx.state.getClientByFd(taro.fd) == NULL);
+  }
+
 }  // namespace
 
 int main() {
@@ -388,6 +509,20 @@ int main() {
 			testNoticeInvalidTargetReturnsNoReply);
   runTest("notice delivers to nick and channel",
 			testNoticeDeliversToNickAndChannel);
+  runTest("connection health monitor generates ping and times out",
+			testConnectionHealthMonitorGeneratesPingAndTimesOut);
+  runTest("connection health monitor pong matching",
+			testConnectionHealthMonitorPongMatching);
+  runTest("connection health monitor collects timed out clients only",
+			testConnectionHealthMonitorCollectsTimedOutClientsOnly);
+  runTest("pong updates health monitor",
+			testPongUpdatesHealthMonitor);
+  runTest("pong without health monitor is no-op",
+			testPongWithoutHealthMonitorIsNoOp);
+  runTest("pong without token returns need more params",
+			testPongWithoutTokenReturnsNeedMoreParams);
+  runTest("disconnect notifier builds quit notification only",
+			testDisconnectNotifierBuildsQuitNotificationOnly);
 
   std::cout << "Assertions passed: " << g_passed << std::endl;
   if (g_failed != 0) {

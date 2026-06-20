@@ -1,6 +1,7 @@
 #include "b/CommandDispatcher.hpp"
 #include "b/ReplyBuilder.hpp"
 #include "c/ServerState.hpp"
+#include "lifecycle/ConnectionHealthMonitor.hpp"
 #include <iterator>
 // #include <type_traits>　c++11 なぜまぎれこんでる？
 #include <vector>
@@ -17,6 +18,18 @@ CommandDispatcher::~CommandDispatcher() {}
 
 CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
                                           ServerState& state) {
+  return dispatch(fd, msg, state, NULL);
+}
+
+CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
+                                          ServerState& state,
+                                          ConnectionHealthMonitor& healthMonitor) {
+  return dispatch(fd, msg, state, &healthMonitor);
+}
+
+CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
+                                          ServerState& state,
+                                          ConnectionHealthMonitor* healthMonitor) {
   Client* client = state.getClientByFd(fd);
   CommandResult result;
   const std::string& command = msg.getCommand();
@@ -59,8 +72,8 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
 	result = handleTopic(fd, msg, state, client);
 //   } else if (command == "MODE") {
 // 	result = handleMode(fd, msg, state, client);
-//   } else if (command == "PONG") {
-// 	result = handlePong(fd, msg, state, client);
+  } else if (command == "PONG") {
+	result = handlePong(fd, msg, client, healthMonitor);
   } else if (!command.empty()) {
     result.addReply(fd, ReplyBuilder::unknownCommand(client, command));
   }
@@ -304,6 +317,23 @@ CommandResult CommandDispatcher::handleQuit(int, const Message&,
     return result;
   }
   result.shouldDisconnect = true;
+  return result;
+}
+
+CommandResult CommandDispatcher::handlePong(
+    int fd, const Message& msg, Client* client,
+    ConnectionHealthMonitor* healthMonitor) {
+  CommandResult result;
+  if (!client) {
+    return result;
+  }
+  if (!msg.hasParam(0)) {
+    result.addReply(fd, ReplyBuilder::needMoreParams(client, "PONG"));
+    return result;
+  }
+  if (healthMonitor) {
+    healthMonitor->markPongReceived(fd, msg.getSingleParam(0));
+  }
   return result;
 }
 

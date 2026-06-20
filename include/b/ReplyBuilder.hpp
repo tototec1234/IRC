@@ -8,6 +8,7 @@ class Client;
 class ReplyBuilder {
  public:
   // Non-numeric connection keepalive reply.
+  static std::string ping(const std::string& token);
   static std::string pong(const std::string& token);
 
   // Numeric replies currently used by CommandDispatcher skeleton.
@@ -69,6 +70,8 @@ class ReplyBuilder {
   static std::string invite(const std::string& client,
                             const std::string& target,
                             const std::string& ChannelName);
+  static std::string quit(const std::string& client,
+                          const std::string& reason);
 
 
 
