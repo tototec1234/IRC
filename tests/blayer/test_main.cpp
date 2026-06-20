@@ -133,10 +133,40 @@ void expectContains(const std::string& text, const std::string& needle,
 void testParserBasicMessage() {
   Message msg = Parser::parse("PRIVMSG #room :hello world\r\n");
 
+  EXPECT_EQ(std::string(""), msg.getPrefix());
   EXPECT_EQ(std::string("PRIVMSG"), msg.getCommand());
   EXPECT_EQ(static_cast<size_t>(2), msg.getParamCount());
   EXPECT_EQ(std::string("#room"), msg.getSingleParam(0));
   EXPECT_EQ(std::string("hello world"), msg.getSingleParam(1));
+}
+
+void testParserFullPrefix() {
+  Message msg =
+      Parser::parse(":alice!user@host PRIVMSG #room :hello world\r\n");
+
+  EXPECT_EQ(std::string("alice!user@host"), msg.getPrefix());
+  EXPECT_EQ(std::string("PRIVMSG"), msg.getCommand());
+  EXPECT_EQ(static_cast<size_t>(2), msg.getParamCount());
+  EXPECT_EQ(std::string("#room"), msg.getSingleParam(0));
+  EXPECT_EQ(std::string("hello world"), msg.getSingleParam(1));
+}
+
+void testParserServerNumericPrefix() {
+  Message msg = Parser::parse(":irc.local 001 bonusbot :Welcome\r\n");
+
+  EXPECT_EQ(std::string("irc.local"), msg.getPrefix());
+  EXPECT_EQ(std::string("001"), msg.getCommand());
+  EXPECT_EQ(static_cast<size_t>(2), msg.getParamCount());
+  EXPECT_EQ(std::string("bonusbot"), msg.getSingleParam(0));
+  EXPECT_EQ(std::string("Welcome"), msg.getSingleParam(1));
+}
+
+void testParserPrefixOnlyIsEmptyMessage() {
+  Message msg = Parser::parse(":alice!user@host\r\n");
+
+  EXPECT_EQ(std::string(""), msg.getPrefix());
+  EXPECT_EQ(std::string(""), msg.getCommand());
+  EXPECT_EQ(static_cast<size_t>(0), msg.getParamCount());
 }
 
 void testPingReturnsPong() {
@@ -509,6 +539,10 @@ void testJoinBeforeRegistrationReturns451() {
 
 int main() {
   runTest("parser basic message", testParserBasicMessage);
+  runTest("parser full prefix", testParserFullPrefix);
+  runTest("parser server numeric prefix", testParserServerNumericPrefix);
+  runTest("parser prefix only is empty message",
+          testParserPrefixOnlyIsEmptyMessage);
   runTest("ping returns pong", testPingReturnsPong);
   runTest("registration flow uses real C state",
 		  testRegistrationFlowUsesRealCState);
