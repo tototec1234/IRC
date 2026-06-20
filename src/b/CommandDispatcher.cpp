@@ -30,9 +30,15 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
 CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
                                           ServerState& state,
                                           ConnectionHealthMonitor* healthMonitor) {
-  Client* client = state.getClientByFd(fd);
+
+  Client* clientPtr = state.getClientByFd(fd);
   CommandResult result;
   const std::string& command = msg.getCommand();
+
+  if (!clientPtr) {
+    return result;
+  }
+  Client& client = *clientPtr;
 
   if (command == "PING") {
     if (!msg.hasParam(0)) {
@@ -45,13 +51,13 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
   } else if (command == "PASS") {
     result = handlePass(fd, msg, state, client);
   } else if (command == "NICK") {
-    if (!client->isPassOk()) {
+    if (!client.isPassOk()) {
       result.addReply(fd, ReplyBuilder::passwordMismatch());
       return result;
     }
     result = handleNick(fd, msg, state, client);
   } else if (command == "USER") {
-    if (!client->isPassOk()) {
+    if (!client.isPassOk()) {
       result.addReply(fd, ReplyBuilder::passwordMismatch());
       return result;
     }
@@ -82,34 +88,28 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
 
 CommandResult CommandDispatcher::handlePass(int fd, const Message& msg,
                                             ServerState& state,
-                                            Client* client) {
+                                            Client& client) {
   CommandResult result;
-  if (!client) {
-    return result;
-  }
   if (!msg.hasParam(0)) {
     result.addReply(fd, ReplyBuilder::needMoreParams(client, "PASS"));
     return result;
   }
-  if (client->isRegistered()) {
-    result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
+  if (client.isRegistered()) {
+    result.addReply(fd, ReplyBuilder::alreadyRegistered(client));
     return result;
   }
   if (msg.getSingleParam(0) != state.getPassword()) {
     result.addReply(fd, ReplyBuilder::passwordMismatch());
     return result;
   }
-  client->setPassOk(true);
+  client.setPassOk(true);
   return result;
 }
 
 CommandResult CommandDispatcher::handleNick(int fd, const Message& msg,
                                             ServerState& state,
-                                            Client* client) {
+                                            Client& client) {
   CommandResult result;
-  if (!client) {
-    return result;
-  }
   if (!msg.hasParam(0)) {
     result.addReply(fd, ReplyBuilder::needMoreParams(client, "NICK"));
     return result;
@@ -119,20 +119,17 @@ CommandResult CommandDispatcher::handleNick(int fd, const Message& msg,
 //     return result;
 //   }
   const std::string& nick = msg.getSingleParam(0);
-  if (!state.updateNick(*client, nick)) {
+  if (!state.updateNick(client, nick)) {
     result.addReply(fd, ReplyBuilder::nickInUse(nick));
     return result;
   }
-  maybeRegister(*client, result);
+  maybeRegister(client, result);
   return result;
 }
 
 CommandResult CommandDispatcher::handleUser(int fd, const Message& msg,
-                                            Client* client) {
+                                            Client& client) {
   CommandResult result;
-  if (!client) {
-    return result;
-  }
   if (msg.getParamCount() < 4) {
     result.addReply(fd, ReplyBuilder::needMoreParams(client, "USER"));
     return result;
@@ -141,31 +138,28 @@ CommandResult CommandDispatcher::handleUser(int fd, const Message& msg,
 //     result.addReply(fd, ReplyBuilder::passwordMismatch());
 //     return result;
 //   }
-  if (client->isRegistered()) {
-    result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
+  if (client.isRegistered()) {
+    result.addReply(fd, ReplyBuilder::alreadyRegistered(client));
     return result;
   }
-  client->setUsername(msg.getSingleParam(0));
-  client->setRealname(msg.getSingleParam(3));
-  maybeRegister(*client, result);
+  client.setUsername(msg.getSingleParam(0));
+  client.setRealname(msg.getSingleParam(3));
+  maybeRegister(client, result);
   return result;
 }
 
 // "JOIN"
 CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
                                             ServerState& state,
-                                            Client* client) {
+                                            Client& client) {
   CommandResult result;
-  if (!client) {
-    return result;
-  }
 //   if (!client->isPassOk()) {
 //     result.addReply(fd, ReplyBuilder::passwordMismatch());
 //     return result;
 //   }
-  if (!client->isRegistered()) {
+  if (!client.isRegistered()) {
     // result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
-    result.addReply(fd, ReplyBuilder::noRegistered(*client));
+    result.addReply(fd, ReplyBuilder::noRegistered(client));
     return result;
   }
   if (!msg.hasParam(0)) {
@@ -175,20 +169,21 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
   const std::string channelName = msg.getSingleParam(0);
 
   Channel *channel = state.getChannel(channelName);
-  if (channel && !channel->hasMember(client) &&
+  if (channel && !channel->hasMember(&client) &&
       channel->getModes().isInviteOnly() &&
-      !channel->isInvited(client)) {
-    result.addReply(fd, ReplyBuilder::inviteOnlyChan(*client, channelName));
+      !channel->isInvited(&client)) {
+    result.addReply(fd, ReplyBuilder::inviteOnlyChan(client, channelName));
     return result;
   }
 
-  channel = state.addClientToChannel(client, channelName);
+  channel = state.addClientToChannel(&client, channelName);
   if (!channel) {
-	result.addReply(fd, ReplyBuilder::torima_Missing(*client, "JOIN"));
+	result.addReply(fd, ReplyBuilder::torima_Missing(client, "JOIN"));
   	return result;
   }
 
-  std::string joinMsg = ReplyBuilder::join(client->getFullPrefix(), "JOIN", channelName);
+
+  std::string joinMsg = ReplyBuilder::join(client.getFullPrefix(), "JOIN", channelName);
   addRepliesToMembers(result, channel->getMembers(), joinMsg, -1);
 
   return result;
@@ -197,17 +192,14 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
 // "PART"
 CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
                                             ServerState& state,
-                                            Client* client) {
+                                            Client& client) {
   CommandResult result;
-  if (!client) {
-    return result;
-  }
 //   if (!client->isPassOk()) {
 //     result.addReply(fd, ReplyBuilder::passwordMismatch());
 //     return result;
 //   }
-  if (!client->isRegistered()) {
-    result.addReply(fd, ReplyBuilder::noRegistered(*client));
+  if (!client.isRegistered()) {
+    result.addReply(fd, ReplyBuilder::noRegistered(client));
     return result;
   }
   if (!msg.hasParam(0)) {
@@ -218,46 +210,45 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
   const std::string channelName = msg.getSingleParam(0);
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
-    result.addReply(fd, ReplyBuilder::noSuchChannel(*client, channelName));
+
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
     return result;
   }
-  if (!channel->hasMember(client)) {
-    result.addReply(fd, ReplyBuilder::notOnChannel(*client, channelName));
+  if (!channel->hasMember(&client)) {
+    result.addReply(fd, ReplyBuilder::notOnChannel(client, channelName));
     return result;
   }
-  std::string partMsg = ReplyBuilder::part(client->getFullPrefix(), "PART", channelName);
+  std::string partMsg = ReplyBuilder::part(client.getFullPrefix(), "PART", channelName);
   std::vector<Client*> members = channel->getMembers();
   addRepliesToMembers(result, members, partMsg, -1);
-  state.removeClientFromChannel(client, channelName);
+  state.removeClientFromChannel(&client, channelName);
   return result;
 }
 
 // "PRIVMSG"
 CommandResult CommandDispatcher::handlePrivmsg(int fd, const Message& msg,
                                                ServerState& state,
-                                               Client* client) {
+
+                                               Client& client) {
   return handleTextMessage(fd, msg, state, client, "PRIVMSG", true);
 }
 
 // "NOTICE"
 CommandResult CommandDispatcher::handleNotice(int fd, const Message& msg,
                                               ServerState& state,
-                                              Client* client) {
+                                              Client& client) {
   return handleTextMessage(fd, msg, state, client, "NOTICE", false);
 }
 
 CommandResult CommandDispatcher::handleTextMessage(int fd, const Message& msg,
                                                    ServerState& state,
-                                                   Client* client,
+                                                   Client& client,
                                                    const std::string& command,
                                                    bool replyOnError) {
   CommandResult result;
-  if (!client) {
-    return result;
-  }
-  if (!client->isRegistered()) {
+  if (!client.isRegistered()) {
     if (replyOnError) {
-      result.addReply(fd, ReplyBuilder::noRegistered(*client));
+      result.addReply(fd, ReplyBuilder::noRegistered(client));
     }
     return result;
   }
@@ -274,23 +265,23 @@ CommandResult CommandDispatcher::handleTextMessage(int fd, const Message& msg,
   std::string message;
   if (command == "NOTICE") {
     message =
-        ReplyBuilder::notice(client->getFullPrefix(), command, targetName, text);
+        ReplyBuilder::notice(client.getFullPrefix(), command, targetName, text);
   } else {
     message =
-        ReplyBuilder::privmsg(client->getFullPrefix(), command, targetName, text);
+        ReplyBuilder::privmsg(client.getFullPrefix(), command, targetName, text);
   }
 
   if (targetName.empty() || targetName[0] == '#') {
       Channel* channel = state.getChannel(targetName);
       if (!channel) {
       if (replyOnError) {
-        result.addReply(fd, ReplyBuilder::noSuchChannel(*client, targetName));
+        result.addReply(fd, ReplyBuilder::noSuchChannel(client, targetName));
       }
       return result;
       }
-      if (!channel->hasMember(client)) {
+      if (!channel->hasMember(&client)) {
       if (replyOnError) {
-        result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
+        result.addReply(fd, ReplyBuilder::cannotSendToChan(client, targetName));
       }
       return result;
       }
@@ -299,7 +290,7 @@ CommandResult CommandDispatcher::handleTextMessage(int fd, const Message& msg,
       Client* targetClient = state.getClientByNick(targetName);
     if (!targetClient) {
       if (replyOnError) {
-        result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetName));
+        result.addReply(fd, ReplyBuilder::noSuchNick(client, targetName));
       }
         return result;
     }
@@ -311,12 +302,25 @@ CommandResult CommandDispatcher::handleTextMessage(int fd, const Message& msg,
 // "QUIT"
 CommandResult CommandDispatcher::handleQuit(int, const Message&,
                                             ServerState&,
-                                            Client* client) {
+                                            Client& client) {
   CommandResult result;
-  if (!client) {
+  (void)client;
+  result.shouldDisconnect = true;
+  return result;
+}
+
+CommandResult CommandDispatcher::handlePong(
+    int fd, const Message& msg, Client& client,
+    ConnectionHealthMonitor* healthMonitor) {
+  CommandResult result;
+  if (!msg.hasParam(0)) {
+    result.addReply(fd, ReplyBuilder::needMoreParams(client, "PONG"));
     return result;
   }
-  result.shouldDisconnect = true;
+  if (healthMonitor) {
+    healthMonitor->markPongReceived(
+        fd, msg.getSingleParam(msg.getParamCount() - 1));
+  }
   return result;
 }
 
@@ -389,13 +393,10 @@ CommandResult CommandDispatcher::handlePong(
 // "INVITE"
 CommandResult CommandDispatcher::handleInvite(int fd, const Message& msg,
                                               ServerState& state,
-                                              Client* client) {
+                                              Client& client) {
   CommandResult result;
-  if (!client) {
-    return result;
-  }
-  if (!client->isRegistered()) {
-    result.addReply(fd, ReplyBuilder::noRegistered(*client));
+  if (!client.isRegistered()) {
+    result.addReply(fd, ReplyBuilder::noRegistered(client));
     return result;
   }
   if (msg.getParamCount() < 2) {
@@ -407,46 +408,43 @@ CommandResult CommandDispatcher::handleInvite(int fd, const Message& msg,
   const std::string& channelName = msg.getSingleParam(1);
   Client* targetClient = state.getClientByNick(targetNick);
   if (!targetClient) {
-    result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetNick));
+    result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));
     return result;
   }
 
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
-    result.addReply(fd, ReplyBuilder::noSuchChannel(*client, channelName));
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
     return result;
   }
-  if (!channel->hasMember(client)) {
-    result.addReply(fd, ReplyBuilder::notOnChannel(*client, channelName));
+  if (!channel->hasMember(&client)) {
+    result.addReply(fd, ReplyBuilder::notOnChannel(client, channelName));
     return result;
   }
   if (channel->hasMember(targetClient)) {
-    result.addReply(fd, ReplyBuilder::userOnChannel(*client, targetNick,
+    result.addReply(fd, ReplyBuilder::userOnChannel(client, targetNick,
                                                     channelName));
     return result;
   }
   //	MODEが "+i" invite-onlyだったとき、オペレーターじゃなければ "482"
-  if (channel->getModes().isInviteOnly() && !channel->isOperator(client)) {
-    result.addReply(fd, ReplyBuilder::chanOpPrivsNeeded(*client, channelName));
+  if (channel->getModes().isInviteOnly() && !channel->isOperator(&client)) {
+    result.addReply(fd, ReplyBuilder::chanOpPrivsNeeded(client, channelName));
     return result;
   }
 
   state.inviteClientToChannel(targetClient, channel);
-  result.addReply(fd, ReplyBuilder::inviting(*client, targetNick, channelName));
-  result.addReply(targetClient->getFd(), ReplyBuilder::invite(client->getFullPrefix(), targetNick, channelName));
+  result.addReply(fd, ReplyBuilder::inviting(client, targetNick, channelName));
+  result.addReply(targetClient->getFd(), ReplyBuilder::invite(client.getFullPrefix(), targetNick, channelName));
   return result;
 }
 
 // "TOPIC"
 CommandResult CommandDispatcher::handleTopic(int fd, const Message& msg,
                                              ServerState& state,
-                                             Client* client) {
+                                             Client& client) {
   CommandResult result;
-  if (!client) {
-      return result;
-  }
-  if (!client->isRegistered()) {
-    result.addReply(fd, ReplyBuilder::noRegistered(*client));
+  if (!client.isRegistered()) {
+    result.addReply(fd, ReplyBuilder::noRegistered(client));
     return result;
   }
   if (!msg.hasParam(0)) {
@@ -457,20 +455,20 @@ CommandResult CommandDispatcher::handleTopic(int fd, const Message& msg,
   const std::string& channelName = msg.getSingleParam(0);
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
-    result.addReply(fd, ReplyBuilder::noSuchChannel(*client, channelName));
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
     return result;
   }
-  if (!channel->hasMember(client)) {
-    result.addReply(fd, ReplyBuilder::notOnChannel(*client, channelName));
+  if (!channel->hasMember(&client)) {
+    result.addReply(fd, ReplyBuilder::notOnChannel(client, channelName));
     return result;
   }
 
   //	今のtopicを出力するパート！！
   if (!msg.hasParam(1)) {
     if (channel->getTopic().empty()) {
-      result.addReply(fd, ReplyBuilder::noTopic(*client, channelName));
+      result.addReply(fd, ReplyBuilder::noTopic(client, channelName));
     } else {
-      result.addReply(fd, ReplyBuilder::topicReply(*client, channelName,
+      result.addReply(fd, ReplyBuilder::topicReply(client, channelName,
                                                    channel->getTopic()));
     }
     return result;
@@ -478,8 +476,8 @@ CommandResult CommandDispatcher::handleTopic(int fd, const Message& msg,
 
   //	MODEコマンド用の処理！！ "+t" かな？
   //	 "topic変更をチャンネルオペレーターだけに制限する" みたいな！
-  if (channel->getModes().isTopicRestricted() && !channel->isOperator(client)) {
-    result.addReply(fd, ReplyBuilder::chanOpPrivsNeeded(*client, channelName));
+  if (channel->getModes().isTopicRestricted() && !channel->isOperator(&client)) {
+    result.addReply(fd, ReplyBuilder::chanOpPrivsNeeded(client, channelName));
     return result;
   }
 
@@ -488,7 +486,7 @@ CommandResult CommandDispatcher::handleTopic(int fd, const Message& msg,
   channel->setTopic(topic);
 
   //	ブロードキャスト！
-  std::string topicMsg = ReplyBuilder::topic(client->getFullPrefix(), "TOPIC",channelName, topic);
+  std::string topicMsg = ReplyBuilder::topic(client.getFullPrefix(), "TOPIC",channelName, topic);
   addRepliesToMembers(result, channel->getMembers(), topicMsg, -1);
 
   return result;

@@ -133,10 +133,40 @@ void expectContains(const std::string& text, const std::string& needle,
 void testParserBasicMessage() {
   Message msg = Parser::parse("PRIVMSG #room :hello world\r\n");
 
+  EXPECT_EQ(std::string(""), msg.getPrefix());
   EXPECT_EQ(std::string("PRIVMSG"), msg.getCommand());
   EXPECT_EQ(static_cast<size_t>(2), msg.getParamCount());
   EXPECT_EQ(std::string("#room"), msg.getSingleParam(0));
   EXPECT_EQ(std::string("hello world"), msg.getSingleParam(1));
+}
+
+void testParserFullPrefix() {
+  Message msg =
+      Parser::parse(":alice!user@host PRIVMSG #room :hello world\r\n");
+
+  EXPECT_EQ(std::string("alice!user@host"), msg.getPrefix());
+  EXPECT_EQ(std::string("PRIVMSG"), msg.getCommand());
+  EXPECT_EQ(static_cast<size_t>(2), msg.getParamCount());
+  EXPECT_EQ(std::string("#room"), msg.getSingleParam(0));
+  EXPECT_EQ(std::string("hello world"), msg.getSingleParam(1));
+}
+
+void testParserServerNumericPrefix() {
+  Message msg = Parser::parse(":irc.local 001 bonusbot :Welcome\r\n");
+
+  EXPECT_EQ(std::string("irc.local"), msg.getPrefix());
+  EXPECT_EQ(std::string("001"), msg.getCommand());
+  EXPECT_EQ(static_cast<size_t>(2), msg.getParamCount());
+  EXPECT_EQ(std::string("bonusbot"), msg.getSingleParam(0));
+  EXPECT_EQ(std::string("Welcome"), msg.getSingleParam(1));
+}
+
+void testParserPrefixOnlyIsEmptyMessage() {
+  Message msg = Parser::parse(":alice!user@host\r\n");
+
+  EXPECT_EQ(std::string(""), msg.getPrefix());
+  EXPECT_EQ(std::string(""), msg.getCommand());
+  EXPECT_EQ(static_cast<size_t>(0), msg.getParamCount());
 }
 
 void testPingReturnsPong() {
@@ -150,6 +180,53 @@ void testPingReturnsPong() {
   EXPECT_EQ(taro.fd, result.replies[0].fd);
   EXPECT_CONTAINS(result.replies[0].message, " PONG ");
   EXPECT_CONTAINS(result.replies[0].message, "token");
+}
+
+void testDispatchUnknownFdReturnsEmptyResult() {
+  TestContext ctx;
+
+  CommandResult result = ctx.dispatch(999, makeMessage("PING", "token"));
+
+  EXPECT_FALSE(result.shouldDisconnect);
+  EXPECT_EQ(static_cast<size_t>(0), result.replies.size());
+}
+
+void testPingWithoutParamUsesStarTargetBeforeNick() {
+  TestContext ctx;
+  TestClient taro = ctx.addClient(11);
+
+  CommandResult result = ctx.dispatch(taro.fd, makeMessageNoParams("PING"));
+
+  EXPECT_FALSE(result.shouldDisconnect);
+  EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+  EXPECT_EQ(taro.fd, result.replies[0].fd);
+  EXPECT_CONTAINS(result.replies[0].message, " 461 * PING ");
+}
+
+void testUnknownCommandUsesStarTargetBeforeNick() {
+  TestContext ctx;
+  TestClient taro = ctx.addClient(12);
+
+  CommandResult result = ctx.dispatch(taro.fd, makeMessageNoParams("WAT"));
+
+  EXPECT_FALSE(result.shouldDisconnect);
+  EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+  EXPECT_EQ(taro.fd, result.replies[0].fd);
+  EXPECT_CONTAINS(result.replies[0].message, " 421 * WAT ");
+}
+
+void testUnknownCommandUsesNickTargetAfterNick() {
+  TestContext ctx;
+  TestClient taro = ctx.addClient(13);
+  ctx.dispatch(taro.fd, makeMessage("PASS", "pw"));
+  ctx.dispatch(taro.fd, makeMessage("NICK", "taro"));
+
+  CommandResult result = ctx.dispatch(taro.fd, makeMessageNoParams("WAT"));
+
+  EXPECT_FALSE(result.shouldDisconnect);
+  EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+  EXPECT_EQ(taro.fd, result.replies[0].fd);
+  EXPECT_CONTAINS(result.replies[0].message, " 421 taro WAT ");
 }
 
 void testRegistrationFlowUsesRealCState() {
@@ -256,6 +333,23 @@ void testJoinBeforeRegistrationReturns451() {
 	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
 	EXPECT_EQ(taro.fd, result.replies[0].fd);
 	EXPECT_CONTAINS(result.replies[0].message, " 451 ");
+	EXPECT_CONTAINS(result.replies[0].message, " 451 * ");
+  }
+
+  void testJoinBeforeRegistrationUsesNickTargetAfterNick() {
+	TestContext ctx;
+	TestClient taro = ctx.addClient(46);
+	ctx.dispatch(taro.fd, makeMessage("PASS", "pw"));
+	ctx.dispatch(taro.fd, makeMessage("NICK", "taro"));
+	Client* client = ctx.client(taro.fd);
+
+	CommandResult result = ctx.join(taro.fd, "#room46");
+
+	EXPECT_TRUE(client != NULL);
+	EXPECT_FALSE(client->isRegistered());
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(taro.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message, " 451 taro ");
   }
 
 
@@ -509,7 +603,19 @@ void testJoinBeforeRegistrationReturns451() {
 
 int main() {
   runTest("parser basic message", testParserBasicMessage);
+  runTest("parser full prefix", testParserFullPrefix);
+  runTest("parser server numeric prefix", testParserServerNumericPrefix);
+  runTest("parser prefix only is empty message",
+          testParserPrefixOnlyIsEmptyMessage);
   runTest("ping returns pong", testPingReturnsPong);
+  runTest("dispatch unknown fd returns empty result",
+		  testDispatchUnknownFdReturnsEmptyResult);
+  runTest("ping without param uses star target before nick",
+		  testPingWithoutParamUsesStarTargetBeforeNick);
+  runTest("unknown command uses star target before nick",
+		  testUnknownCommandUsesStarTargetBeforeNick);
+  runTest("unknown command uses nick target after nick",
+		  testUnknownCommandUsesNickTargetAfterNick);
   runTest("registration flow uses real C state",
 		  testRegistrationFlowUsesRealCState);
   runTest("nick before pass is rejected", testNickBeforePassIsRejected);
@@ -520,6 +626,8 @@ int main() {
 
   runTest("join before registration returns 451",
 		  testJoinBeforeRegistrationReturns451);
+  runTest("join before registration uses nick target after nick",
+		  testJoinBeforeRegistrationUsesNickTargetAfterNick);
 
   runTest("join after registration echoes to self",
 			testJoinAfterRegistrationEchoesToSelf);

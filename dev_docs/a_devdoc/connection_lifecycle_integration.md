@@ -211,6 +211,7 @@ int ret = poll(&_pollfds[0], _pollfds.size(), 1000);
 - [x] この段階では `Server` に PING/PONG の内部状態を追加しない。
 - [x] この段階では `ConnectionHealthMonitor` から `send()` / `close()` を呼ばせない。
 
+
 ## 8. 動作確認
 
 B/lifecycle 単体確認:

@@ -6,7 +6,13 @@ Message::Message(const std::string& command,
                  const std::vector<std::string>& params)
     : _command(command), _params(params) {}
 
+Message::Message(const std::string& prefix, const std::string& command,
+                 const std::vector<std::string>& params)
+    : _prefix(prefix), _command(command), _params(params) {}
+
 Message::~Message() {}
+
+const std::string& Message::getPrefix() const { return _prefix; }
 
 const std::string& Message::getCommand() const { return _command; }
 
