@@ -1,9 +1,7 @@
 #include "a/Server.hpp"
-#include <codecvt>
 #include <string>
 #include <vector>
 #include <iostream>
-#include <locale>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
@@ -190,9 +188,9 @@ void Server::run() {
 			}
 			// (4) 読み切った後で HUP/ERR を判定して切断
 			/*
-			POLLHUP は「もう書き込めない」を意味するが、受信バッファに未読データが残っていることがある。
+			POLLHUP は相手側が切断（hang up）した ことを示すイベントだが、受信バッファに未読データが残っていることがある。
 			POLLHUP が立っていても、POLLIN もたっているケースがあるので
-			(3)で先に読み切る！！
+			(2)で先に読み切る！！
 			*/
 			if (rev & (POLLERR | POLLHUP | POLLNVAL)) {
 				_disconnectClient(fd);
@@ -213,10 +211,7 @@ void Server::run() {
 			CommandResult result = _disconnectNotifier.build(event, _state);
 			// ③ 通知メッセージを送信経路にのせる
 			applyCommandResult(result);
-			// ④ A層の既存のクリーンアップ関数でソケットを閉じる
-			_disconnectClient(fd);
-			// ⑤ 最後にライフサイクル管理側でも fd の状態を消去
-			_healthMonitor.removeClient(fd);
+			// ④ クリーンアップは _disconnectClient に一本化 ソケットを閉じるだけでなくライフサイクル層でも fd の状態を消去してくれる
 		}
 	}
 }
@@ -256,14 +251,11 @@ void Server::_acceptClient()
 	_addFd(cs, POLLIN);
 	std::string host = inet_ntoa(csin.sin_addr);
 	
-	/* 必須!!!! dispatch が client を NULL 前提で deref(参照) するため
-	dispatch は PING/PASS 以外で client->isPassOk() を NULL チェックなしで呼ぶ
-	accept 時に必ず addClient しておけば getClientByFd(fd) が非 NULL になり回避できる。
-	*/
+	//	dispatch は NULL なら早期 return するが、未登録 fd を作らないため accept 時に addClient しておく
 	_state.addClient(cs, host);
 
 	std::cout << GREEN_COLOR
-	<< "New client #" << cs // csはクラアントのfd　#1 stdin  #2 stdout  #3 stderr #4 listenソケット なので必ず#4から 
+	<< "New client #" << cs // csはクラアントのfd　#0 stdin  #1 stdout  #2 stderr #3 listenソケット よって最初のクライアントは #4 から 
 	<< " from " << host
 	<< ":" << ntohs(csin.sin_port)
 	<< RESET_COLOR << std::endl;
@@ -320,14 +312,17 @@ bool Server::_handleRead(int fd) {
 //   bircd は clean_fd で FD_FREE マーク → 次ループ init_fd が pollfds 再構築でスキップ。
 //   A層は _pollfds 持続なので close + _pollfds erase + Connection delete を自分でやる。
 void Server::_disconnectClient(int fd) {
-	close(fd);								// ①閉じる　物理切断
-	_removeFd(fd);							// ②POLLから外す　監視しない
+	close(fd);								// ①物理切断
+	_removeFd(fd);							// ②pollfdsから除去　監視しない
 	std::map<int, Connection*>::iterator it = _connections.find(fd);
 	if (it != _connections.end()) {
 		delete it->second;
 		_connections.erase(it);
 		_state.removeClient(fd);			// ③C層からも除去　論理除去
 	}
+	_healthMonitor.removeClient(fd);	// ④ライフサイクル層も除去（fd再利用バグ・リーク対策）
+	// _clients のエントリは updateActivity(fd) で作られ、_connections の有無とは独立。
+	// 従って_connections に無くても _clients には残り得るので、if の外（無条件）に置く
 	std::cout << "client #" << fd << " gone away" << std::endl;  // bircd の gone away 相当
 }
 
