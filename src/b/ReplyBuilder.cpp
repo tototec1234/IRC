@@ -28,6 +28,7 @@ const char* ERR_NEEDMOREPARAMS = "461";     // needMoreParams()
 const char* ERR_ALREADYREGISTERED = "462";  // alreadyRegistered()
 const char* ERR_PASSWDMISMATCH = "464";     // passwordMismatch()
 // TODO: const char* ERR_CHANNELISFULL = "471";    // channelIsFull()
+const char* ERR_UNKNOWNMODE = "472";      // unknownMode()
 const char* ERR_INVITEONLYCHAN = "473";   // inviteOnlyChan()
 // TODO: const char* ERR_BADCHANNELKEY = "475";    // badChannelKey()
 const char* ERR_CHANOPRIVSNEEDED = "482"; // chanOpPrivsNeeded()
@@ -219,6 +220,33 @@ std::string ReplyBuilder::unknownCommand(const Client& client,
                                          const std::string& command) {
   return numericReply(ERR_UNKNOWNCOMMAND, replyTarget(client), command,
                       "Unknown command");
+}
+
+std::string ReplyBuilder::unknownMode(const Client& client,
+                                      const std::string& modeToken) {
+  return numericReply(ERR_UNKNOWNMODE, replyTarget(client), modeToken,
+                      "is unknown mode char to me");
+}
+
+std::string ReplyBuilder::kick(const std::string& client,
+                               const std::string& ChannelName,
+                               const std::string& target,
+                               const std::string& reason) {
+  return std::string(":") + client + " KICK " + ChannelName + " " + target +
+         " :" + reason + "\r\n";
+}
+
+std::string ReplyBuilder::mode(const std::string& client,
+                               const std::string& ChannelName,
+                               const std::string& modeToken,
+                               const std::string& modeArg) {
+  std::string reply = std::string(":") + client + " MODE " + ChannelName +
+                      " " + modeToken;
+  if (!modeArg.empty()) {
+    reply += " " + modeArg;
+  }
+  reply += "\r\n";
+  return reply;
 }
 
 

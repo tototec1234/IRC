@@ -46,6 +46,8 @@ class ReplyBuilder {
   static std::string noRegistered(const Client& client);
   static std::string unknownCommand(const Client& client,
                                     const std::string& command);
+  static std::string unknownMode(const Client& client,
+                                 const std::string& modeToken);
 
 
 
@@ -70,6 +72,14 @@ class ReplyBuilder {
   static std::string invite(const std::string& client,
                             const std::string& target,
                             const std::string& ChannelName);
+  static std::string kick(const std::string& client,
+                          const std::string& ChannelName,
+                          const std::string& target,
+                          const std::string& reason);
+  static std::string mode(const std::string& client,
+                          const std::string& ChannelName,
+                          const std::string& modeToken,
+                          const std::string& modeArg);
   static std::string quit(const std::string& client,
                           const std::string& reason);
 

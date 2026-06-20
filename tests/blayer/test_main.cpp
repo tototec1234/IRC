@@ -64,6 +64,15 @@ Message makeMessage(const std::string& command, const std::string& p0,
   return Message(command, params);
 }
 
+Message makeMessage(const std::string& command, const std::string& p0,
+                    const std::string& p1, const std::string& p2) {
+  std::vector<std::string> params;
+  params.push_back(p0);
+  params.push_back(p1);
+  params.push_back(p2);
+  return Message(command, params);
+}
+
 Message makeUserMessage() {
   std::vector<std::string> params;
   params.push_back("user");
@@ -129,6 +138,20 @@ void expectContains(const std::string& text, const std::string& needle,
 
 #define EXPECT_CONTAINS(text, needle) \
   expectContains((text), (needle), __FILE__, __LINE__)
+
+bool resultHasReplyToContaining(const CommandResult& result, int fd,
+                                const std::string& needle) {
+  for (std::vector<OutgoingMessage>::const_iterator it = result.replies.begin();
+       it != result.replies.end(); ++it) {
+    if (it->fd == fd && it->message.find(needle) != std::string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
+#define EXPECT_REPLY_TO_CONTAINS(result, fd, needle) \
+  EXPECT_TRUE(resultHasReplyToContaining((result), (fd), (needle)))
 
 void testParserBasicMessage() {
   Message msg = Parser::parse("PRIVMSG #room :hello world\r\n");
@@ -463,6 +486,184 @@ void testJoinBeforeRegistrationReturns451() {
 					":taro!user@client.example NOTICE #notice :channel");
   }
 
+  void testInviteDelegatesAndPreservesBehavior() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(70, "taro");
+	TestClient hanako = ctx.registerClient(71, "hanako");
+	ctx.join(taro.fd, "#invite");
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("INVITE", hanako.nick, "#invite"));
+
+	EXPECT_EQ(static_cast<size_t>(2), result.replies.size());
+	EXPECT_REPLY_TO_CONTAINS(result, taro.fd, " 341 taro hanako #invite");
+	EXPECT_REPLY_TO_CONTAINS(result, hanako.fd,
+							 ":taro!user@client.example INVITE hanako :#invite");
+	EXPECT_TRUE(ctx.state.getChannel("#invite")->isInvited(ctx.client(hanako.fd)));
+  }
+
+  void testTopicDelegatesAndPreservesBehavior() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(72, "taro");
+	TestClient hanako = ctx.registerClient(73, "hanako");
+	ctx.join(taro.fd, "#topic");
+	ctx.join(hanako.fd, "#topic");
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("TOPIC", "#topic", "new topic"));
+
+	EXPECT_EQ(std::string("new topic"),
+			  ctx.state.getChannel("#topic")->getTopic());
+	EXPECT_EQ(static_cast<size_t>(2), result.replies.size());
+	EXPECT_REPLY_TO_CONTAINS(result, taro.fd,
+							 ":taro!user@client.example TOPIC #topic :new topic");
+	EXPECT_REPLY_TO_CONTAINS(result, hanako.fd,
+							 ":taro!user@client.example TOPIC #topic :new topic");
+  }
+
+  void testKickSuccessBroadcastsAndRemovesTarget() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(74, "taro");
+	TestClient hanako = ctx.registerClient(75, "hanako");
+	ctx.join(taro.fd, "#kick");
+	ctx.join(hanako.fd, "#kick");
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("KICK", "#kick", hanako.nick, "bye"));
+
+	EXPECT_EQ(static_cast<size_t>(2), result.replies.size());
+	EXPECT_REPLY_TO_CONTAINS(result, taro.fd,
+							 ":taro!user@client.example KICK #kick hanako :bye");
+	EXPECT_REPLY_TO_CONTAINS(result, hanako.fd,
+							 ":taro!user@client.example KICK #kick hanako :bye");
+	EXPECT_FALSE(ctx.state.getChannel("#kick")->hasMember(ctx.client(hanako.fd)));
+  }
+
+  void testKickNonOperatorReturns482() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(76, "taro");
+	TestClient hanako = ctx.registerClient(77, "hanako");
+	TestClient jiro = ctx.registerClient(78, "jiro");
+	ctx.join(taro.fd, "#kickerr");
+	ctx.join(hanako.fd, "#kickerr");
+	ctx.join(jiro.fd, "#kickerr");
+
+	CommandResult result =
+		ctx.dispatch(hanako.fd, makeMessage("KICK", "#kickerr", jiro.nick));
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(hanako.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message, " 482 ");
+	EXPECT_TRUE(ctx.state.getChannel("#kickerr")->hasMember(ctx.client(jiro.fd)));
+  }
+
+  void testKickMissingTargetReturns461() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(79, "taro");
+	ctx.join(taro.fd, "#kickmissing");
+
+	CommandResult result = ctx.dispatch(taro.fd, makeMessage("KICK", "#kickmissing"));
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_CONTAINS(result.replies[0].message, " 461 ");
+	EXPECT_CONTAINS(result.replies[0].message, "KICK");
+  }
+
+  void testKickTargetNotInChannelReturns441() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(80, "taro");
+	TestClient hanako = ctx.registerClient(81, "hanako");
+	ctx.join(taro.fd, "#kicknotin");
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("KICK", "#kicknotin", hanako.nick));
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_CONTAINS(result.replies[0].message, " 441 ");
+	EXPECT_TRUE(ctx.state.getChannel("#kicknotin")->hasMember(ctx.client(taro.fd)));
+  }
+
+  void testModeFlagsKeyAndLimitMutateState() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(82, "taro");
+	ctx.join(taro.fd, "#mode");
+	Channel* channel = ctx.state.getChannel("#mode");
+
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#mode", "+i"));
+	EXPECT_TRUE(channel->getModes().isInviteOnly());
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#mode", "-i"));
+	EXPECT_FALSE(channel->getModes().isInviteOnly());
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#mode", "+t"));
+	EXPECT_TRUE(channel->getModes().isTopicRestricted());
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#mode", "-t"));
+	EXPECT_FALSE(channel->getModes().isTopicRestricted());
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#mode", "+k", "secret"));
+	EXPECT_TRUE(channel->getModes().hasKey());
+	EXPECT_EQ(std::string("secret"), channel->getModes().getKey());
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#mode", "-k"));
+	EXPECT_FALSE(channel->getModes().hasKey());
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#mode", "+l", "10"));
+	EXPECT_EQ(10, channel->getModes().getLimit());
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#mode", "-l"));
+	EXPECT_EQ(-1, channel->getModes().getLimit());
+  }
+
+  void testModeOperatorMutatesState() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(83, "taro");
+	TestClient hanako = ctx.registerClient(84, "hanako");
+	ctx.join(taro.fd, "#modeop");
+	ctx.join(hanako.fd, "#modeop");
+	Channel* channel = ctx.state.getChannel("#modeop");
+
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#modeop", "+o", hanako.nick));
+	EXPECT_TRUE(channel->isOperator(ctx.client(hanako.fd)));
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#modeop", "-o", hanako.nick));
+	EXPECT_FALSE(channel->isOperator(ctx.client(hanako.fd)));
+  }
+
+  void testModeCompoundTokensReturnErrorWithoutMutation() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(85, "taro");
+	ctx.join(taro.fd, "#modecompound");
+	Channel* channel = ctx.state.getChannel("#modecompound");
+
+	CommandResult first =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modecompound", "+it"));
+	CommandResult second =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modecompound", "+kl",
+										  "secret"));
+	CommandResult third =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modecompound", "+ooo"));
+
+	EXPECT_CONTAINS(first.replies[0].message, " 472 ");
+	EXPECT_CONTAINS(second.replies[0].message, " 472 ");
+	EXPECT_CONTAINS(third.replies[0].message, " 472 ");
+	EXPECT_FALSE(channel->getModes().isInviteOnly());
+	EXPECT_FALSE(channel->getModes().isTopicRestricted());
+	EXPECT_FALSE(channel->getModes().hasKey());
+  }
+
+  void testModeMissingArgumentsReturn461() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(86, "taro");
+	ctx.join(taro.fd, "#modemissing");
+
+	CommandResult keyResult =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modemissing", "+k"));
+	CommandResult limitResult =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modemissing", "+l"));
+	CommandResult opResult =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modemissing", "+o"));
+	CommandResult deopResult =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modemissing", "-o"));
+
+	EXPECT_CONTAINS(keyResult.replies[0].message, " 461 ");
+	EXPECT_CONTAINS(limitResult.replies[0].message, " 461 ");
+	EXPECT_CONTAINS(opResult.replies[0].message, " 461 ");
+	EXPECT_CONTAINS(deopResult.replies[0].message, " 461 ");
+  }
+
   void testConnectionHealthMonitorGeneratesPingAndTimesOut() {
 	ConnectionHealthMonitor monitor(10);
 
@@ -645,6 +846,26 @@ int main() {
 			testNoticeInvalidTargetReturnsNoReply);
   runTest("notice delivers to nick and channel",
 			testNoticeDeliversToNickAndChannel);
+  runTest("invite delegates and preserves behavior",
+			testInviteDelegatesAndPreservesBehavior);
+  runTest("topic delegates and preserves behavior",
+			testTopicDelegatesAndPreservesBehavior);
+  runTest("kick success broadcasts and removes target",
+			testKickSuccessBroadcastsAndRemovesTarget);
+  runTest("kick non-operator returns 482",
+			testKickNonOperatorReturns482);
+  runTest("kick missing target returns 461",
+			testKickMissingTargetReturns461);
+  runTest("kick target not in channel returns 441",
+			testKickTargetNotInChannelReturns441);
+  runTest("mode flags key and limit mutate state",
+			testModeFlagsKeyAndLimitMutateState);
+  runTest("mode operator mutates state",
+			testModeOperatorMutatesState);
+  runTest("mode compound tokens return error without mutation",
+			testModeCompoundTokensReturnErrorWithoutMutation);
+  runTest("mode missing arguments return 461",
+			testModeMissingArgumentsReturn461);
   runTest("connection health monitor generates ping and times out",
 			testConnectionHealthMonitorGeneratesPingAndTimesOut);
   runTest("connection health monitor pong matching",

@@ -69,14 +69,14 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
 	result = handlePrivmsg(fd, msg, state, client);
   } else if (command == "NOTICE") {
 	result = handleNotice(fd, msg, state, client);
-//   } else if (command == "KICK") {
-// 	result = handleKick(fd, msg, state, client);
+  } else if (command == "KICK") {
+	result = _channelCommandHandler.handleKick(fd, msg, state, client);
   } else if (command == "INVITE") {
-	result = handleInvite(fd, msg, state, client);
+	result = _channelCommandHandler.handleInvite(fd, msg, state, client);
   } else if (command == "TOPIC") {
-	result = handleTopic(fd, msg, state, client);
-//   } else if (command == "MODE") {
-// 	result = handleMode(fd, msg, state, client);
+	result = _channelCommandHandler.handleTopic(fd, msg, state, client);
+  } else if (command == "MODE") {
+	result = _channelCommandHandler.handleMode(fd, msg, state, client);
   } else if (command == "PONG") {
 	result = handlePong(fd, msg, client, healthMonitor);
   } else if (!command.empty()) {
@@ -319,173 +319,6 @@ CommandResult CommandDispatcher::handlePong(
   }
   return result;
 }
-
-// CommandResult CommandDispatcher::handleQuit(Client* client) {
-//   CommandResult result;
-//   if (!client) {
-//     return result;
-//   }
-//   result.shouldDisconnect = true;
-//   return result;
-// }
-
-
-// "KICK"
-// CommandResult CommandDispatcher::handleKick(int fd, const Message& msg,
-//                                             ServerState& state,
-//                                             Client* client) {
-//   CommandResult result;
-//   if (!client) {
-//     return result;
-//   }
-//   if (!client->isRegistered()) {
-//     result.addReply(fd, ReplyBuilder::noRegistered(*client));
-//     return result;
-//   }
-//   if (msg.getParamCount() < 2) {
-//     result.addReply(fd, ReplyBuilder::needMoreParams(client, "INVITE"));
-//     return result;
-//   }
-
-//   const std::string& channelName = msg.getSingleParam(0);
-//   const std::string& targetNick = msg.getSingleParam(1);
-
-//   Channel* channel = state.getChannel(channelName);
-//   if (!channel) {
-//     result.addReply(fd, ReplyBuilder::noSuchChannel(*client, channelName));
-//     return result;
-//   }
-//   if (!channel->hasMember(client)) {
-//     result.addReply(fd, ReplyBuilder::notOnChannel(*client, channelName));
-//     return result;
-//   }
-
-//   if (!channel->isOperator(client)) {
-//     result.addReply(fd, ReplyBuilder::chanOpPrivsNeeded(*client, channelName));
-//     return result;
-//   }
-
-//   return result;
-// }
-
-// "INVITE"
-CommandResult CommandDispatcher::handleInvite(int fd, const Message& msg,
-                                              ServerState& state,
-                                              Client& client) {
-  CommandResult result;
-  if (!client.isRegistered()) {
-    result.addReply(fd, ReplyBuilder::noRegistered(client));
-    return result;
-  }
-  if (msg.getParamCount() < 2) {
-    result.addReply(fd, ReplyBuilder::needMoreParams(client, "INVITE"));
-    return result;
-  }
-
-  const std::string& targetNick = msg.getSingleParam(0);
-  const std::string& channelName = msg.getSingleParam(1);
-  Client* targetClient = state.getClientByNick(targetNick);
-  if (!targetClient) {
-    result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));
-    return result;
-  }
-
-  Channel* channel = state.getChannel(channelName);
-  if (!channel) {
-    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
-    return result;
-  }
-  if (!channel->hasMember(&client)) {
-    result.addReply(fd, ReplyBuilder::notOnChannel(client, channelName));
-    return result;
-  }
-  if (channel->hasMember(targetClient)) {
-    result.addReply(fd, ReplyBuilder::userOnChannel(client, targetNick,
-                                                    channelName));
-    return result;
-  }
-  //	MODEが "+i" invite-onlyだったとき、オペレーターじゃなければ "482"
-  if (channel->getModes().isInviteOnly() && !channel->isOperator(&client)) {
-    result.addReply(fd, ReplyBuilder::chanOpPrivsNeeded(client, channelName));
-    return result;
-  }
-
-  state.inviteClientToChannel(targetClient, channel);
-  result.addReply(fd, ReplyBuilder::inviting(client, targetNick, channelName));
-  result.addReply(targetClient->getFd(), ReplyBuilder::invite(client.getFullPrefix(), targetNick, channelName));
-  return result;
-}
-
-// "TOPIC"
-CommandResult CommandDispatcher::handleTopic(int fd, const Message& msg,
-                                             ServerState& state,
-                                             Client& client) {
-  CommandResult result;
-  if (!client.isRegistered()) {
-    result.addReply(fd, ReplyBuilder::noRegistered(client));
-    return result;
-  }
-  if (!msg.hasParam(0)) {
-    result.addReply(fd, ReplyBuilder::needMoreParams(client, "TOPIC"));
-    return result;
-  }
-
-  const std::string& channelName = msg.getSingleParam(0);
-  Channel* channel = state.getChannel(channelName);
-  if (!channel) {
-    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
-    return result;
-  }
-  if (!channel->hasMember(&client)) {
-    result.addReply(fd, ReplyBuilder::notOnChannel(client, channelName));
-    return result;
-  }
-
-  //	今のtopicを出力するパート！！
-  if (!msg.hasParam(1)) {
-    if (channel->getTopic().empty()) {
-      result.addReply(fd, ReplyBuilder::noTopic(client, channelName));
-    } else {
-      result.addReply(fd, ReplyBuilder::topicReply(client, channelName,
-                                                   channel->getTopic()));
-    }
-    return result;
-  }
-
-  //	MODEコマンド用の処理！！ "+t" かな？
-  //	 "topic変更をチャンネルオペレーターだけに制限する" みたいな！
-  if (channel->getModes().isTopicRestricted() && !channel->isOperator(&client)) {
-    result.addReply(fd, ReplyBuilder::chanOpPrivsNeeded(client, channelName));
-    return result;
-  }
-
-  //	topic書き換えのパート！！
-  const std::string& topic = msg.getSingleParam(1);
-  channel->setTopic(topic);
-
-  //	ブロードキャスト！
-  std::string topicMsg = ReplyBuilder::topic(client.getFullPrefix(), "TOPIC",channelName, topic);
-  addRepliesToMembers(result, channel->getMembers(), topicMsg, -1);
-
-  return result;
-}
-
-// "MODE"
-// CommandResult CommandDispatcher::handleMode(int fd, const Message& msg,
-//                                             ServerState& state,
-//                                             Client* client) {
-// }
-
-// "PONG"
-// CommandResult CommandDispatcher::handlePong(int fd, const Message& msg,
-//                                             ServerState& state,
-//                                             Client* client) {
-// }
-
-
-
-
-
 
 void CommandDispatcher::maybeRegister(Client& client, CommandResult& result) {
   if (!client.isRegistered() && client.canRegister()) {
