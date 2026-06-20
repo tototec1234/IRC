@@ -1,6 +1,7 @@
 #include "b/CommandDispatcher.hpp"
 #include "b/ReplyBuilder.hpp"
 #include "c/ServerState.hpp"
+#include "lifecycle/ConnectionHealthMonitor.hpp"
 #include <iterator>
 // #include <type_traits>　c++11 なぜまぎれこんでる？
 #include <vector>
@@ -17,6 +18,18 @@ CommandDispatcher::~CommandDispatcher() {}
 
 CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
                                           ServerState& state) {
+  return dispatch(fd, msg, state, NULL);
+}
+
+CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
+                                          ServerState& state,
+                                          ConnectionHealthMonitor& healthMonitor) {
+  return dispatch(fd, msg, state, &healthMonitor);
+}
+
+CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
+                                          ServerState& state,
+                                          ConnectionHealthMonitor* healthMonitor) {
   Client* client = state.getClientByFd(fd);
   CommandResult result;
   const std::string& command = msg.getCommand();
@@ -59,8 +72,8 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
 	result = handleTopic(fd, msg, state, client);
 //   } else if (command == "MODE") {
 // 	result = handleMode(fd, msg, state, client);
-//   } else if (command == "PONG") {
-// 	result = handlePong(fd, msg, state, client);
+  } else if (command == "PONG") {
+	result = handlePong(fd, msg, client, healthMonitor);
   } else if (!command.empty()) {
     result.addReply(fd, ReplyBuilder::unknownCommand(client, command));
   }
@@ -176,13 +189,7 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
   }
 
   std::string joinMsg = ReplyBuilder::join(client->getFullPrefix(), "JOIN", channelName);
-
-  std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
-
-  for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-      Client * client = *it;
-	  result.addReply(client->getFd(), joinMsg);
-  }
+  addRepliesToMembers(result, channel->getMembers(), joinMsg, -1);
 
   return result;
 }
@@ -210,13 +217,18 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
 
   const std::string channelName = msg.getSingleParam(0);
   Channel* channel = state.getChannel(channelName);
-  state.removeClientFromChannel(client, channelName);
-  std::string partMsg = ReplyBuilder::part(client->getFullPrefix(), "PART", channelName);
-  std::vector<Client*> members = channel->getMembers();	// ディープコピーじゃなくていいのかな？
-  for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-      Client * client = *it;
-	  result.addReply(client->getFd(), partMsg);
+  if (!channel) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(*client, channelName));
+    return result;
   }
+  if (!channel->hasMember(client)) {
+    result.addReply(fd, ReplyBuilder::notOnChannel(*client, channelName));
+    return result;
+  }
+  std::string partMsg = ReplyBuilder::part(client->getFullPrefix(), "PART", channelName);
+  std::vector<Client*> members = channel->getMembers();
+  addRepliesToMembers(result, members, partMsg, -1);
+  state.removeClientFromChannel(client, channelName);
   return result;
 }
 
@@ -224,98 +236,74 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
 CommandResult CommandDispatcher::handlePrivmsg(int fd, const Message& msg,
                                                ServerState& state,
                                                Client* client) {
-  CommandResult result;
-  if (!client) {
-      return result;
-  }
-  if (!client->isRegistered()) {
-    result.addReply(fd, ReplyBuilder::noRegistered(*client));
-    return result;
-  }
-  if (msg.getParamCount() < 2) {
-    result.addReply(fd, ReplyBuilder::needMoreParams(client, "PRIVMSG"));
-    return result;
-  }
-
-  const std::string& targetName = msg.getSingleParam(0);
-  const std::string& text   = msg.getSingleParam(1);
-
-  std::string privmsgMsg = ReplyBuilder::privmsg(client->getFullPrefix(), "PRIVMSG", targetName, text);
-
-  if (targetName.empty() || targetName[0] == '#') {
-      Channel* channel = state.getChannel(targetName);
-      if (!channel) {
-      result.addReply(fd, ReplyBuilder::noSuchChannel(*client, targetName));
-      return result;
-      }
-      if (!channel->hasMember(client)) {
-      result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
-      return result;
-      }
-    std::vector<Client*> members = channel->getMembers();    // ディープコピーじゃなくていいのかな？
-    for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-      Client* member = *it;
-      if (member->getFd() != fd) {
-        result.addReply(member->getFd(), privmsgMsg);
-      }
-    }
-  } else {
-      Client* targetClient = state.getClientByNick(targetName);
-    if (!targetClient) {
-        result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetName));
-        return result;
-    }
-      result.addReply(targetClient->getFd(), privmsgMsg);
-  }
-  return result;
+  return handleTextMessage(fd, msg, state, client, "PRIVMSG", true);
 }
 
 // "NOTICE"
 CommandResult CommandDispatcher::handleNotice(int fd, const Message& msg,
                                               ServerState& state,
                                               Client* client) {
+  return handleTextMessage(fd, msg, state, client, "NOTICE", false);
+}
+
+CommandResult CommandDispatcher::handleTextMessage(int fd, const Message& msg,
+                                                   ServerState& state,
+                                                   Client* client,
+                                                   const std::string& command,
+                                                   bool replyOnError) {
   CommandResult result;
   if (!client) {
-      return result;
+    return result;
   }
   if (!client->isRegistered()) {
-    // result.addReply(fd, ReplyBuilder::noRegistered(*client));
+    if (replyOnError) {
+      result.addReply(fd, ReplyBuilder::noRegistered(*client));
+    }
     return result;
   }
   if (msg.getParamCount() < 2) {
-    // result.addReply(fd, ReplyBuilder::needMoreParams(client, "notice"));
+    if (replyOnError) {
+      result.addReply(fd, ReplyBuilder::needMoreParams(client, command));
+    }
     return result;
   }
 
   const std::string& targetName = msg.getSingleParam(0);
   const std::string& text   = msg.getSingleParam(1);
 
-  std::string noticeMsg = ReplyBuilder::notice(client->getFullPrefix(), "NOTICE", targetName, text);
+  std::string message;
+  if (command == "NOTICE") {
+    message =
+        ReplyBuilder::notice(client->getFullPrefix(), command, targetName, text);
+  } else {
+    message =
+        ReplyBuilder::privmsg(client->getFullPrefix(), command, targetName, text);
+  }
 
   if (targetName.empty() || targetName[0] == '#') {
       Channel* channel = state.getChannel(targetName);
       if (!channel) {
-    //   result.addReply(fd, ReplyBuilder::noSuchChannel(*client, targetName));
+      if (replyOnError) {
+        result.addReply(fd, ReplyBuilder::noSuchChannel(*client, targetName));
+      }
       return result;
       }
       if (!channel->hasMember(client)) {
-    //   result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
+      if (replyOnError) {
+        result.addReply(fd, ReplyBuilder::cannotSendToChan(*client, targetName));
+      }
       return result;
       }
-    std::vector<Client*> members = channel->getMembers();    // ディープコピーじゃなくていいのかな？
-    for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-      Client* member = *it;
-      if (member->getFd() != fd) {
-        result.addReply(member->getFd(), noticeMsg);
-      }
-    }
+    addRepliesToMembers(result, channel->getMembers(), message, fd);
   } else {
       Client* targetClient = state.getClientByNick(targetName);
     if (!targetClient) {
-        // result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetName));
+      if (replyOnError) {
+        result.addReply(fd, ReplyBuilder::noSuchNick(*client, targetName));
+      }
         return result;
     }
-      result.addReply(targetClient->getFd(), noticeMsg);
+      result.addReply(targetClient->getFd(), message);
   }
   return result;
 }
@@ -329,6 +317,24 @@ CommandResult CommandDispatcher::handleQuit(int, const Message&,
     return result;
   }
   result.shouldDisconnect = true;
+  return result;
+}
+
+CommandResult CommandDispatcher::handlePong(
+    int fd, const Message& msg, Client* client,
+    ConnectionHealthMonitor* healthMonitor) {
+  CommandResult result;
+  if (!client) {
+    return result;
+  }
+  if (!msg.hasParam(0)) {
+    result.addReply(fd, ReplyBuilder::needMoreParams(client, "PONG"));
+    return result;
+  }
+  if (healthMonitor) {
+    healthMonitor->markPongReceived(
+        fd, msg.getSingleParam(msg.getParamCount() - 1));
+  }
   return result;
 }
 
@@ -483,11 +489,7 @@ CommandResult CommandDispatcher::handleTopic(int fd, const Message& msg,
 
   //	ブロードキャスト！
   std::string topicMsg = ReplyBuilder::topic(client->getFullPrefix(), "TOPIC",channelName, topic);
-  std::vector<Client*> members = channel->getMembers();
-  for (std::vector<Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-    Client* member = *it;
-    result.addReply(member->getFd(), topicMsg);
-  }
+  addRepliesToMembers(result, channel->getMembers(), topicMsg, -1);
 
   return result;
 }
@@ -513,5 +515,17 @@ void CommandDispatcher::maybeRegister(Client& client, CommandResult& result) {
   if (!client.isRegistered() && client.canRegister()) {
     client.markRegistered();
     result.addReply(client.getFd(), ReplyBuilder::welcome(client));
+  }
+}
+
+void CommandDispatcher::addRepliesToMembers(
+    CommandResult& result, const std::vector<Client*>& members,
+    const std::string& message, int exceptFd) {
+  for (std::vector<Client*>::const_iterator it = members.begin();
+       it != members.end(); ++it) {
+    Client* member = *it;
+    if (member && member->getFd() != exceptFd) {
+      result.addReply(member->getFd(), message);
+    }
   }
 }
