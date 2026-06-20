@@ -168,21 +168,41 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
   const std::string channelName = msg.getSingleParam(0);
 
   Channel *channel = state.getChannel(channelName);
-  if (channel && !channel->hasMember(&client) &&
-      channel->getModes().isInviteOnly() &&
-      !channel->isInvited(&client)) {
-    result.addReply(fd, ReplyBuilder::inviteOnlyChan(client, channelName));
-    return result;
+  if (channel && !channel->hasMember(&client)) {
+    if (channel->getModes().isInviteOnly() && !channel->isInvited(&client)) {
+      result.addReply(fd, ReplyBuilder::inviteOnlyChan(client, channelName));
+      return result;
+    }
+    if (channel->getModes().hasKey() &&
+        (!msg.hasParam(1) ||
+         msg.getSingleParam(1) != channel->getModes().getKey())) {
+      result.addReply(fd, ReplyBuilder::badChannelKey(client, channelName));
+      return result;
+    }
+    if (channel->getModes().getLimit() >= 0 &&
+        channel->memberCount() >=
+            static_cast<size_t>(channel->getModes().getLimit())) {
+      result.addReply(fd, ReplyBuilder::channelIsFull(client, channelName));
+      return result;
+    }
   }
 
   channel = state.addClientToChannel(&client, channelName);
   if (!channel) {
-	result.addReply(fd, ReplyBuilder::torima_Missing(client, "JOIN"));
+	result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
   	return result;
   }
 
   std::string joinMsg = ReplyBuilder::join(client.getFullPrefix(), "JOIN", channelName);
   addRepliesToMembers(result, channel->getMembers(), joinMsg, -1);
+  if (channel->getTopic().empty()) {
+    result.addReply(fd, ReplyBuilder::noTopic(client, channelName));
+  } else {
+    result.addReply(fd, ReplyBuilder::topicReply(client, channelName,
+                                                 channel->getTopic()));
+  }
+  result.addReply(fd, ReplyBuilder::nameReply(client, *channel));
+  result.addReply(fd, ReplyBuilder::endOfNames(client, channelName));
 
   return result;
 }

@@ -7,6 +7,45 @@
 #include <climits>
 #include <cstdlib>
 #include <cerrno>
+#include <sstream>
+
+namespace {
+
+std::string intToString(int value) {
+  std::ostringstream stream;
+  stream << value;
+  return stream.str();
+}
+
+void appendModeArg(std::string& args, const std::string& value) {
+  if (!args.empty()) {
+    args += " ";
+  }
+  args += value;
+}
+
+void buildChannelModeQuery(const Channel& channel, std::string& modes,
+                           std::string& args) {
+  modes = "+";
+  args.clear();
+
+  if (channel.getModes().isInviteOnly()) {
+    modes += "i";
+  }
+  if (channel.getModes().isTopicRestricted()) {
+    modes += "t";
+  }
+  if (channel.getModes().hasKey()) {
+    modes += "k";
+    appendModeArg(args, channel.getModes().getKey());
+  }
+  if (channel.getModes().getLimit() >= 0) {
+    modes += "l";
+    appendModeArg(args, intToString(channel.getModes().getLimit()));
+  }
+}
+
+}  // namespace
 
 ChannelCommandHandler::ChannelCommandHandler() {}
 
@@ -167,13 +206,12 @@ CommandResult ChannelCommandHandler::handleMode(int fd, const Message& msg,
     result.addReply(fd, ReplyBuilder::noRegistered(client));
     return result;
   }
-  if (msg.getParamCount() < 2) {
+  if (msg.getParamCount() < 1) {
     result.addReply(fd, ReplyBuilder::needMoreParams(client, "MODE"));
     return result;
   }
 
   const std::string& channelName = msg.getSingleParam(0);
-  const std::string& modeToken = msg.getSingleParam(1);
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
     result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
@@ -183,12 +221,22 @@ CommandResult ChannelCommandHandler::handleMode(int fd, const Message& msg,
     result.addReply(fd, ReplyBuilder::notOnChannel(client, channelName));
     return result;
   }
+  if (msg.getParamCount() == 1) {
+    std::string modes;
+    std::string modeArgs;
+    buildChannelModeQuery(*channel, modes, modeArgs);
+    result.addReply(fd, ReplyBuilder::channelModeIs(client, channelName,
+                                                    modes, modeArgs));
+    return result;
+  }
+
   if (!channel->isOperator(&client)) {
     result.addReply(fd, ReplyBuilder::chanOpPrivsNeeded(client, channelName));
     return result;
   }
 
   // This implementation accepts one channel mode change per MODE command.
+  const std::string& modeToken = msg.getSingleParam(1);
   if (!isSupportedSingleModeToken(modeToken)) {
     result.addReply(fd, ReplyBuilder::unknownMode(client, modeToken));
     return result;

@@ -387,6 +387,41 @@ void testJoinBeforeRegistrationReturns451() {
 	EXPECT_CONTAINS(result.replies[0].message, ":taro!user@client.example JOIN #taros_room" );
   }
 
+  void testJoinSuccessSendsTopicNamesAndNo999() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(47, "taro");
+
+	CommandResult result = ctx.join(taro.fd, "#names");
+
+	EXPECT_TRUE(result.replies.size() >= static_cast<size_t>(4));
+	EXPECT_REPLY_TO_CONTAINS(result, taro.fd,
+							 ":taro!user@client.example JOIN #names");
+	EXPECT_REPLY_TO_CONTAINS(result, taro.fd,
+							 " 331 taro #names :No topic is set");
+	EXPECT_REPLY_TO_CONTAINS(result, taro.fd,
+							 " 353 taro = #names :@taro");
+	EXPECT_REPLY_TO_CONTAINS(result, taro.fd,
+							 " 366 taro #names :End of /NAMES list");
+	for (std::vector<OutgoingMessage>::const_iterator it = result.replies.begin();
+		 it != result.replies.end(); ++it) {
+	  EXPECT_FALSE(it->message.find(" 999 ") != std::string::npos);
+	}
+  }
+
+  void testJoinNamesMarksOperators() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(48, "taro");
+	TestClient hanako = ctx.registerClient(49, "hanako");
+	ctx.join(taro.fd, "#namesop");
+
+	CommandResult result = ctx.join(hanako.fd, "#namesop");
+
+	EXPECT_REPLY_TO_CONTAINS(result, hanako.fd,
+							 " 353 hanako = #namesop ");
+	EXPECT_REPLY_TO_CONTAINS(result, hanako.fd, "@taro");
+	EXPECT_REPLY_TO_CONTAINS(result, hanako.fd, "hanako");
+  }
+
   void testPartSingleMemberEchoesToSelf() {
 	TestContext ctx;
 	TestClient taro = ctx.registerClient(45, "taro");
@@ -664,6 +699,60 @@ void testJoinBeforeRegistrationReturns451() {
 	EXPECT_CONTAINS(deopResult.replies[0].message, " 461 ");
   }
 
+  void testModeQueryReturns324WithModesAndArgs() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(87, "taro");
+	ctx.join(taro.fd, "#modequery");
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#modequery", "+i"));
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#modequery", "+t"));
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#modequery", "+k", "secret"));
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#modequery", "+l", "2"));
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modequery"));
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(taro.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message,
+					" 324 taro #modequery +itkl secret 2");
+  }
+
+  void testJoinFullChannelReturns471WithoutAddingClient() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(88, "taro");
+	TestClient hanako = ctx.registerClient(89, "hanako");
+	ctx.join(taro.fd, "#full");
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#full", "+l", "1"));
+
+	CommandResult result = ctx.join(hanako.fd, "#full");
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(hanako.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message, " 471 hanako #full ");
+	EXPECT_FALSE(ctx.state.getChannel("#full")->hasMember(ctx.client(hanako.fd)));
+  }
+
+  void testJoinKeyedChannelReturns475UntilKeyMatches() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(90, "taro");
+	TestClient hanako = ctx.registerClient(91, "hanako");
+	ctx.join(taro.fd, "#keyed");
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#keyed", "+k", "secret"));
+
+	CommandResult missing = ctx.join(hanako.fd, "#keyed");
+	CommandResult wrong =
+		ctx.dispatch(hanako.fd, makeMessage("JOIN", "#keyed", "wrong"));
+	CommandResult correct =
+		ctx.dispatch(hanako.fd, makeMessage("JOIN", "#keyed", "secret"));
+
+	EXPECT_CONTAINS(missing.replies[0].message, " 475 hanako #keyed ");
+	EXPECT_CONTAINS(wrong.replies[0].message, " 475 hanako #keyed ");
+	EXPECT_FALSE(resultHasReplyToContaining(correct, hanako.fd, " 475 "));
+	EXPECT_TRUE(ctx.state.getChannel("#keyed")->hasMember(ctx.client(hanako.fd)));
+	EXPECT_REPLY_TO_CONTAINS(correct, hanako.fd,
+							 ":hanako!user@client.example JOIN #keyed");
+  }
+
   void testConnectionHealthMonitorGeneratesPingAndTimesOut() {
 	ConnectionHealthMonitor monitor(10);
 
@@ -832,6 +921,10 @@ int main() {
 
   runTest("join after registration echoes to self",
 			testJoinAfterRegistrationEchoesToSelf);
+  runTest("join success sends topic names and no 999",
+			testJoinSuccessSendsTopicNamesAndNo999);
+  runTest("join names marks operators",
+			testJoinNamesMarksOperators);
   runTest("part single member echoes to self",
 			testPartSingleMemberEchoesToSelf);
   runTest("quit before registration disconnects",
@@ -866,6 +959,12 @@ int main() {
 			testModeCompoundTokensReturnErrorWithoutMutation);
   runTest("mode missing arguments return 461",
 			testModeMissingArgumentsReturn461);
+  runTest("mode query returns 324 with modes and args",
+			testModeQueryReturns324WithModesAndArgs);
+  runTest("join full channel returns 471 without adding client",
+			testJoinFullChannelReturns471WithoutAddingClient);
+  runTest("join keyed channel returns 475 until key matches",
+			testJoinKeyedChannelReturns475UntilKeyMatches);
   runTest("connection health monitor generates ping and times out",
 			testConnectionHealthMonitorGeneratesPingAndTimesOut);
   runTest("connection health monitor pong matching",

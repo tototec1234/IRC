@@ -3,6 +3,7 @@
 
 #include <string>
 
+class Channel;
 class Client;
 
 class ReplyBuilder {
@@ -27,9 +28,16 @@ class ReplyBuilder {
   static std::string topicReply(const Client& client,
                                 const std::string& ChannelName,
                                 const std::string& topic);
+  static std::string channelModeIs(const Client& client,
+                                   const std::string& ChannelName,
+                                   const std::string& modes,
+                                   const std::string& modeArgs);
   static std::string inviting(const Client& client,
                               const std::string& targetNick,
                               const std::string& ChannelName);
+  static std::string nameReply(const Client& client, const Channel& channel);
+  static std::string endOfNames(const Client& client,
+                                const std::string& ChannelName);
   static std::string cannotSendToChan(const Client& client,
                                       const std::string& ChannelName);
   static std::string userNotInChannel(const Client& client,
@@ -41,8 +49,12 @@ class ReplyBuilder {
                                    const std::string& ChannelName);
   static std::string chanOpPrivsNeeded(const Client& client,
                                        const std::string& ChannelName);
+  static std::string channelIsFull(const Client& client,
+                                   const std::string& ChannelName);
   static std::string inviteOnlyChan(const Client& client,
                                     const std::string& ChannelName);
+  static std::string badChannelKey(const Client& client,
+                                   const std::string& ChannelName);
   static std::string noRegistered(const Client& client);
   static std::string unknownCommand(const Client& client,
                                     const std::string& command);
@@ -82,11 +94,6 @@ class ReplyBuilder {
                           const std::string& modeArg);
   static std::string quit(const std::string& client,
                           const std::string& reason);
-
-
-
-  static std::string torima_Missing(const Client& client,
-                                         const std::string& command);
 
  private:
   // Static utility class.
