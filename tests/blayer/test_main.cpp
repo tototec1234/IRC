@@ -410,6 +410,17 @@ void testJoinBeforeRegistrationReturns451() {
 	EXPECT_TRUE(monitor.isWaitingForPong(100));
   }
 
+  void testConnectionHealthMonitorRemovesClientState() {
+	ConnectionHealthMonitor monitor(10);
+	monitor.generatePing(102, 4000);
+
+	monitor.removeClient(102);
+
+	EXPECT_FALSE(monitor.isWaitingForPong(102));
+	EXPECT_FALSE(monitor.hasTimedOut(102, 5000));
+	EXPECT_EQ(std::string(""), monitor.getExpectedPongToken(102));
+  }
+
   void testPongUpdatesHealthMonitor() {
 	TestContext ctx;
 	ConnectionHealthMonitor monitor(10);
@@ -419,6 +430,23 @@ void testJoinBeforeRegistrationReturns451() {
 	CommandResult result =
 		ctx.dispatchWithHealth(taro.fd,
 							   makeMessage("PONG", "irc.local-63-3000"),
+							   monitor);
+
+	EXPECT_FALSE(result.shouldDisconnect);
+	EXPECT_EQ(static_cast<size_t>(0), result.replies.size());
+	EXPECT_FALSE(monitor.isWaitingForPong(taro.fd));
+  }
+
+  void testPongUsesLastParamAsToken() {
+	TestContext ctx;
+	ConnectionHealthMonitor monitor(10);
+	TestClient taro = ctx.addClient(66);
+	monitor.generatePing(taro.fd, 3000);
+
+	CommandResult result =
+		ctx.dispatchWithHealth(taro.fd,
+							   makeMessage("PONG", "irc.local",
+										   "irc.local-66-3000"),
 							   monitor);
 
 	EXPECT_FALSE(result.shouldDisconnect);
@@ -515,8 +543,12 @@ int main() {
 			testConnectionHealthMonitorPongMatching);
   runTest("connection health monitor collects timed out clients only",
 			testConnectionHealthMonitorCollectsTimedOutClientsOnly);
+  runTest("connection health monitor removes client state",
+			testConnectionHealthMonitorRemovesClientState);
   runTest("pong updates health monitor",
 			testPongUpdatesHealthMonitor);
+  runTest("pong uses last param as token",
+			testPongUsesLastParamAsToken);
   runTest("pong without health monitor is no-op",
 			testPongWithoutHealthMonitorIsNoOp);
   runTest("pong without token returns need more params",

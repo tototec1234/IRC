@@ -23,6 +23,7 @@ PING/PONG の状態管理は `ConnectionHealthMonitor` が持つ。
 | `markPongReceived(fd, token)` | 正しい `PONG` を受け取ったら PONG 待ち状態を解除する |
 | `hasTimedOut(fd)` | 対象 fd が PONG timeout したか判定する |
 | `collectTimedOutClients()` | timeout 候補 fd 一覧を返す |
+| `removeClient(fd)` | 切断済み fd の PING/PONG state を破棄する |
 
 `ConnectionHealthMonitor` は socket 操作をしない。`send()` / `close()` / fd 削除は A 層の責務のままにする。
 
@@ -123,6 +124,7 @@ for (std::vector<int>::iterator it = timedOut.begin();
   applyCommandResult(result);
 
   _disconnectClient(fd);
+  _healthMonitor.removeClient(fd);
 }
 ```
 
@@ -132,13 +134,15 @@ for (std::vector<int>::iterator it = timedOut.begin();
 2. `DisconnectEvent(fd, "Ping timeout")` を作る。
 3. `DisconnectNotifier::build()` を呼ぶ。
 4. 返ってきた `CommandResult` を `applyCommandResult()` に渡す。
-5. 最後に A 層の `_disconnectClient(fd)` で socket / pollfd / `Connection` / `ServerState` を片付ける。
+5. A 層の `_disconnectClient(fd)` で socket / pollfd / `Connection` / `ServerState` を片付ける。
+6. 最後に `_healthMonitor.removeClient(fd)` で lifecycle 側の fd state を破棄する。
 
 理由:
 
 - `DisconnectNotifier::build()` は、切断 client が所属していた channel を見て QUIT 通知先を決める。
 - `DisconnectNotifier` は `ServerState::removeClient(fd)` を呼ばない。
 - 先に `_disconnectClient(fd)` を呼ぶと、`ServerState` から client が消えて通知先を作れない。
+- `_healthMonitor.removeClient(fd)` は通知生成後かつ `_disconnectClient(fd)` と同じ cleanup 経路で必ず呼び、fd 再利用時に古い PONG 待ち状態を残さない。
 
 ### 5.1 `_disconnectClient(fd)` が唯一の removeClient 呼び出し元
 
@@ -189,7 +193,7 @@ int ret = poll(&_pollfds[0], _pollfds.size(), 1000);
 注意:
 
 - `poll()` timeout 値の調整は A 層のイベントループ設計に関わるため、この lifecycle コンポーネント側には入れない。
-- timeout 検出後は、`DisconnectNotifier::build()` → `applyCommandResult()` → `_disconnectClient()` の順にする。
+- timeout 検出後は、`DisconnectNotifier::build()` → `applyCommandResult()` → `_disconnectClient()` → `_healthMonitor.removeClient()` の順にする。
 - 通知を完全に flush してから close したい場合は、A 層側で graceful close 用の状態が別途必要。現状の最小統合では通知を send buffer に積んでから close する設計になるため、送信保証は限定的。
 
 ## 7. 最小統合チェックリスト
@@ -203,6 +207,7 @@ int ret = poll(&_pollfds[0], _pollfds.size(), 1000);
 - [ ] timeout fd ごとに `DisconnectEvent(fd, "Ping timeout")` を作る。
 - [ ] `_disconnectNotifier.build(event, _state)` の戻り値を `applyCommandResult()` に渡す。
 - [ ] 通知生成後に `_disconnectClient(fd)` で socket / pollfd / `Connection` / `ServerState` を片付ける。
+- [ ] `_disconnectClient(fd)` と同じ cleanup 経路で `_healthMonitor.removeClient(fd)` を呼ぶ。
 - [ ] この段階では `Server` に PING/PONG の内部状態を追加しない。
 - [ ] この段階では `ConnectionHealthMonitor` から `send()` / `close()` を呼ばせない。
 

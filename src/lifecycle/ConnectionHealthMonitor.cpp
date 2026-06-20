@@ -2,6 +2,7 @@
 
 #include <ctime>
 #include <sstream>
+#include <utility>
 
 #include "b/ReplyBuilder.hpp"
 
@@ -96,6 +97,8 @@ std::vector<int> ConnectionHealthMonitor::collectTimedOutClients(
   }
   return timedOutClients;
 }
+
+void ConnectionHealthMonitor::removeClient(int fd) { _clients.erase(fd); }
 
 bool ConnectionHealthMonitor::isWaitingForPong(int fd) const {
   HealthMap::const_iterator it = _clients.find(fd);

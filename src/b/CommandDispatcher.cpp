@@ -332,7 +332,8 @@ CommandResult CommandDispatcher::handlePong(
     return result;
   }
   if (healthMonitor) {
-    healthMonitor->markPongReceived(fd, msg.getSingleParam(0));
+    healthMonitor->markPongReceived(
+        fd, msg.getSingleParam(msg.getParamCount() - 1));
   }
   return result;
 }

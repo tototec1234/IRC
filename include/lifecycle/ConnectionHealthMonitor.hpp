@@ -31,6 +31,8 @@ class ConnectionHealthMonitor {
   std::vector<int> collectTimedOutClients() const;
   std::vector<int> collectTimedOutClients(std::time_t now) const;
 
+  void removeClient(int fd);
+
   bool isWaitingForPong(int fd) const;
   std::string getExpectedPongToken(int fd) const;
 
