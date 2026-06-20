@@ -46,6 +46,7 @@ class CommandDispatcher {
   CommandResult handlePrivmsg(int fd, const Message& msg,ServerState& state,
                               Client& client);
   CommandResult handleNotice(int fd, const Message& msg,ServerState& state,
+
                              Client& client);
   CommandResult handleTextMessage(int fd, const Message& msg,
                                   ServerState& state, Client& client,

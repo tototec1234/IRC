@@ -1,6 +1,7 @@
 #include "a/Server.hpp"
+#include <string>
+#include <vector>
 #include <iostream>
-#include <locale>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
@@ -10,8 +11,6 @@
 
 #include <cstring>
 #include <cerrno>	//　デバッグ出力用　後で消す
-#include <fcntl.h>
-#include <csignal>
 
 #include <fcntl.h>	// fcntl, F_SETFL, O_NONBLOCK
 #include <csignal>	// signal, SIGPIPE, SIG_IGN 
@@ -26,7 +25,7 @@ static void _setNonBlocking(int fd) {
 		throw std::runtime_error("fcntl(O_NONBLOCK) failed");
 }
 
-Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw) {
+Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw), _healthMonitor(30) {
 
 	struct sockaddr_in	servAddr;	//ローカルアドレス
 
@@ -55,7 +54,7 @@ Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw) {
 		throw std::runtime_error("bind() 失敗");
 	}
 
-	  /* 	listen	p42 「接続要求をリスん中」というマークをソケットにつける」*/
+	/* 	listen	p42 「接続要求をリスん中」というマークをソケットにつける」*/
 	if (listen(_listenFd, MAX_CLIENTS) < 0)
 	{
 		close(_listenFd);
@@ -101,17 +100,17 @@ Server::~Server() {
 void Server::run() {
 	std::cout << "RUN RUN RUN" << std::endl;
 	int tmp = 4242;
-	while (true)
-	{	
+	while (true){	
 		/*
 		https://man7.org/linux/man-pages/man2/poll.2.html
 		*/
 
-		int ret = poll(&_pollfds[0], _pollfds.size(), -1);
+		// int ret = poll(&_pollfds[0], _pollfds.size(), -1);
+		// -1の無限まちから 1秒(1000ms)待ちでタイムアウト検知を回す。
+		int ret = poll(&_pollfds[0], _pollfds.size(), 1000);
 
-		// ここから
-		if (tmp != ret)
-		{
+		// ここからデバッグ出力
+		if (tmp != ret){
 			tmp = ret;
 			std::cout
 			<< BLUE_COLOR
@@ -129,11 +128,20 @@ void Server::run() {
 				std::cout << "  i=" << i << " fd=" << _pollfds[i].fd
 				<< " revents=";
 				_printRevents(_pollfds[i].revents);
-				std::cout
-				<< (_pollfds[i].fd == _listenFd ? " [listen]" : " [client]")
-				<< std::endl;
+				
+				// hasTImeOut デバッグ出力（A層は本来叩かない）
+				if (_pollfds[i].fd != _listenFd){
+					std::cout <<  " [client]";
+					if (_healthMonitor.hasTimedOut(_pollfds[i].fd)){
+					std::cout << RED_COLOR << " [Timeout!!!]" << RESET_COLOR;
+					} else if(_healthMonitor.isWaitingForPong(_pollfds[i].fd)){
+					std::cout << YELLOW_COLOR << " [Waiting PONG...]" << RESET_COLOR;
+					}
+				} else {
+					std::cout <<" [listen]";
+				}		
+				std::cout << std::endl;
 			}
-	
 		}
 		// ここまではデバッグ出力
 		
@@ -141,51 +149,69 @@ void Server::run() {
 			break; 	// errno 処理は後で
 
 		/* revents 走査 → listen なら _acceptClient()　*/
-		for (size_t i = 0; i < _pollfds.size(); ++i)
-		{
+		for (size_t i = 0; i < _pollfds.size(); ++i){
 			short 	rev = _pollfds[i].revents;
 			int		fd = _pollfds[i].fd;
 			if (rev == 0)
 				continue;
 			// (1) listen fd を最初に処理。client 系処理には流さない
+			// ここは通常1回しか通らない　　ハズ？
 			if (fd == _listenFd){
 				if (rev & POLLIN)
 				{
 					std::cout << "_acceptClient(); " << std::endl;
 					_acceptClient();		// ここで accept
 				}
-				continue; // Phase3以降ではアクセプトしたら次のfdに進む必要あり
+				continue;
 			} 
 			// (2) 以下は client fd のみ
-			
-			
-			// (3) まず読む。recv==0(EOF) なら _handleRead が false → 切断
+			// 
 			if (rev & POLLIN) {
-				if (!_handleRead(fd)) {		// recv<=0 等で false
+						//　①「クライアントの意思でclose() や shutdown()を行った場合（TCPのFINパケット（EOF）が届くが、その場合でもPOLLIN（読み込み可能）フラグは立ったままである。この状態で_handleReadがrecv()を呼ぶと、ブロックせずに即座に0を返してくる
+						//　②PONGタイムアウトしている状況だとしてもPOLLINになっていることを期待
+				if (!_handleRead(fd)) {//  まず読む。_handleRead が false を返す（EOF/recvエラー/行長すぎ/B層の切断要求）なら切断
+					// _handleRead(fd) の内部でB層の _dispatcher.dispatch() を叩くときに
+					//    _dispatcher.dispatch(..., _healthMonitor) で　_healthMonitor を渡すので
+					// PONG 受信時の生存確認はB層の責任で行われる　ー＞　A層はIRCプロトコルを知らなくてOK
 					_disconnectClient(fd);
 					--i;
 					continue;
 				}
 			}
-			// (3.5) 書ける状態なら送る  bircd: check_fd.c の if(revents & POLLOUT) fct_write
+			// (3) 書ける状態なら送る  bircd: check_fd.c の if(revents & POLLOUT) fct_write
 			if (rev & POLLOUT) {
 				if (!_handleWrite(fd)) {	// send 失敗で false
 					_disconnectClient(fd);
 					--i;
 					continue;
 				}
-}
+			}
 			// (4) 読み切った後で HUP/ERR を判定して切断
 			/*
-			POLLHUP は「もう書き込めない」を意味するが、受信バッファに未読データが残っていることがある。
+			POLLHUP は相手側が切断（hang up）した ことを示すイベントだが、受信バッファに未読データが残っていることがある。
 			POLLHUP が立っていても、POLLIN もたっているケースがあるので
-			(3)で先に読み切る！！
+			(2)で先に読み切る！！
 			*/
 			if (rev & (POLLERR | POLLHUP | POLLNVAL)) {
 				_disconnectClient(fd);
 				--i;						// _pollfds が縮むので添字を戻す（走査中erase対策）
 				continue;
 			}
+
+		}
+
+		/*　PONG　未応答　でタイムアウトしたクライアントを改修・切断　*/
+		std::vector<int> timeOut = _healthMonitor.collectTimedOutClients();
+		for (std::vector<int>::iterator it = timeOut.begin(); it != timeOut.end(); ++it){
+			int fd = *it;
+
+			// ① 切断イベントを作成
+			DisconnectEvent event(fd, "Ping timeout");
+			// ② B層に他の参加者（チャンネル）への QUIT 通知メッセージを作ってもらう
+			CommandResult result = _disconnectNotifier.build(event, _state);
+			// ③ 通知メッセージを送信経路にのせる
+			applyCommandResult(result);
+			// ④ クリーンアップは _disconnectClient に一本化 ソケットを閉じるだけでなくライフサイクル層でも fd の状態を消去してくれる
 		}
 	}
 }
@@ -225,23 +251,20 @@ void Server::_acceptClient()
 	_addFd(cs, POLLIN);
 	std::string host = inet_ntoa(csin.sin_addr);
 	
-	/* 必須!!!! dispatch が client を NULL 前提で deref(参照) するため
-	  dispatch は PING/PASS 以外で client->isPassOk() を NULL チェックなしで呼ぶ
-	 accept 時に必ず addClient しておけば getClientByFd(fd) が非 NULL になり回避できる。
-	*/
+	//	dispatch は NULL なら早期 return するが、未登録 fd を作らないため accept 時に addClient しておく
 	_state.addClient(cs, host);
 
 	std::cout << GREEN_COLOR
-	<< "New client #" << cs // csはクラアントのfd　#1 stdin  #2 stdout  #3 stderr #4 listenソケット なので必ず#4から 
+	<< "New client #" << cs // csはクラアントのfd　#0 stdin  #1 stdout  #2 stderr #3 listenソケット よって最初のクライアントは #4 から 
 	<< " from " << host
 	<< ":" << ntohs(csin.sin_port)
 	<< RESET_COLOR << std::endl;
 }
 
 /* #include <netinet/in.h> でsockaddr_inの中身確認するとこうなってる
- * Socket address, internet style.
+* Socket address, internet style.
 
- struct sockaddr_in {
+struct sockaddr_in {
 	__uint8_t       sin_len;
 	sa_family_t     sin_family;
 	in_port_t       sin_port;
@@ -260,23 +283,26 @@ bool Server::_handleRead(int fd) {
 	if (!conn->readFromSocket()) {
 		return false;
 	}
-	
+
+	/* 既知の問題点
+	isLineTooLong() のチェックが readFromSocket() 直後に 1 回だけなので、
+	1 回の recv で「短い1行 + 改行なしの巨大データ」を受け取った場合に、
+	最初の短い行だけ pop して巨大な未完了行が _recvBuffer に残り続けます（次の recv が来ないと切断されない）
+	*/
 	if (conn->isLineTooLong()) {									// pop する前に弾く
 		std::cerr << RED_COLOR << "line too long (#" << fd
 					<< ") 長すぎ切断" << RESET_COLOR << std::endl;	// 切断理由を決めるのはA層の責任　とりま　デバッグ出力
 		return false;												// run() が _disconnectClient(fd) を呼ぶ
 	}
-/* 既知の問題点
-isLineTooLong() のチェックが readFromSocket() 直後に 1 回だけなので、
-1 回の recv で「短い1行 + 改行なしの巨大データ」を受け取った場合に、
-最初の短い行だけ pop して巨大な未完了行が _recvBuffer に残り続けます（次の recv が来ないと切断されない）
-*/
+
+	_healthMonitor.updateActivity(fd);
+
 	while (conn->hasCompleteLine()) {
 		std::string line = conn->popLine();
 		std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
-		// conn->bufferSend(line + "\r\n");							// ← エコー：送信バッファへ積む
 		Message		msg = Parser::parse(line);
-		CommandResult result = _dispatcher.dispatch(fd, msg, _state);
+		CommandResult result = _dispatcher.dispatch(fd, msg, _state,
+																	_healthMonitor);
 		applyCommandResult(result);									// 送信先ごとに bufferSend + _enablePollout 済み
 	}
 	return true;
@@ -286,14 +312,17 @@ isLineTooLong() のチェックが readFromSocket() 直後に 1 回だけなの�
 //   bircd は clean_fd で FD_FREE マーク → 次ループ init_fd が pollfds 再構築でスキップ。
 //   A層は _pollfds 持続なので close + _pollfds erase + Connection delete を自分でやる。
 void Server::_disconnectClient(int fd) {
-	close(fd);
-	_removeFd(fd);
+	close(fd);								// ①物理切断
+	_removeFd(fd);							// ②pollfdsから除去　監視しない
 	std::map<int, Connection*>::iterator it = _connections.find(fd);
 	if (it != _connections.end()) {
 		delete it->second;
 		_connections.erase(it);
-		_state.removeClient(fd);			// C層からも除去
+		_state.removeClient(fd);			// ③C層からも除去　論理除去
 	}
+	_healthMonitor.removeClient(fd);	// ④ライフサイクル層も除去（fd再利用バグ・リーク対策）
+	// _clients のエントリは updateActivity(fd) で作られ、_connections の有無とは独立。
+	// 従って_connections に無くても _clients には残り得るので、if の外（無条件）に置く
 	std::cout << "client #" << fd << " gone away" << std::endl;  // bircd の gone away 相当
 }
 
@@ -399,10 +428,10 @@ make && ./bircd 6667
 
 /*
 🎯 初の A↔B↔C 結合テスト — PING/PONG が B層経由で返ることを確認する。
-   Phase4 で _handleRead のエコーを Parser::parse → _dispatcher.dispatch
-   → applyCommandResult に差し替え。応答は A単体のエコー(PING :foo)ではなく、
-   B層 ReplyBuilder::pong 経由の prefix 付き (:irc.local PONG irc.local :foo) になる。
-   recv(A) → parse/dispatch(B) → ServerState(C) → CommandResult → 送信(A) が一本に繋がる初めての検証。
+Phase4 で _handleRead のエコーを Parser::parse → _dispatcher.dispatch
+→ applyCommandResult に差し替え。応答は A単体のエコー(PING :foo)ではなく、
+B層 ReplyBuilder::pong 経由の prefix 付き (:irc.local PONG irc.local :foo) になる。
+recv(A) → parse/dispatch(B) → ServerState(C) → CommandResult → 送信(A) が一本に繋がる初めての検証。
 
 	# B経由でPONGが返るか（prefix付きなので判定は " PONG " 含有で見る）
 (printf 'PING :foo\r\n'; sleep 1) | nc 127.0.0.1 6667

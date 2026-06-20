@@ -30,6 +30,7 @@ CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
 CommandResult CommandDispatcher::dispatch(int fd, const Message& msg,
                                           ServerState& state,
                                           ConnectionHealthMonitor* healthMonitor) {
+
   Client* clientPtr = state.getClientByFd(fd);
   CommandResult result;
   const std::string& command = msg.getCommand();
@@ -181,6 +182,7 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
   	return result;
   }
 
+
   std::string joinMsg = ReplyBuilder::join(client.getFullPrefix(), "JOIN", channelName);
   addRepliesToMembers(result, channel->getMembers(), joinMsg, -1);
 
@@ -208,6 +210,7 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
   const std::string channelName = msg.getSingleParam(0);
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
+
     result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
     return result;
   }
@@ -225,6 +228,7 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
 // "PRIVMSG"
 CommandResult CommandDispatcher::handlePrivmsg(int fd, const Message& msg,
                                                ServerState& state,
+
                                                Client& client) {
   return handleTextMessage(fd, msg, state, client, "PRIVMSG", true);
 }
@@ -319,6 +323,7 @@ CommandResult CommandDispatcher::handlePong(
   }
   return result;
 }
+
 
 // CommandResult CommandDispatcher::handleQuit(Client* client) {
 //   CommandResult result;

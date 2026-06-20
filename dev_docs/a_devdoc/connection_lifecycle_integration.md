@@ -198,18 +198,19 @@ int ret = poll(&_pollfds[0], _pollfds.size(), 1000);
 
 ## 7. 最小統合チェックリスト
 
-- [ ] `Server.hpp` に `ConnectionHealthMonitor _healthMonitor;` を追加する。
-- [ ] `Server.hpp` に `DisconnectNotifier _disconnectNotifier;` を追加する。
+- [x] `Server.hpp` に `ConnectionHealthMonitor _healthMonitor;` を追加する。
+- [x] `Server.hpp` に `DisconnectNotifier _disconnectNotifier;` を追加する。
 - [ ] `_handleRead()` の `readFromSocket()` 成功後に `_healthMonitor.updateActivity(fd);` を呼ぶ。
-- [ ] dispatcher 呼び出しを `dispatch(fd, msg, _state, _healthMonitor)` に変更する。
+- [x] dispatcher 呼び出しを `dispatch(fd, msg, _state, _healthMonitor)` に変更する。
 - [ ] PING を出したいタイミングで `_healthMonitor.generatePing(fd)` を呼び、返った `CommandResult` を `applyCommandResult()` に渡す。
-- [ ] timeout 検出では `_healthMonitor.collectTimedOutClients()` を呼ぶ。
-- [ ] timeout fd ごとに `DisconnectEvent(fd, "Ping timeout")` を作る。
-- [ ] `_disconnectNotifier.build(event, _state)` の戻り値を `applyCommandResult()` に渡す。
-- [ ] 通知生成後に `_disconnectClient(fd)` で socket / pollfd / `Connection` / `ServerState` を片付ける。
-- [ ] `_disconnectClient(fd)` と同じ cleanup 経路で `_healthMonitor.removeClient(fd)` を呼ぶ。
-- [ ] この段階では `Server` に PING/PONG の内部状態を追加しない。
-- [ ] この段階では `ConnectionHealthMonitor` から `send()` / `close()` を呼ばせない。
+- [x] timeout 検出では `_healthMonitor.collectTimedOutClients()` を呼ぶ。
+- [x] timeout fd ごとに `DisconnectEvent(fd, "Ping timeout")` を作る。
+- [x] `_disconnectNotifier.build(event, _state)` の戻り値を `applyCommandResult()` に渡す。
+- [x] 通知生成後に `_disconnectClient(fd)` で socket / pollfd / `Connection` / `ServerState` を片付ける。
+- [x] `_disconnectClient(fd)` と同じ cleanup 経路で `_healthMonitor.removeClient(fd)` を呼ぶ。
+- [x] この段階では `Server` に PING/PONG の内部状態を追加しない。
+- [x] この段階では `ConnectionHealthMonitor` から `send()` / `close()` を呼ばせない。
+
 
 ## 8. 動作確認
 
