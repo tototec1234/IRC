@@ -13,7 +13,7 @@ class ReplyBuilder {
 
   // Numeric replies currently used by CommandDispatcher skeleton.
   static std::string welcome(const Client& client);
-  static std::string needMoreParams(const Client* client,
+  static std::string needMoreParams(const Client& client,
                                     const std::string& command);
   static std::string alreadyRegistered(const Client& client);
   static std::string passwordMismatch();
@@ -44,7 +44,7 @@ class ReplyBuilder {
   static std::string inviteOnlyChan(const Client& client,
                                     const std::string& ChannelName);
   static std::string noRegistered(const Client& client);
-  static std::string unknownCommand(const Client* client,
+  static std::string unknownCommand(const Client& client,
                                     const std::string& command);
 
 
