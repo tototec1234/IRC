@@ -324,23 +324,6 @@ CommandResult CommandDispatcher::handlePong(
   return result;
 }
 
-CommandResult CommandDispatcher::handlePong(
-    int fd, const Message& msg, Client* client,
-    ConnectionHealthMonitor* healthMonitor) {
-  CommandResult result;
-  if (!client) {
-    return result;
-  }
-  if (!msg.hasParam(0)) {
-    result.addReply(fd, ReplyBuilder::needMoreParams(client, "PONG"));
-    return result;
-  }
-  if (healthMonitor) {
-    healthMonitor->markPongReceived(
-        fd, msg.getSingleParam(msg.getParamCount() - 1));
-  }
-  return result;
-}
 
 // CommandResult CommandDispatcher::handleQuit(Client* client) {
 //   CommandResult result;
