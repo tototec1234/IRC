@@ -20,8 +20,16 @@ class Message {
    * parameters and the optional trailing parameter as plain strings.
    */
   Message(const std::string& command, const std::vector<std::string>& params);
+  /**
+   * @brief Creates a parsed IRC message with its optional prefix.
+   *
+   * prefix is stored without the leading ':' marker.
+   */
+  Message(const std::string& prefix, const std::string& command,
+          const std::vector<std::string>& params);
   ~Message();
 
+  const std::string& getPrefix() const;
   const std::string& getCommand() const;
   const std::vector<std::string>& getParams() const;
   size_t getParamCount() const;
@@ -34,6 +42,8 @@ class Message {
   bool hasParam(size_t index) const;
 
  private:
+  // Optional IRC message prefix, without the leading ':' marker.
+  std::string _prefix;
   // IRC command name. Parser currently normalizes command names to uppercase.
   std::string _command;
   // Parsed IRC parameters.

@@ -31,19 +31,21 @@ void skipSeparators(const std::string& input, size_t& pos) {
   }
 }
 
-bool skipPrefix(const std::string& input, size_t& pos) {
+bool readPrefix(const std::string& input, size_t& pos, std::string& prefix) {
   skipSeparators(input, pos);
   if (pos >= input.size() || input[pos] != ':') {
     return true;
   }
 
-  size_t prefixEnd = pos;
+  size_t prefixStart = pos + 1;
+  size_t prefixEnd = prefixStart;
   while (prefixEnd < input.size() && !isMessageSeparator(input[prefixEnd])) {
     ++prefixEnd;
   }
   if (prefixEnd == input.size()) {
     return false;
   }
+  prefix = input.substr(prefixStart, prefixEnd - prefixStart);
   pos = prefixEnd;
   skipSeparators(input, pos);
   return true;
@@ -80,13 +82,14 @@ std::vector<std::string> readParams(const std::string& input, size_t pos) {
 
 Message Parser::parse(const std::string& line) {
   std::string input = removeIrcLineTerminator(line);
+  std::string prefix;
   size_t pos = 0;
 
-  if (!skipPrefix(input, pos) || pos >= input.size()) {
+  if (!readPrefix(input, pos, prefix) || pos >= input.size()) {
     return Message();
   }
 
   std::string command = readToken(input, pos);
   std::vector<std::string> params = readParams(input, pos);
-  return Message(upperCommand(command), params);
+  return Message(prefix, upperCommand(command), params);
 }
