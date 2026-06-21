@@ -11,6 +11,7 @@ SRCS_B      = src/b/Message.cpp \
               src/b/Parser.cpp \
               src/b/CommandResult.cpp \
               src/b/ReplyBuilder.cpp \
+              src/b/ChannelCommandHandler.cpp \
               src/b/CommandDispatcher.cpp \
               src/b/DisconnectEvent.cpp \
               src/b/DisconnectNotifier.cpp

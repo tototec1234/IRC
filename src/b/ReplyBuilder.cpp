@@ -1,24 +1,25 @@
 #include "b/ReplyBuilder.hpp"
 
+#include "c/Channel.hpp"
 #include "c/Client.hpp"
+#include <vector>
 
 namespace {
 
 const char* SERVER_NAME = "irc.local";
 
 const char* RPL_WELCOME = "001";  // welcome()
-// TODO: const char* RPL_CHANNELMODEIS = "324";  // channelModeIs()
+const char* RPL_CHANNELMODEIS = "324";  // channelModeIs()
 const char* RPL_NOTOPIC = "331";        // noTopic()
 const char* RPL_TOPIC = "332";          // topicReply()
 const char* RPL_INVITING = "341";       // inviting()
-// TODO: const char* RPL_NAMREPLY = "353";       // nameReply()
-// TODO: const char* RPL_ENDOFNAMES = "366";     // endOfNames()
+const char* RPL_NAMREPLY = "353";       // nameReply()
+const char* RPL_ENDOFNAMES = "366";     // endOfNames()
 
 const char* ERR_NOSUCHNICK = "401";       // noSuchNick()
 const char* ERR_NOSUCHCHANNEL = "403";    // noSuchChannel()
 const char* ERR_CANNOTSENDTOCHAN = "404"; // cannotSendToChan()
 const char* ERR_UNKNOWNCOMMAND = "421";  // unknownCommand()
-// TODO: const char* ERR_NONICKNAMEGIVEN = "431";  // noNicknameGiven()
 const char* ERR_NICKNAMEINUSE = "433";  // nickInUse()
 const char* ERR_USERNOTINCHANNEL = "441"; // userNotInChannel()
 const char* ERR_NOTONCHANNEL = "442";     // notOnChannel()
@@ -27,9 +28,10 @@ const char* ERR_NOTREGISTERED = "451";    // notRegistered()
 const char* ERR_NEEDMOREPARAMS = "461";     // needMoreParams()
 const char* ERR_ALREADYREGISTERED = "462";  // alreadyRegistered()
 const char* ERR_PASSWDMISMATCH = "464";     // passwordMismatch()
-// TODO: const char* ERR_CHANNELISFULL = "471";    // channelIsFull()
+const char* ERR_CHANNELISFULL = "471";   // channelIsFull()
+const char* ERR_UNKNOWNMODE = "472";      // unknownMode()
 const char* ERR_INVITEONLYCHAN = "473";   // inviteOnlyChan()
-// TODO: const char* ERR_BADCHANNELKEY = "475";    // badChannelKey()
+const char* ERR_BADCHANNELKEY = "475";    // badChannelKey()
 const char* ERR_CHANOPRIVSNEEDED = "482"; // chanOpPrivsNeeded()
 
 std::string replyTarget(const Client& client) {
@@ -112,11 +114,53 @@ std::string ReplyBuilder::topicReply(const Client& client,
   return numericReply(RPL_TOPIC, replyTarget(client), ChannelName, topic);
 }
 
+std::string ReplyBuilder::channelModeIs(const Client& client,
+                                        const std::string& ChannelName,
+                                        const std::string& modes,
+                                        const std::string& modeArgs) {
+  std::string reply = std::string(":") + SERVER_NAME + " " +
+                      RPL_CHANNELMODEIS + " " + replyTarget(client) + " " +
+                      ChannelName + " " + modes;
+  if (!modeArgs.empty()) {
+    reply += " " + modeArgs;
+  }
+  reply += "\r\n";
+  return reply;
+}
+
 std::string ReplyBuilder::inviting(const Client& client,
                                    const std::string& targetNick,
                                    const std::string& ChannelName) {
   return std::string(":") + SERVER_NAME + " " + RPL_INVITING + " " +
          replyTarget(client) + " " + targetNick + " " + ChannelName + "\r\n";
+}
+
+std::string ReplyBuilder::nameReply(const Client& client,
+                                    const Channel& channel) {
+  std::vector<Client*> members = channel.getMembers();
+  std::string names;
+  for (std::vector<Client*>::const_iterator it = members.begin();
+       it != members.end(); ++it) {
+    Client* member = *it;
+    if (!member) {
+      continue;
+    }
+    if (!names.empty()) {
+      names += " ";
+    }
+    if (channel.isOperator(member)) {
+      names += "@";
+    }
+    names += member->getNick();
+  }
+  return numericReply(RPL_NAMREPLY, replyTarget(client),
+                      "= " + channel.getName(), names);
+}
+
+std::string ReplyBuilder::endOfNames(const Client& client,
+                                     const std::string& ChannelName) {
+  return numericReply(RPL_ENDOFNAMES, replyTarget(client), ChannelName,
+                      "End of /NAMES list");
 }
 
 //                               //
@@ -152,10 +196,22 @@ std::string ReplyBuilder::chanOpPrivsNeeded(const Client& client,
                       "You are not channel operator");
 }
 
+std::string ReplyBuilder::channelIsFull(const Client& client,
+                                        const std::string& ChannelName) {
+  return numericReply(ERR_CHANNELISFULL, replyTarget(client), ChannelName,
+                      "Cannot join channel (+l)");
+}
+
 std::string ReplyBuilder::inviteOnlyChan(const Client& client,
                                          const std::string& ChannelName) {
   return numericReply(ERR_INVITEONLYCHAN, replyTarget(client), ChannelName,
                       "Cannot join channel (+i)");
+}
+
+std::string ReplyBuilder::badChannelKey(const Client& client,
+                                        const std::string& ChannelName) {
+  return numericReply(ERR_BADCHANNELKEY, replyTarget(client), ChannelName,
+                      "Cannot join channel (+k)");
 }
 
 std::string ReplyBuilder::noRegistered(const Client& client) {
@@ -221,12 +277,29 @@ std::string ReplyBuilder::unknownCommand(const Client& client,
                       "Unknown command");
 }
 
+std::string ReplyBuilder::unknownMode(const Client& client,
+                                      const std::string& modeToken) {
+  return numericReply(ERR_UNKNOWNMODE, replyTarget(client), modeToken,
+                      "is unknown mode char to me");
+}
 
+std::string ReplyBuilder::kick(const std::string& client,
+                               const std::string& ChannelName,
+                               const std::string& target,
+                               const std::string& reason) {
+  return std::string(":") + client + " KICK " + ChannelName + " " + target +
+         " :" + reason + "\r\n";
+}
 
-
-//	torima ato de kesu
-std::string ReplyBuilder::torima_Missing(const Client& client,
-                                         const std::string& command) {
-  return numericReply("999", replyTarget(client), command,
-	                  "みすった〜");
+std::string ReplyBuilder::mode(const std::string& client,
+                               const std::string& ChannelName,
+                               const std::string& modeToken,
+                               const std::string& modeArg) {
+  std::string reply = std::string(":") + client + " MODE " + ChannelName +
+                      " " + modeToken;
+  if (!modeArg.empty()) {
+    reply += " " + modeArg;
+  }
+  reply += "\r\n";
+  return reply;
 }

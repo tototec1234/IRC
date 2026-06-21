@@ -20,6 +20,7 @@ SRCS_B      = $(SRC_B_DIR)/Message.cpp \
               $(SRC_B_DIR)/Parser.cpp \
               $(SRC_B_DIR)/CommandResult.cpp \
               $(SRC_B_DIR)/ReplyBuilder.cpp \
+              $(SRC_B_DIR)/ChannelCommandHandler.cpp \
               $(SRC_B_DIR)/CommandDispatcher.cpp \
               $(SRC_B_DIR)/DisconnectEvent.cpp \
               $(SRC_B_DIR)/DisconnectNotifier.cpp
