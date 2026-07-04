@@ -377,10 +377,10 @@ bool Server::_handleWrite(int fd) {
 // B層が作った CommandResult を A層の送信経路へ流す。
 // 送信先 fd は source fd とは限らない（JOIN 等は他メンバーへブロードキャスト）。
 void Server::applyCommandResult(const CommandResult& result, int sourceFd) {
-	_enqueueReplies(result);
+	_enqueueReplies(result);	// "Client Quit" の根拠は— connection_lifecycle_integration.md §9 / irssi_handson_common.md}
 	if (result.shouldDisconnect)
 		_notifyAndDisconnect(sourceFd, "Client Quit");
-// "Client Quit" の根拠は— connection_lifecycle_integration.md §9 / irssi_handson_common.md}
+}
 
 void Server::_enqueueReplies(const CommandResult& result){
 	for (size_t i = 0; i < result.replies.size(); ++i) {
