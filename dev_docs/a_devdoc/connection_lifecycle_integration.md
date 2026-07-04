@@ -251,3 +251,15 @@ PING :hello
 ```
 
 サーバから `PING` が送られる統合まで入れた場合、irssi や一般 IRC クライアントは自動で `PONG` を返す。`PONG` が返れば `ConnectionHealthMonitor` の waiting state が解除される。
+
+## 9. QUIT reason 文字列（A 層 `_notifyAndDisconnect` / `applyCommandResult`）
+
+| reason | 経路 | 根拠 |
+|--------|------|------|
+| `Client Quit` | B層 `shouldDisconnect`（明示 QUIT） | irc.libera.chat 観測: 他クライアントへ `:nick!user@host QUIT :Client Quit`。自前 nc 結合テストでも再現（PR #50） |
+| `Connection reset` | recv==0 / 行長超過 / POLLHUP・ERR / send 失敗 | 本 doc §5.2 サンプル。recv/HUP は doc 準拠。POLLOUT/send 失敗は同じ非自発切断ポリシーで統一（2026-07-04） |
+| `Ping timeout` | `_healthMonitor.collectTimedOutClients()` | 本 doc §5。libera は `Ping timeout: N seconds` 形式（[irssi_handson_common.md](../onboarding_docs/irssi_handson_common.md) §PING timeout） |
+
+注意:
+- reason は `ReplyBuilder::quit` 経由で `:prefix QUIT :reason` になる。評価必須の固定文言ではない。
+- libera の Ping timeout は秒数付きだが、ft_irc 現実装は `"Ping timeout"` のみ（B層 `DisconnectNotifier` が A から渡された reason をそのまま使用）。
