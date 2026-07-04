@@ -95,7 +95,7 @@ Server::~Server() {
 // API
 void Server::run() {
 	#ifdef A_LAYER_DEBUG
-	int tmp = 4242;
+	int tmp = -42;
 	#endif
 
 	while (true){	
