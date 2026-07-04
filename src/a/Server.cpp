@@ -168,7 +168,7 @@ void Server::run() {
 			if (rev & POLLIN) {
 						//　①「クライアントの意思でclose() や shutdown()を行った場合（TCPのFINパケット（EOF）が届くが、その場合でもPOLLIN（読み込み可能）フラグは立ったままである。この状態で_handleReadがrecv()を呼ぶと、ブロックせずに即座に0を返してくる
 						//　②PONGタイムアウトfdはループ末尾で処理
-				if (!_handleRead(fd)) {//  EOF/recvエラー/行長すぎ/B層の切断要求なら非自発的失敗として切断
+				if (!_handleRead(fd)) {//  EOF/recvエラー/行長すぎ　は非自発的失敗として切断
 					if (_connections.find(fd) != _connections.end())
 						_notifyAndDisconnect(fd, "Connection reset");	// connection_lifecycle_integration.md　 5.2 recv==0 / POLLHUP も DisconnectEvent に寄せる場合　準拠
 					--i;
