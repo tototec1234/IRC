@@ -2,6 +2,14 @@ NAME        = ircserv
 
 CXX         = c++
 CXXFLAGS    = -Wall -Wextra -Werror -std=c++98
+
+
+# DEBUG=0 make で提出相当ビルド
+ifeq ($(DEBUG),0)
+else
+CXXFLAGS += -D A_LAYER_DEBUG
+endif
+
 INCLUDES    = -I./include
 
 SRCS_A      = src/a/Server.cpp \

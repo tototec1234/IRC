@@ -14,10 +14,12 @@
 #include <fcntl.h>	// fcntl, F_SETFL, O_NONBLOCK
 #include <csignal>	// signal, SIGPIPE, SIG_IGN 
 
+#ifdef A_LAYER_DEBUG
 /*
 これはrevents挙動確認用関数です 
 */
 static void _printRevents(short revents); 
+#endif
 
 static void _setNonBlocking(int fd) {
 	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
@@ -63,10 +65,6 @@ Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw), _he
 	/*　bircd の　`init_fd.c`　相当の処理*/
 	_addFd(_listenFd, POLLIN);
 	std::cout << "Server listening on port " << port << std::endl;
-
-	(void)pw;
-
-
 }
 //　 reinterpret_cast<struct sockaddr*>(&clntAddr) にしようか迷ったが、CPP06 ex01 で危険だったので保留
 /* ************************************************************************** 
@@ -92,13 +90,14 @@ Data	*Serializer::deserialization(uintptr_t raw)
 Server::~Server() {
 	if (_listenFd >= 0)
 	close(_listenFd);
-	std::cout << RED_COLOR << "Server デストラクタ　コールド" << RESET_COLOR << std::endl;
 }
 
 // API
 void Server::run() {
-	std::cout << "RUN RUN RUN" << std::endl;
+	#ifdef A_LAYER_DEBUG
 	int tmp = 4242;
+	#endif
+
 	while (true){	
 		/*
 		https://man7.org/linux/man-pages/man2/poll.2.html
@@ -108,6 +107,7 @@ void Server::run() {
 		// -1の無限まちから 1秒(1000ms)待ちでタイムアウト検知を回す。
 		int ret = poll(&_pollfds[0], _pollfds.size(), 1000);
 
+		#ifdef A_LAYER_DEBUG
 		// ここからデバッグ出力
 		if (tmp != ret){
 			tmp = ret;
@@ -142,7 +142,7 @@ void Server::run() {
 				std::cout << std::endl;
 			}
 		}
-		// ここまではデバッグ出力
+		#endif // ここまではデバッグ出力
 		
 		if (ret < 0)
 			break; 	// errno 処理は後で
@@ -158,7 +158,9 @@ void Server::run() {
 			if (fd == _listenFd){
 				if (rev & POLLIN)
 				{
+					#ifdef A_LAYER_DEBUG
 					std::cout << "_acceptClient(); " << std::endl;
+					#endif
 					_acceptClient();		// ここで accept
 				}
 				continue;
@@ -242,11 +244,13 @@ void Server::_acceptClient()
 	//	dispatch は NULL なら早期 return するが、未登録 fd を作らないため accept 時に addClient しておく
 	_state.addClient(cs, host);
 
+	#ifdef A_LAYER_DEBUG
 	std::cout << GREEN_COLOR
 	<< "New client #" << cs // csはクラアントのfd　#0 stdin  #1 stdout  #2 stderr #3 listenソケット よって最初のクライアントは #4 から 
 	<< " from " << host
 	<< ":" << ntohs(csin.sin_port)
 	<< RESET_COLOR << std::endl;
+	#endif
 }
 
 /* #include <netinet/in.h> でsockaddr_inの中身確認するとこうなってる
@@ -287,7 +291,12 @@ bool Server::_handleRead(int fd) {
 
 	while (conn->hasCompleteLine()) {
 		std::string line = conn->popLine();
+
+		#ifdef A_LAYER_DEBUG
 		std::cout << "[recv #" << fd << "] " << line << std::endl;  // 動作確認
+		#endif
+
+		
 		Message		msg = Parser::parse(line);
 		CommandResult result = _dispatcher.dispatch(fd, msg, _state,
 																	_healthMonitor);
@@ -313,7 +322,10 @@ void Server::_disconnectClient(int fd) {
 	_healthMonitor.removeClient(fd);	// ④ライフサイクル層も除去（fd再利用バグ・リーク対策）
 	// _clients のエントリは updateActivity(fd) で作られ、_connections の有無とは独立。
 	// 従って_connections に無くても _clients には残り得るので、if の外（無条件）に置く
+	#ifdef A_LAYER_DEBUG
 	std::cout << "client #" << fd << " gone away" << std::endl;  // bircd の gone away 相当
+	#endif
+
 }
 
 void Server::_removeFd(int fd) {
@@ -325,6 +337,7 @@ void Server::_removeFd(int fd) {
 	}
 }
 
+#ifdef A_LAYER_DEBUG
 /*
 これは挙動確認用関数です
 */
@@ -342,7 +355,7 @@ static void _printRevents(short revents)
 	if (revents & POLLHUP) std::cout << "HUP ";
 	std::cout << "]";
 }
-
+#endif
 
 /*
 bircd: init_fd.c の「strlen(buf_write)>0 で events|=POLLOUT」に対応。
@@ -377,7 +390,7 @@ bool Server::_handleWrite(int fd) {
 // B層が作った CommandResult を A層の送信経路へ流す。
 // 送信先 fd は source fd とは限らない（JOIN 等は他メンバーへブロードキャスト）。
 void Server::applyCommandResult(const CommandResult& result, int sourceFd) {
-	_enqueueReplies(result);	// "Client Quit" の根拠は— connection_lifecycle_integration.md §9 / irssi_handson_common.md}
+	_enqueueReplies(result);	
 	if (result.shouldDisconnect)
 		_notifyAndDisconnect(sourceFd, "Client Quit");
 }
