@@ -9,7 +9,7 @@
 #include <arpa/inet.h> // inet_ntoa 用
 
 #include <cstring>
-#include <cerrno>	//　accept 失敗ログ用 提出前に消すこと！
+#include <cerrno>	// accept() 失敗ログ用 (errno / strerror)
 
 #include <fcntl.h>	// fcntl, F_SETFL, O_NONBLOCK
 #include <csignal>	// signal, SIGPIPE, SIG_IGN 
