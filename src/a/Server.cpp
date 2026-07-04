@@ -380,8 +380,7 @@ void Server::applyCommandResult(const CommandResult& result, int sourceFd) {
 	_enqueueReplies(result);
 	if (result.shouldDisconnect)
 		_notifyAndDisconnect(sourceFd, "Client Quit");
-	// "Client Quit"メッセージはirc.libera.chat　での観測結果
-}
+// "Client Quit" の根拠は— connection_lifecycle_integration.md §9 / irssi_handson_common.md}
 
 void Server::_enqueueReplies(const CommandResult& result){
 	for (size_t i = 0; i < result.replies.size(); ++i) {
