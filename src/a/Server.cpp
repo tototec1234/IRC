@@ -5,12 +5,11 @@
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
-// #include <string>
 #include <unistd.h> // close()
 #include <arpa/inet.h> // inet_ntoa 用
 
 #include <cstring>
-#include <cerrno>	//　デバッグ出力用　後で消す
+#include <cerrno>	//　accept 失敗ログ用 提出前に消すこと！
 
 #include <fcntl.h>	// fcntl, F_SETFL, O_NONBLOCK
 #include <csignal>	// signal, SIGPIPE, SIG_IGN 
@@ -168,12 +167,10 @@ void Server::run() {
 			// 
 			if (rev & POLLIN) {
 						//　①「クライアントの意思でclose() や shutdown()を行った場合（TCPのFINパケット（EOF）が届くが、その場合でもPOLLIN（読み込み可能）フラグは立ったままである。この状態で_handleReadがrecv()を呼ぶと、ブロックせずに即座に0を返してくる
-						//　②PONGタイムアウトしている状況だとしてもPOLLINになっていることを期待
-				if (!_handleRead(fd)) {//  まず読む。_handleRead が false を返す（EOF/recvエラー/行長すぎ/B層の切断要求）なら切断
-					// _handleRead(fd) の内部でB層の _dispatcher.dispatch() を叩くときに
-					//    _dispatcher.dispatch(..., _healthMonitor) で　_healthMonitor を渡すので
-					// PONG 受信時の生存確認はB層の責任で行われる　ー＞　A層はIRCプロトコルを知らなくてOK
-					_disconnectClient(fd);
+						//　②PONGタイムアウトfdはループ末尾で処理
+				if (!_handleRead(fd)) {//  EOF/recvエラー/行長すぎ/B層の切断要求なら非自発的失敗として切断
+					if (_connections.find(fd) != _connections.end())
+						_notifyAndDisconnect(fd, "Connection reset");	// connection_lifecycle_integration.md　 5.2 recv==0 / POLLHUP も DisconnectEvent に寄せる場合　準拠
 					--i;
 					continue;
 				}
@@ -181,7 +178,7 @@ void Server::run() {
 			// (3) 書ける状態なら送る  bircd: check_fd.c の if(revents & POLLOUT) fct_write
 			if (rev & POLLOUT) {
 				if (!_handleWrite(fd)) {	// send 失敗で false
-					_disconnectClient(fd);
+					_notifyAndDisconnect(fd, "Connection reset");
 					--i;
 					continue;
 				}
@@ -193,26 +190,17 @@ void Server::run() {
 			(2)で先に読み切る！！
 			*/
 			if (rev & (POLLERR | POLLHUP | POLLNVAL)) {
-				_disconnectClient(fd);
+				_notifyAndDisconnect(fd, "Connection reset");	// connection_lifecycle_integration.md　 5.2 recv==0 / POLLHUP も DisconnectEvent に寄せる場合　準拠
 				--i;						// _pollfds が縮むので添字を戻す（走査中erase対策）
 				continue;
 			}
 
 		}
 
-		/*　PONG　未応答　でタイムアウトしたクライアントを改修・切断　*/
+		/*　PONG　未応答　でタイムアウトしたクライアントを切断　*/
 		std::vector<int> timeOut = _healthMonitor.collectTimedOutClients();
-		for (std::vector<int>::iterator it = timeOut.begin(); it != timeOut.end(); ++it){
-			int fd = *it;
-
-			// ① 切断イベントを作成
-			DisconnectEvent event(fd, "Ping timeout");
-			// ② B層に他の参加者（チャンネル）への QUIT 通知メッセージを作ってもらう
-			CommandResult result = _disconnectNotifier.build(event, _state);
-			// ③ 通知メッセージを送信経路にのせる
-			applyCommandResult(result);
-			// ④ クリーンアップは _disconnectClient に一本化 ソケットを閉じるだけでなくライフサイクル層でも fd の状態を消去してくれる
-		}
+		for (std::vector<int>::iterator it = timeOut.begin(); it != timeOut.end(); ++it)
+			_notifyAndDisconnect(*it, "Ping timeout");
 	}
 }
 
@@ -292,7 +280,7 @@ bool Server::_handleRead(int fd) {
 	if (conn->isLineTooLong()) {									// pop する前に弾く
 		std::cerr << RED_COLOR << "line too long (#" << fd
 					<< ") 長すぎ切断" << RESET_COLOR << std::endl;	// 切断理由を決めるのはA層の責任　とりま　デバッグ出力
-		return false;												// run() が _disconnectClient(fd) を呼ぶ
+		return false;												// run() が _notifyAndDisconnect を呼ぶ（QUIT 済みなら _connections ガードでスキップ）
 	}
 
 	_healthMonitor.updateActivity(fd);
@@ -303,7 +291,9 @@ bool Server::_handleRead(int fd) {
 		Message		msg = Parser::parse(line);
 		CommandResult result = _dispatcher.dispatch(fd, msg, _state,
 																	_healthMonitor);
-		applyCommandResult(result);									// 送信先ごとに bufferSend + _enablePollout 済み
+		applyCommandResult(result, fd);		// 送信先ごとに _enqueueReplies 経由で送信バッファへ積む
+		if (result.shouldDisconnect)
+			return false;
 	}
 	return true;
 }
@@ -386,23 +376,39 @@ bool Server::_handleWrite(int fd) {
 
 // B層が作った CommandResult を A層の送信経路へ流す。
 // 送信先 fd は source fd とは限らない（JOIN 等は他メンバーへブロードキャスト）。
-void Server::applyCommandResult(const CommandResult& result) {
+void Server::applyCommandResult(const CommandResult& result, int sourceFd) {
+	_enqueueReplies(result);
+	if (result.shouldDisconnect)
+		_notifyAndDisconnect(sourceFd, "Client Quit");
+	// "Client Quit"メッセージはirc.libera.chat　での観測結果
+}
+
+void Server::_enqueueReplies(const CommandResult& result){
 	for (size_t i = 0; i < result.replies.size(); ++i) {
 		int target = result.replies[i].fd;
 		std::map<int, Connection*>::iterator it = _connections.find(target);
 		if (it == _connections.end())
-			continue;					// 既に切断済み等。落とさない
+			continue;					// クラッシュ防止のため、B層が既に切断済み等になっているfdを返してきたばあいはスルーする。
 		it->second->bufferSend(result.replies[i].message);
 		_enablePollout(target);
 	}
-	//	TODO: result.shouldDisconnect が true なら source fd を切断。
-	//	現状 B は QUIT 未実装で常に false。配線は後続（flush後closeのgraceful論点込み）。
+}
+
+void Server::_notifyAndDisconnect(int fd, const std::string& reason){
+	// ① 切断イベントを作成　DisconnectEvent を作る（fd, reason）
+	DisconnectEvent event(fd, reason);
+	// ② B層に他の参加者（チャンネル）への QUIT 通知メッセージを作ってもらう
+	CommandResult notify = _disconnectNotifier.build(event, _state);
+	// ③ _enqueueReplies(notify)
+	_enqueueReplies(notify);
+	// ④ _disconnectClient(fd)
+	_disconnectClient(fd);
 }
 
 /*
 バッファ動作確認方法
 
-make && ./bircd 6667
+./ircserv 6667 pass
 # 別ターミナル2枚:
 	# 受信側
 	nc localhost 6667
@@ -415,28 +421,4 @@ make && ./bircd 6667
 
 	# \r\n無し200B → 切断の確認
 	python3 -c "import sys; sys.stdout.buffer.write(b'A'*200)" | nc localhost 6667
-*/
-
-/*
-送信経路（POLLOUT + send）動作確認方法 — エコーで自己検証（B層非依存）
-
-	# 複数行が順に返るか（while ループ＋送信）
-(printf 'a\r\nb\r\nc\r\n'; sleep 1) | nc 127.0.0.1 6667
-# → a / b / c
-# POLLOUT が下りているか（送信後ビジーループしていないか）→ top で ircserv の CPU が張り付かないこと
-*/
-
-/*
-🎯 初の A↔B↔C 結合テスト — PING/PONG が B層経由で返ることを確認する。
-Phase4 で _handleRead のエコーを Parser::parse → _dispatcher.dispatch
-→ applyCommandResult に差し替え。応答は A単体のエコー(PING :foo)ではなく、
-B層 ReplyBuilder::pong 経由の prefix 付き (:irc.local PONG irc.local :foo) になる。
-recv(A) → parse/dispatch(B) → ServerState(C) → CommandResult → 送信(A) が一本に繋がる初めての検証。
-
-	# B経由でPONGが返るか（prefix付きなので判定は " PONG " 含有で見る）
-(printf 'PING :foo\r\n'; sleep 1) | nc 127.0.0.1 6667
-# → :irc.local PONG irc.local :foo
-
-	# 登録フロー（PASS→NICK→USER）も通るか（B経由）
-(printf 'PASS pw\r\nNICK alice\r\nUSER a a a a\r\n'; sleep 1) | nc 127.0.0.1 6667
 */
