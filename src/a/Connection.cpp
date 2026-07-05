@@ -14,6 +14,7 @@ bool Connection::isLineTooLong() const {
 	const size_t	max_ok	= 512;										// CRLF込みの生で512 までは許容
 
 	// まだ上限を超えていない未完了行は「長すぎ」ではない
+
  	if (_recvBuffer.size() <= max_ok)
  		return false;
 
@@ -58,9 +59,9 @@ bool Connection::readFromSocket() {
 	if (n == 0)
 		return false;
 	if (n < 0)
-		return false; /* エラー。bircd の r<0 も切断扱い
-				  Phase7 で EAGAIN を「切断せずスキップ=true」に分ける
-					 (client_read.c L94 のメモ) */
+		return false; /* n<0: bircd と同様に切断。
+					poll 駆動 1 イベント 1 recv では EAGAIN 分岐は不要
+					(errno_and_nonblocking_42_policy.md §4) */
 	_recvBuffer.append(buf, n);
 	return true;
 }
@@ -114,7 +115,7 @@ bool Connection::writeToSocket() {
 		return true;							// bircd: buf_write_len==0 return
 	ssize_t sent = send(_fd, _sendBuffer.c_str(), _sendBuffer.size(), 0);
 	if (sent <= 0)
-		return false;							// bircd: sent<=0 → 切断。Phase7でEAGAINは別扱い
+		return false;  // bircd: sent<=0 → 切断（EAGAIN 分岐は足さない §4）
 	_sendBuffer.erase(0, sent);					// bircd: ft_memmove で前詰め
 	return true;
 }
