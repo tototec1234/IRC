@@ -1,4 +1,4 @@
-# samatsum 氏プレビュー — 2026-07-05（同席torinoue）
+# samatsum 氏プレビュー — 2026-07-05（同席: torinoue）
 
 > **レビュー源**: samatsum 氏（外部 read-only プレビュー）  
 > **依頼者**: torinoue  
