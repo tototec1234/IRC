@@ -17,7 +17,7 @@
 横断doc / 実装計画docは「Phase7 fcntl 未実施」「EAGAIN処理が宿題」とするが、実コードは進んでいる:
 
 - **fcntl(O_NONBLOCK) は実装済み**。`Server::_setNonBlocking` を listen fd（ctor）と accept した cs の両方に適用済み。→ Phase7 fcntl は残作業ではなく**検証のみ**。
-- **errno/EAGAIN は方針docどおり「現状維持が正解」**。poll駆動の「1イベント1 recv」設計では `recv/send` 後に errno を見ない・`n<0` を即切断扱いが 42準拠かつ正しい（[errno_and_nonblocking_42_policy.md](./errno_and_nonblocking_42_policy.md) §4）。EAGAIN分岐は**足さない**。→ コード変更不要。`Connection.cpp` の「Phase7でEAGANを分ける」誤誘導コメントの**削除のみ**が作業。
+- **errno/EAGAIN は方針docどおり「現状維持が正解」**。poll駆動の「1イベント1 recv」設計では `recv/send` 後に errno を見ない・`n<0` を即切断扱いが 42準拠かつ正しい（[errno_and_nonblocking_42_policy.md](./errno_and_nonblocking_42_policy.md) §4）。EAGAIN分岐は**足さない**。→ コード変更不要。`Connection.cpp` の「Phase7でEAGAINを分ける」誤誘導コメントの**削除のみ**が作業。
 
 ## 2. 新規発見 — QUIT が現状壊れている（最優先）
 
