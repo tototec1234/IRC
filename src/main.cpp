@@ -17,7 +17,16 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	Server server(static_cast<int>(port), std::string(argv[2]));
-	server.run();
+	// Server server(static_cast<int>(port), std::string(argv[2]));
+	// server.run();
+
+	try {
+		Server server(static_cast<int>(port), std::string(argv[2]));
+		server.run();
+	} catch (const std::exception& e) {
+		std::cerr << "Fatal: " << e.what() << std::endl;
+		return 1;
+	}
+	
 	return 0;
 }

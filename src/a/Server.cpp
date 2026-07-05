@@ -40,6 +40,14 @@ Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw), _he
 	_listenFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_listenFd < 0)
 		throw std::runtime_error("socket() failed");
+
+	/* */
+	int opt = 1;
+	if (setsockopt(_listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+		close(_listenFd);
+		throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
+	}
+	
 	_setNonBlocking(_listenFd);		// ★追加: listen fd を non-blocking に
 
 	/*　ローカルのアドレス構造体を作成　*/	
@@ -52,7 +60,8 @@ Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw), _he
 	if (bind(_listenFd, (struct sockaddr *)&servAddr, sizeof(servAddr)) < 0)
 	{
 		close(_listenFd);
-		throw std::runtime_error("bind() 失敗");
+		// throw std::runtime_error("bind() 失敗");
+		throw std::runtime_error(std::string("bind() 失敗: ") + strerror(errno));
 	}
 
 	/* 	listen	p42 「接続要求をリスん中」というマークをソケットにつける」*/
