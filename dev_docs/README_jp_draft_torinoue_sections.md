@@ -242,7 +242,7 @@ nc -C 127.0.0.1 6667
 
 #### ドキュメント（Markdown）に関する開示
 
-**torinoue が作成・関与した Markdown（`dev_docs/`・`onboarding_docs/`・本下書き等）は、いずれも AI による生成が主体である。** 白紙から人間のみが一筆書きした MD は存在しない。
+**torinoue が作成・関与した Markdown（**`dev_docs/`**・**`onboarding_docs/`**・本下書き等）は、いずれも AI による生成が主体である。** 白紙から人間のみが一筆書きした MD は存在しない。
 
 人間（torinoue）の役割は次に限定する:
 
@@ -250,7 +250,7 @@ nc -C 127.0.0.1 6667
 - AI 生成文のレビュー・修正・採否・コミット判断
 - 評価時に内容を説明できることの確認
 
-対象の例: `interface.md`、`diagrams/*.md`、`a_devdoc/*.md`、`knowledge/*.md`、`onboarding_docs/irssi_handson_common.md`、本ファイル [`README_jp_draft_torinoue_sections.md`](README_jp_draft_torinoue_sections.md)
+対象の例: `interface.md`、`diagrams/*.md`、`a_devdoc/*.md`、`knowledge/*.md`、`onboarding_docs/irssi_handson_common.md`、本ファイル `[README_jp_draft_torinoue_sections.md](README_jp_draft_torinoue_sections.md)`
 
 #### プロジェクト進行・クリティカルパス / ボトルネック分析
 
@@ -258,16 +258,19 @@ nc -C 127.0.0.1 6667
 
 人間（torinoue）の役割: 分析の**問いの設定**（「今どこが詰まっているか」「A は B を待っているか」）、実コード・PR 事実の**訂正**、チームへの**共有判断**。
 
-| 成果物 | 内容 |
-|--------|------|
-| [a_devdoc/cross_layer_critical_path.md](a_devdoc/cross_layer_critical_path.md) | **横断クリティカルパス SSOT** — A/B/C 依存マトリクス・コマンド別の待ち関係・ボトルネック（B層）の結論 |
-| [diagrams/development_dependency_diagram.md](diagrams/development_dependency_diagram.md) | 担当間・実装依存と開発クリティカルパス短縮の論点 |
-| [diagrams/timeline_diagram.md](diagrams/timeline_diagram.md) | フェーズタイムラインとクリティカルパス（PDM 図）・ボトルネックの可視化 |
-| [a_devdoc/a_plan_macos_to_linux.md](a_devdoc/a_plan_macos_to_linux.md) | 横断分析に基づく A層残作業の優先度分解（PR 分割案） |
-| [a_devdoc/a_status_2026-07-05.md](a_devdoc/a_status_2026-07-05.md) | A層進捗スナップショット（計画と実コードの乖離補正） |
-| [b_devdoc/pr42_impact_review.md](b_devdoc/pr42_impact_review.md) | PR マージ判断用のインパクト評価（スコープ波及・A↔B 前提） |
-| [a_devdoc/a_layer_io_flow.md](a_devdoc/a_layer_io_flow.md) | クリティカルパス分析の補助（A層実行時 I/O の関数単位フロー） |
-| [project_management/phase_plan.md](project_management/phase_plan.md) | 全体フェーズ計画（EV/BAC 管理の親ドキュメント） |
+
+| 成果物                                                                                      | 内容                                                           |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [a_devdoc/cross_layer_critical_path.md](a_devdoc/cross_layer_critical_path.md)           | **横断クリティカルパス SSOT** — A/B/C 依存マトリクス・コマンド別の待ち関係・ボトルネック（B層）の結論 |
+| [diagrams/development_dependency_diagram.md](diagrams/development_dependency_diagram.md) | 担当間・実装依存と開発クリティカルパス短縮の論点                                     |
+| [diagrams/timeline_diagram.md](diagrams/timeline_diagram.md)                             | フェーズタイムラインとクリティカルパス（PDM 図）・ボトルネックの可視化                        |
+| [a_devdoc/a_plan_macos_to_linux.md](a_devdoc/a_plan_macos_to_linux.md)                   | 横断分析に基づく A層残作業の優先度分解（PR 分割案）                                 |
+| [b_devdoc/pr42_impact_review.md](b_devdoc/pr42_impact_review.md)                         | PR マージ判断用のインパクト評価（スコープ波及・A↔B 前提）                             |
+| [a_devdoc/a_layer_io_flow.md](a_devdoc/a_layer_io_flow.md)                               | クリティカルパス分析の補助（A層実行時 I/O の関数単位フロー）                            |
+| [project_management/phase_plan.md](project_management/phase_plan.md)                     | 全体フェーズ計画（EV/BAC 管理の親ドキュメント）                                  |
+
+
+
 
 #### チーム全体の AI 利用方針（経緯）
 
@@ -277,36 +280,52 @@ nc -C 127.0.0.1 6667
 2. **PR レビュー習熟期** — チーム全員が GitHub フロー（ブランチ・PR・人間による peer review）に慣れるまで、**レビューは人間のみ**で実施。設計判断と層間契約の合意を優先した。
 3. **Copilot Review 導入（PR レビュー体験後）** — 上記を一通り経験したのち、**GitHub Copilot による PR Review** を補助として取り入れた。人間レビュアーの前処理・見落とし候補の洗い出しに使い、**マージ判断は人間レビューが最終**とする。
 
-| 段階 | ツール | 用途 | 最終責任 |
-|------|--------|------|----------|
-| 設計・実装 | Cursor AI（Navigator） | 解説・草案・レビュー | 人間（実装・コミット） |
-| PR | 人間レビュアー | 層間契約・設計・動作の確認 | 人間 |
-| PR（補助） | GitHub Copilot Review | 静的観点の指摘候補・文言提案 | 人間（採否・マージ） |
+
+| 段階     | ツール                   | 用途             | 最終責任        |
+| ------ | --------------------- | -------------- | ----------- |
+| 設計・実装  | Cursor AI（Navigator）  | 解説・草案・レビュー     | 人間（実装・コミット） |
+| PR     | 人間レビュアー               | 層間契約・設計・動作の確認  | 人間          |
+| PR（補助） | GitHub Copilot Review | 静的観点の指摘候補・文言提案 | 人間（採否・マージ）  |
+
+
+
 
 #### プロジェクト設計（PM / 設計リード）
 
-| タスク | AI の役割 | 人間（torinoue）の役割 |
-|--------|-----------|------------------------|
-| 3層分割・`interface.md`・クラス/データフロー図 | **MD 本文の生成**（構成・文案） | 設計決定・事実確認・レビュー修正・チーム合意 |
-| クリティカルパス / ボトルネック分析 | **全面的に AI 分析**（上表の成果物 MD） | 問いの設定・事実訂正・優先度の最終判断 |
-| オンボーディング（irssi ハンズオン） | **MD 本文の生成**・整形 | シナリオ意図の指示・実施・内容の検証 |
-| PR レビュー（補助） | Copilot Review で指摘候補の整理 | 人間レビューで採否・設計整合の最終判断 |
+
+| タスク                             | AI の役割                    | 人間（torinoue）の役割        |
+| ------------------------------- | ------------------------- | ---------------------- |
+| 3層分割・`interface.md`・クラス/データフロー図 | **MD 本文の生成**（構成・文案）       | 設計決定・事実確認・レビュー修正・チーム合意 |
+| クリティカルパス / ボトルネック分析             | **全面的に AI 分析**（上表の成果物 MD） | 問いの設定・事実訂正・優先度の最終判断    |
+| オンボーディング（irssi ハンズオン）           | **MD 本文の生成**・整形           | シナリオ意図の指示・実施・内容の検証     |
+| PR レビュー（補助）                     | Copilot Review で指摘候補の整理   | 人間レビューで採否・設計整合の最終判断    |
+
+
+| 2 +-
+
+
 
 #### A層（Network/IO）の実装
 
-| タスク | AI の役割 | 人間（torinoue）の役割 |
-|--------|-----------|------------------------|
+
+| タスク                                               | AI の役割              | 人間（torinoue）の役割                  |
+| ------------------------------------------------- | ------------------- | -------------------------------- |
 | 切断配線（`_notifyAndDisconnect` / `shouldDisconnect`） | 設計レビュー・進捗整理・コード案の提示 | **AI 生成コードは破棄**し、設計を理解したうえで手書き実装 |
-| git 再入場・残タスク整理 | 診断コマンド案・計画書の読み合わせ | コマンド実行・コミットは本人が実施 |
-| `dev_docs/a_devdoc/` 等の技術 MD | **本文の生成**（草案・更新案） | 実コードとの照合・採否・修正指示 |
+| git 再入場・残タスク整理                                    | 診断コマンド案・計画書の読み合わせ   | コマンド実行・コミットは本人が実施                |
+| `dev_docs/a_devdoc/` 等の技術 MD                      | **本文の生成**（草案・更新案）   | 実コードとの照合・採否・修正指示                 |
+
+
+
 
 #### README 作成（本ファイル）
 
-| ステップ | AI | 人間（torinoue） |
-|----------|-----|------------------|
-| 素材の選定 | — | 既存 `dev_docs/`・`docs/` から何を載せるか判断 |
-| 日本語下書きの構成・本文 | **生成・整形**（質問応答を含む） | 方針指示・回答・レビュー修正 |
-| 英語版 `README.md` への翻訳 | **翻訳**（予定） | 内容確認（tvaroux が統合・最終レビュー） |
+
+| ステップ                 | AI                 | 人間（torinoue）                      |
+| -------------------- | ------------------ | --------------------------------- |
+| 素材の選定                | —                  | 既存 `dev_docs/`・`docs/` から何を載せるか判断 |
+| 日本語下書きの構成・本文         | **生成・整形**（質問応答を含む） | 方針指示・回答・レビュー修正                    |
+| 英語版 `README.md` への翻訳 | **翻訳**（予定）         | 内容確認（tvaroux が統合・最終レビュー）          |
+
 
 > **評価時:** **コード**は人間が理解し説明できるもののみコミット（AI 生成コードの無批判なコミットは行っていない）。**Markdown** は AI 生成が主体だが、人間がレビューし説明できる内容に限定している。Copilot Review の指摘も、採用前に人間が内容を確認している。
 
@@ -345,14 +364,14 @@ nc -C 127.0.0.1 6667
 ## 7. tvaroux への統合メモ
 
 
-| 項目              | 内容                                                  |
-| --------------- | --------------------------------------------------- |
-| 英語化             | 本ファイルをベースに AI 翻訳 → tvaroux がルート `README.md` に統合     |
-| 要追記（torinoue 外） | B層詳細・C層詳細・tvaroux / tyamaoka の AI Usage             |
+| 項目              | 内容                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------- |
+| 英語化             | 本ファイルをベースに AI 翻訳 → tvaroux がルート `README.md` に統合                                              |
+| 要追記（torinoue 外） | B層詳細・C層詳細・tvaroux / tyamaoka の AI Usage                                                      |
 | §6 の英語化         | "Development Process" として短く翻訳（[chapter5](../docs/chapter5_readme_requirements.md) 必須4セクション外） |
-| Linux 検証後       | §3.1 の Linux 行を ✅ に更新                               |
-| SIGINT 実装後      | §2.6 から該当制限を削除 or §3 に終了手順を追記                       |
-| 1行目 login       | `torinoue, tvaroux, tyamaoka` で確定（要チーム確認）           |
+| Linux 検証後       | §3.1 の Linux 行を ✅ に更新                                                                        |
+| SIGINT 実装後      | §2.6 から該当制限を削除 or §3 に終了手順を追記                                                                |
+| 1行目 login       | `torinoue, tvaroux, tyamaoka` で確定（要チーム確認）                                                    |
 
 
 ---
@@ -366,6 +385,6 @@ nc -C 127.0.0.1 6667
 | ---------- | ------------------------------------------------ |
 | 2026-07-05 | 初版。セクション1–4 を質問しながら作成（torinoue 担当分）              |
 | 2026-07-05 | 改訂。ビルド表記・§2.5 設計・knowledge 要約・§6 チームビルディング・担当表更新 |
-| 2026-07-05 | §4.4: クリティカルパス/ボトルネック分析は AI 全面採用 + 成果物 MD リンク一覧 |
+| 2026-07-05 | §4.4: クリティカルパス/ボトルネック分析は AI 全面採用 + 成果物 MD リンク一覧  |
 
 
