@@ -2,12 +2,11 @@
 #define SERVER_HPP
 
 #include "../AnsiColor.hpp"
- #include <string.h>	// man 3 memset p41
+// #include <string.h>	// man 3 memset p41
+#include <cstring>
 #include <string>
-// #include <sys/poll.h>
 #include <vector>
 #include <poll.h>
-#include "Connection.hpp"
 #include "a/Connection.hpp"
 #include <map>
 
