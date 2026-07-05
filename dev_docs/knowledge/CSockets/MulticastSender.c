@@ -1,63 +1,63 @@
-#include <stdio.h>      /* fprintf()¤ËÉ¬Í× */
-#include <sys/socket.h> /* socket()¡¢connect()¡¢send()¡¢recv()¤ËÉ¬Í× */
-#include <arpa/inet.h>  /* sockaddr_in¡¢inet_addr()¤ËÉ¬Í× */
-#include <stdlib.h>     /* atoi()¤ËÉ¬Í× */
-#include <string.h>     /* memset()¤ËÉ¬Í× */
-#include <unistd.h>     /* sleep()¤ËÉ¬Í× */
+#include <stdio.h>      /* fprintf()ã«å¿…è¦ */
+#include <sys/socket.h> /* socket()ã€connect()ã€send()ã€recv()ã«å¿…è¦ */
+#include <arpa/inet.h>  /* sockaddr_inã€inet_addr()ã«å¿…è¦ */
+#include <stdlib.h>     /* atoi()ã«å¿…è¦ */
+#include <string.h>     /* memset()ã«å¿…è¦ */
+#include <unistd.h>     /* sleep()ã«å¿…è¦ */
 
-void DieWithError(char *errorMessage);  /* ³°Éô¥¨¥é¡¼½èÍı´Ø¿ô */
+void DieWithError(char *errorMessage);  /* å¤–éƒ¨ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
 
 
 int main(int argc, char *argv[])
  {
-     int sock;                        /* ¥½¥±¥Ã¥È */
-     struct sockaddr_in multicastAddr; /* ¥Ş¥ë¥Á¥­¥ã¥¹¥È¥¢¥É¥ì¥¹ */
-     char *multicastIP;               /* IP¥Ş¥ë¥Á¥­¥ã¥¹¥È¥¢¥É¥ì¥¹ */
-     unsigned short multicastPort;     /* ¥µ¡¼¥Ğ¤Î¥İ¡¼¥È */
-     char *sendString;                /* ¥Ş¥ë¥Á¥­¥ã¥¹¥È¤¹¤ëÊ¸»úÎó */
-     unsigned char multicastTTL;      /* ¥Ş¥ë¥Á¥­¥ã¥¹¥È¥Ñ¥±¥Ã¥È¤ÎTTL */
-     unsigned int sendStringLen;      /* ¥Ş¥ë¥Á¥­¥ã¥¹¥È¤¹¤ëÊ¸»úÎó¤ÎÄ¹¤µ */
+     int sock;                        /* ã‚½ã‚±ãƒƒãƒˆ */
+     struct sockaddr_in multicastAddr; /* ãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ */
+     char *multicastIP;               /* IPãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ */
+     unsigned short multicastPort;     /* ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆ */
+     char *sendString;                /* ãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆã™ã‚‹æ–‡å­—åˆ— */
+     unsigned char multicastTTL;      /* ãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆãƒ‘ã‚±ãƒƒãƒˆã®TTL */
+     unsigned int sendStringLen;      /* ãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆã™ã‚‹æ–‡å­—åˆ—ã®é•·ã• */
 
-     if ((argc < 4) || (argc > 5))         /* ¥Ñ¥é¥á¡¼¥¿¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+     if ((argc < 4) || (argc > 5))         /* ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®æ•°ãŒæ­£ã—ã„ã‹ç¢ºèª */
      {
          fprintf(stderr, "Usage: %s <Multicast Address> <Port> <Send String> [<TTL>]\n",
                   argv[0]);
          exit(1);
      }
 
-     multicastIP = argv[1];              /* 1¤ÄÌÜ¤Î°ú¿ô¡§¥Ş¥ë¥Á¥­¥ã¥¹¥È¤¹¤ëIP¥¢¥É¥ì¥¹ */
-     multicastPort = atoi(argv[2]);      /* 2¤ÄÌÜ¤Î°ú¿ô¡§¥Ş¥ë¥Á¥­¥ã¥¹¥ÈÍÑ¥İ¡¼¥È */
-     sendString = argv[3];             /* 2¤ÄÌÜ¤Î°ú¿ô¡§¥Ş¥ë¥Á¥­¥ã¥¹¥È¤¹¤ëÊ¸»úÎó */
+     multicastIP = argv[1];              /* 1ã¤ç›®ã®å¼•æ•°ï¼šãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆã™ã‚‹IPã‚¢ãƒ‰ãƒ¬ã‚¹ */
+     multicastPort = atoi(argv[2]);      /* 2ã¤ç›®ã®å¼•æ•°ï¼šãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆç”¨ãƒãƒ¼ãƒˆ */
+     sendString = argv[3];             /* 2ã¤ç›®ã®å¼•æ•°ï¼šãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆã™ã‚‹æ–‡å­—åˆ— */
 
-     if (argc == 5)                    /* TTL¤¬¥³¥Ş¥ó¥É¥é¥¤¥ó¤«¤é»ØÄê¤µ¤ì¤Æ¤¤¤ë¤« */
-         multicastTTL = atoi(argv[4]); /* ¥³¥Ş¥ó¥É¥é¥¤¥ó¤«¤é»ØÄê¤µ¤ì¤¿TTL */
+     if (argc == 5)                    /* TTLãŒã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³ã‹ã‚‰æŒ‡å®šã•ã‚Œã¦ã„ã‚‹ã‹ */
+         multicastTTL = atoi(argv[4]); /* ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³ã‹ã‚‰æŒ‡å®šã•ã‚ŒãŸTTL */
      else
-     multicastTTL = 1;                 /* ¥Ç¥Õ¥©¥ë¥È¤ÎTTL = 1 */
+     multicastTTL = 1;                 /* ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®TTL = 1 */
 
-     /* ¥Ç¡¼¥¿¥°¥é¥àÁ÷¼õ¿®ÍÑ¥½¥±¥Ã¥È¤ÎºîÀ® */
+     /* ãƒ‡ãƒ¼ã‚¿ã‚°ãƒ©ãƒ é€å—ä¿¡ç”¨ã‚½ã‚±ãƒƒãƒˆã®ä½œæˆ */
      if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
      DieWithError("socket() failed");
 
-     /* ¥Ş¥ë¥Á¥­¥ã¥¹¥È¥Ñ¥±¥Ã¥È¤ÎTTL¤òÀßÄê */
+     /* ãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆãƒ‘ã‚±ãƒƒãƒˆã®TTLã‚’è¨­å®š */
      if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_TTL, (void *) &multicastTTL,
            sizeof(multicastTTL)) < 0)
          DieWithError("setsockopt() failed");
 
-     /* ¥í¡¼¥«¥ë¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤òºîÀ® */
-     memset(&multicastAddr, 0, sizeof(multicastAddr)); /* ¹½Â¤ÂÎ¤ò¥¼¥í¤ÇËä¤á¤ë */
-     multicastAddr.sin_family = AF_INET;               /* ¥¤¥ó¥¿¡¼¥Í¥Ã¥È¥¢¥É¥ì¥¹¥Õ¥¡¥ß¥ê */
-     multicastAddr.sin_addr.s_addr = inet_addr(multicastIP);/* ¥Ş¥ë¥Á¥­¥ã¥¹¥ÈIP¥¢¥É¥ì¥¹ */
-     multicastAddr.sin_port = htons(multicastPort);       /* ¥Ş¥ë¥Á¥­¥ã¥¹¥È¤¹¤ë¥İ¡¼¥È */
+     /* ãƒ­ãƒ¼ã‚«ãƒ«ã®ã‚¢ãƒ‰ãƒ¬ã‚¹æ§‹é€ ä½“ã‚’ä½œæˆ */
+     memset(&multicastAddr, 0, sizeof(multicastAddr)); /* æ§‹é€ ä½“ã‚’ã‚¼ãƒ­ã§åŸ‹ã‚ã‚‹ */
+     multicastAddr.sin_family = AF_INET;               /* ã‚¤ãƒ³ã‚¿ãƒ¼ãƒãƒƒãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ãƒ•ã‚¡ãƒŸãƒª */
+     multicastAddr.sin_addr.s_addr = inet_addr(multicastIP);/* ãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆIPã‚¢ãƒ‰ãƒ¬ã‚¹ */
+     multicastAddr.sin_port = htons(multicastPort);       /* ãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆã™ã‚‹ãƒãƒ¼ãƒˆ */
 
-     sendStringLen = strlen(sendString); /* sendString¤ÎÄ¹¤µ¤òÄ´¤Ù¤ë */
-     for (;;) /* ¥×¥í¥°¥é¥à¤¬½ªÎ»¤¹¤ë¤Ş¤Ç·«¤êÊÖ¤·¼Â¹Ô */
+     sendStringLen = strlen(sendString); /* sendStringã®é•·ã•ã‚’èª¿ã¹ã‚‹ */
+     for (;;) /* ãƒ—ãƒ­ã‚°ãƒ©ãƒ ãŒçµ‚äº†ã™ã‚‹ã¾ã§ç¹°ã‚Šè¿”ã—å®Ÿè¡Œ */
      {
-         /* sendString¤Î¥Ç¡¼¥¿¥°¥é¥à¤ò3ÉÃ¤´¤È¤Ë¥¯¥é¥¤¥¢¥ó¥È¤Ø¥Ş¥ë¥Á¥­¥ã¥¹¥È¤¹¤ë */
+         /* sendStringã®ãƒ‡ãƒ¼ã‚¿ã‚°ãƒ©ãƒ ã‚’3ç§’ã”ã¨ã«ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã¸ãƒãƒ«ãƒã‚­ãƒ£ã‚¹ãƒˆã™ã‚‹ */
          if (sendto(sock, sendString, sendStringLen, 0, (struct sockaddr *)
                &multicastAddr, sizeof(multicastAddr)) != sendStringLen)
              DieWithError("sendto() sent a different number of bytes than expected");
          sleep(3);
      }
-     /* ¤³¤ÎÉôÊ¬¤Ë¤ÏÅşÃ£¤·¤Ê¤¤ */
+     /* ã“ã®éƒ¨åˆ†ã«ã¯åˆ°é”ã—ãªã„ */
  }
 

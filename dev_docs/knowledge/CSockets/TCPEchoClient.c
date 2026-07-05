@@ -1,76 +1,76 @@
-#include <stdio.h>	/* printf()¡¢fprintf()¤ËÉ¬Í× */
-#include <sys/socket.h>	/* socket()¡¢connect()¡¢send()¡¢recv()¤ËÉ¬Í× */
-#include <arpa/inet.h>	/* sockaddr_in¡¢inet_addr()¤ËÉ¬Í× */
-#include <stdlib.h>	/* atoi()¤ËÉ¬Í× */
-#include <string.h>	/* memset()¤ËÉ¬Í× */
-#include <unistd.h>	/* close()¤ËÉ¬Í× */
+#include <stdio.h>	/* printf()ã€fprintf()ã«å¿…è¦ */
+#include <sys/socket.h>	/* socket()ã€connect()ã€send()ã€recv()ã«å¿…è¦ */
+#include <arpa/inet.h>	/* sockaddr_inã€inet_addr()ã«å¿…è¦ */
+#include <stdlib.h>	/* atoi()ã«å¿…è¦ */
+#include <string.h>	/* memset()ã«å¿…è¦ */
+#include <unistd.h>	/* close()ã«å¿…è¦ */
 
-#define RCVBUFSIZE 32	/* ¼õ¿®¥Ğ¥Ã¥Õ¥¡¤Î¥µ¥¤¥º */
+#define RCVBUFSIZE 32	/* å—ä¿¡ãƒãƒƒãƒ•ã‚¡ã®ã‚µã‚¤ã‚º */
 
-void DieWithError(char *errorMessage);	/* ¥¨¥é¡¼½èÍı´Ø¿ô */
+void DieWithError(char *errorMessage);	/* ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
 
 int main(int argc, char *argv[])
 {
-	int sock;			/* ¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-	struct sockaddr_in echoServAddr;/* ¥¨¥³¡¼¥µ¡¼¥Ğ¤Î¥¢¥É¥ì¥¹ */
-	unsigned short echoServPort;	/* ¥¨¥³¡¼¥µ¡¼¥Ğ¤Î¥İ¡¼¥ÈÈÖ¹æ */
-	char *servIP;			/* ¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹¡Êdotted-quad¡Ë */
-	char *echoString;	        /* ¥¨¥³¡¼¥µ¡¼¥Ğ¤ËÁ÷¿®¤¹¤ëÊ¸»úÎó */
-	char echoBuffer[RCVBUFSIZE];	/* ¥¨¥³¡¼Ê¸»úÎóÍÑ¤Î¥Ğ¥Ã¥Õ¥¡ */
-	unsigned int echoStringLen;	/* ¥¨¥³¡¼¤¹¤ëÊ¸»úÎó¤Î¥µ¥¤¥º */
-	int bytesRcvd, totalBytesRcvd;	/* °ì²ó¤Îrecv()¤ÇÆÉ¤ß¼è¤é¤ì¤ë
-					   ¥Ğ¥¤¥È¿ô¤ÈÁ´¥Ğ¥¤¥È¿ô */
+	int sock;			/* ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+	struct sockaddr_in echoServAddr;/* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã®ã‚¢ãƒ‰ãƒ¬ã‚¹ */
+	unsigned short echoServPort;	/* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå· */
+	char *servIP;			/* ã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ï¼ˆdotted-quadï¼‰ */
+	char *echoString;	        /* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã«é€ä¿¡ã™ã‚‹æ–‡å­—åˆ— */
+	char echoBuffer[RCVBUFSIZE];	/* ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ—ç”¨ã®ãƒãƒƒãƒ•ã‚¡ */
+	unsigned int echoStringLen;	/* ã‚¨ã‚³ãƒ¼ã™ã‚‹æ–‡å­—åˆ—ã®ã‚µã‚¤ã‚º */
+	int bytesRcvd, totalBytesRcvd;	/* ä¸€å›ã®recv()ã§èª­ã¿å–ã‚‰ã‚Œã‚‹
+					   ãƒã‚¤ãƒˆæ•°ã¨å…¨ãƒã‚¤ãƒˆæ•° */
 
-	if ((argc < 3) || (argc > 4))	/* °ú¿ô¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+	if ((argc < 3) || (argc > 4))	/* å¼•æ•°ã®æ•°ãŒæ­£ã—ã„ã‹ç¢ºèª */
 	{
 		fprintf(stderr, "Usage: %s <Server IP> <Echo Word> [<Echo Port>}\n",
 				argv[0]);
 		exit(1);
 	}
 
-	servIP = argv[1];		/* 1¤ÄÌÜ¤Î°ú¿ô¡§¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹¡Ê¥É¥Ã¥È10¿ÊÉ½µ­¡Ë */
-	echoString = argv[2];	/* 2¤ÄÌÜ¤Î°ú¿ô¡§¥¨¥³¡¼Ê¸»úÎó */
+	servIP = argv[1];		/* 1ã¤ç›®ã®å¼•æ•°ï¼šã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ï¼ˆãƒ‰ãƒƒãƒˆ10é€²è¡¨è¨˜ï¼‰ */
+	echoString = argv[2];	/* 2ã¤ç›®ã®å¼•æ•°ï¼šã‚¨ã‚³ãƒ¼æ–‡å­—åˆ— */
 
 	if (argc == 4)
-		echoServPort = atoi(argv[3]);	/* »ØÄê¤Î¥İ¡¼¥ÈÈÖ¹æ¤¬¤¢¤ì¤Ğ»ÈÍÑ */
+		echoServPort = atoi(argv[3]);	/* æŒ‡å®šã®ãƒãƒ¼ãƒˆç•ªå·ãŒã‚ã‚Œã°ä½¿ç”¨ */
 	else
-		echoServPort = 7;	/* 7¤Ï¥¨¥³¡¼¥µ¡¼¥Ó¥¹¤Îwell-known¥İ¡¼¥ÈÈÖ¹æ */
+		echoServPort = 7;	/* 7ã¯ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒ“ã‚¹ã®well-knownãƒãƒ¼ãƒˆç•ªå· */
 
-	/* TCP¤Ë¤è¤ë¿®ÍêÀ­¤Î¹â¤¤¥¹¥È¥ê¡¼¥à¥½¥±¥Ã¥È¤òºîÀ® */
+	/* TCPã«ã‚ˆã‚‹ä¿¡é ¼æ€§ã®é«˜ã„ã‚¹ãƒˆãƒªãƒ¼ãƒ ã‚½ã‚±ãƒƒãƒˆã‚’ä½œæˆ */
 	if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
 		DieWithError("socket() failed");
 
-	/* ¥µ¡¼¥Ğ¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤òºîÀ® */
-	memset(&echoServAddr, 0, sizeof(echoServAddr));		/* ¹½Â¤ÂÎ¤Ë¥¼¥í¤òËä¤á¤ë */
-	echoServAddr.sin_family = AF_INET;			/* ¥¤¥ó¥¿¡¼¥Í¥Ã¥È¥¢¥É¥ì¥¹¥Õ¥¡¥ß¥ê */
-	echoServAddr.sin_addr.s_addr = inet_addr(servIP);	/* ¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹ */
-	echoServAddr.sin_port = htons(echoServPort);		/* ¥µ¡¼¥Ğ¤Î¥İ¡¼¥ÈÈÖ¹æ */
+	/* ã‚µãƒ¼ãƒã®ã‚¢ãƒ‰ãƒ¬ã‚¹æ§‹é€ ä½“ã‚’ä½œæˆ */
+	memset(&echoServAddr, 0, sizeof(echoServAddr));		/* æ§‹é€ ä½“ã«ã‚¼ãƒ­ã‚’åŸ‹ã‚ã‚‹ */
+	echoServAddr.sin_family = AF_INET;			/* ã‚¤ãƒ³ã‚¿ãƒ¼ãƒãƒƒãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ãƒ•ã‚¡ãƒŸãƒª */
+	echoServAddr.sin_addr.s_addr = inet_addr(servIP);	/* ã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ */
+	echoServAddr.sin_port = htons(echoServPort);		/* ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå· */
 
-	/* ¥¨¥³¡¼¥µ¡¼¥Ğ¤Ø¤ÎÀÜÂ³¤ò³ÎÎ© */
+	/* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã¸ã®æ¥ç¶šã‚’ç¢ºç«‹ */
 	if (connect(sock, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0)
 		DieWithError("connect() failed");
 
-	echoStringLen = strlen(echoString);	/* ÆşÎÏ¥Ç¡¼¥¿¤ÎÄ¹¤µ¤òÄ´¤Ù¤ë */
+	echoStringLen = strlen(echoString);	/* å…¥åŠ›ãƒ‡ãƒ¼ã‚¿ã®é•·ã•ã‚’èª¿ã¹ã‚‹ */
 
-	/* Ê¸»úÎó¤ò¥µ¡¼¥Ğ¤ËÁ÷¿® */
+	/* æ–‡å­—åˆ—ã‚’ã‚µãƒ¼ãƒã«é€ä¿¡ */
 	if (send(sock, echoString, echoStringLen, 0) != echoStringLen)
 		DieWithError("send() sent a different number of bytes than expected");
 
-	/* Æ±¤¸Ê¸»úÎó¤ò¥µ¡¼¥Ğ¤«¤é¼õ¿® */
+	/* åŒã˜æ–‡å­—åˆ—ã‚’ã‚µãƒ¼ãƒã‹ã‚‰å—ä¿¡ */
 	totalBytesRcvd = 0;
-	printf("Received: ");	/* ¥¨¥³¡¼¤µ¤ì¤¿Ê¸»úÎó¤òÉ½¼¨¤¹¤ë¤¿¤á¤Î½àÈ÷ */
+	printf("Received: ");	/* ã‚¨ã‚³ãƒ¼ã•ã‚ŒãŸæ–‡å­—åˆ—ã‚’è¡¨ç¤ºã™ã‚‹ãŸã‚ã®æº–å‚™ */
 	while (totalBytesRcvd < echoStringLen)
 	{
-		/* ¥Ğ¥Ã¥Õ¥¡¥µ¥¤¥º¤ËÃ£¤¹¤ë¤Ş¤Ç¡Ê¥Ì¥ëÊ¸»úÍÑ¤Î1¥Ğ¥¤¥È¤ò½ü¤¯¡Ë
-			¥µ¡¼¥Ğ¤«¤é¤Î¥Ç¡¼¥¿¤ò¼õ¿®¤¹¤ë */
+		/* ãƒãƒƒãƒ•ã‚¡ã‚µã‚¤ã‚ºã«é”ã™ã‚‹ã¾ã§ï¼ˆãƒŒãƒ«æ–‡å­—ç”¨ã®1ãƒã‚¤ãƒˆã‚’é™¤ãï¼‰
+			ã‚µãƒ¼ãƒã‹ã‚‰ã®ãƒ‡ãƒ¼ã‚¿ã‚’å—ä¿¡ã™ã‚‹ */
 		if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
 			DieWithError("recv() failed or connection closed prematurely");
-		totalBytesRcvd += bytesRcvd;	/* Áí¥Ğ¥¤¥È¿ô¤Î½¸·× */
-		echoBuffer[bytesRcvd] = '\0' ;	/* Ê¸»úÎó¤Î½ªÎ» */
-		printf(echoBuffer);	/* ¥¨¥³¡¼¥Ğ¥Ã¥Õ¥¡¤ÎÉ½¼¨ */
+		totalBytesRcvd += bytesRcvd;	/* ç·ãƒã‚¤ãƒˆæ•°ã®é›†è¨ˆ */
+		echoBuffer[bytesRcvd] = '\0' ;	/* æ–‡å­—åˆ—ã®çµ‚äº† */
+		printf(echoBuffer);	/* ã‚¨ã‚³ãƒ¼ãƒãƒƒãƒ•ã‚¡ã®è¡¨ç¤º */
 	}
 
-	printf("\n");	/* ºÇ¸å¤Î²ş¹Ô¤ò½ĞÎÏ */
+	printf("\n");	/* æœ€å¾Œã®æ”¹è¡Œã‚’å‡ºåŠ› */
 
 	close(sock);
 	exit(0);

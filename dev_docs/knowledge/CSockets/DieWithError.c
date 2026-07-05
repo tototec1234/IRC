@@ -1,5 +1,5 @@
-#include <stdio.h> /* perror()¤ËÉ¬Í× */
-#include <stdlib.h> /* exit()¤ËÉ¬Í× */
+#include <stdio.h> /* perror()ã«å¿…è¦ */
+#include <stdlib.h> /* exit()ã«å¿…è¦ */
 
 void DieWithError(char *errorMessage)
 {

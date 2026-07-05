@@ -1,11 +1,11 @@
-#include <stdio.h>      /* printf()¡¢fprintf()¤ËÉ¬Í× */
-#include <sys/socket.h> /* socket()¡¢bind()¡¢connect()¤ËÉ¬Í× */
-#include <arpa/inet.h>  /* sockaddr_in¡¢inet_ntoa()¤ËÉ¬Í× */
-#include <stdlib.h>     /* atoi()¤ËÉ¬Í× */
-#include <string.h>      /* memset()¤ËÉ¬Í× */
-#include <unistd.h>     /* close()¤ËÉ¬Í× */
+#include <stdio.h>      /* printf()ã€fprintf()ã«å¿…è¦ */
+#include <sys/socket.h> /* socket()ã€bind()ã€connect()ã«å¿…è¦ */
+#include <arpa/inet.h>  /* sockaddr_inã€inet_ntoa()ã«å¿…è¦ */
+#include <stdlib.h>     /* atoi()ã«å¿…è¦ */
+#include <string.h>      /* memset()ã«å¿…è¦ */
+#include <unistd.h>     /* close()ã«å¿…è¦ */
 
-void DieWithError(char *errorMessage);  /* ¥¨¥é¡¼½èÍı´Ø¿ô */
-void HandleTCPClient(int clntSocket);   /* TCP¥¯¥é¥¤¥¢¥ó¥È¤Î½èÍı´Ø¿ô */
-int CreateTCPServerSocket(unsigned short port); /* TCP¥µ¡¼¥Ğ¥½¥±¥Ã¥È¤òºîÀ® */
-int AcceptTCPConnection(int servSock);  /* TCPÀÜÂ³Í×µá¤ò¼õ¤±ÉÕ¤±¤ë */
+void DieWithError(char *errorMessage);  /* ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
+void HandleTCPClient(int clntSocket);   /* TCPã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®å‡¦ç†é–¢æ•° */
+int CreateTCPServerSocket(unsigned short port); /* TCPã‚µãƒ¼ãƒã‚½ã‚±ãƒƒãƒˆã‚’ä½œæˆ */
+int AcceptTCPConnection(int servSock);  /* TCPæ¥ç¶šè¦æ±‚ã‚’å—ã‘ä»˜ã‘ã‚‹ */

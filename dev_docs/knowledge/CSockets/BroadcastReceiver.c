@@ -1,50 +1,50 @@
-#include <stdio.h>       /* printf()¤Èfprintf()¤ËÉ¬Í× */
-#include <sys/socket.h>  /* socket()¡¢connect()¡¢sendto()¡¢recvfrom()¤ËÉ¬Í× */
-#include <arpa/inet.h>   /* sockaddrin¤Èinet_addr()¤ËÉ¬Í× */
-#include <stdlib.h>      /* atoi()¤ËÉ¬Í× */
-#include <string.h>      /* memset()¤ËÉ¬Í× */
-#include <unistd.h>      /* close()¤ËÉ¬Í× */
+#include <stdio.h>       /* printf()ã¨fprintf()ã«å¿…è¦ */
+#include <sys/socket.h>  /* socket()ã€connect()ã€sendto()ã€recvfrom()ã«å¿…è¦ */
+#include <arpa/inet.h>   /* sockaddrinã¨inet_addr()ã«å¿…è¦ */
+#include <stdlib.h>      /* atoi()ã«å¿…è¦ */
+#include <string.h>      /* memset()ã«å¿…è¦ */
+#include <unistd.h>      /* close()ã«å¿…è¦ */
 
-#define MAXRECVSTRING 255 /* ¼õ¿®¤¹¤ëÊ¸»úÎó¤ÎºÇÂçÄ¹ */
+#define MAXRECVSTRING 255 /* å—ä¿¡ã™ã‚‹æ–‡å­—åˆ—ã®æœ€å¤§é•· */
 
-void DieWithError(char *errorMessage); /* ³°Éô¥¨¥é¡¼½èÍı´Ø¿ô */
+void DieWithError(char *errorMessage); /* å¤–éƒ¨ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
 
  int main(int argc, char *argv[])
  {
-     int sock;                         /* ¥½¥±¥Ã¥È */
-     struct sockaddr_in broadcastAddr; /* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¥¢¥É¥ì¥¹ */
-     unsigned int broadcastPort;     /* ¥İ¡¼¥È */
-     char recvString[MAXRECVSTRING+1]; /* Ê¸»úÎó¤Î¼õ¿®ÍÑ¥Ğ¥Ã¥Õ¥¡ */
-     int recvStringLen;                /* ¼õ¿®¤¹¤ëÊ¸»úÎó¤ÎÄ¹¤µ */
+     int sock;                         /* ã‚½ã‚±ãƒƒãƒˆ */
+     struct sockaddr_in broadcastAddr; /* ãƒ–ãƒ­ãƒ¼ãƒ‰ã‚­ãƒ£ã‚¹ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ */
+     unsigned int broadcastPort;     /* ãƒãƒ¼ãƒˆ */
+     char recvString[MAXRECVSTRING+1]; /* æ–‡å­—åˆ—ã®å—ä¿¡ç”¨ãƒãƒƒãƒ•ã‚¡ */
+     int recvStringLen;                /* å—ä¿¡ã™ã‚‹æ–‡å­—åˆ—ã®é•·ã• */
 
-     if (argc != 2)    /* °ú¿ô¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+     if (argc != 2)    /* å¼•æ•°ã®æ•°ãŒæ­£ã—ã„ã‹ç¢ºèª */
      {
          fprintf(stderr,"Usage: %s <Broadcast Port>\n", argv[0]);
          exit(1);
      }
 
-     broadcastPort = atoi(argv[1]);  /* 1¤ÄÌÜ¤Î°ú¿ô¡§¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¥İ¡¼¥È */
+     broadcastPort = atoi(argv[1]);  /* 1ã¤ç›®ã®å¼•æ•°ï¼šãƒ–ãƒ­ãƒ¼ãƒ‰ã‚­ãƒ£ã‚¹ãƒˆãƒãƒ¼ãƒˆ */
 
-     /* UDP¤Ë¤è¤ë¥Ù¥¹¥È¥¨¥Õ¥©¡¼¥È¼°¤Î¥Ç¡¼¥¿¥°¥é¥à¥½¥±¥Ã¥È¤òºîÀ® */
+     /* UDPã«ã‚ˆã‚‹ãƒ™ã‚¹ãƒˆã‚¨ãƒ•ã‚©ãƒ¼ãƒˆå¼ã®ãƒ‡ãƒ¼ã‚¿ã‚°ãƒ©ãƒ ã‚½ã‚±ãƒƒãƒˆã‚’ä½œæˆ */
      if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
         DieWithError("socket() failed");
 
-     /* ¥Ğ¥¤¥ó¥É¤¹¤ë¹½Â¤ÂÎ¤ÎºîÀ® */
-     memset(&broadcastAddr, 0, sizeof(broadcastAddr));  /* ¹½Â¤ÂÎ¤ò¥¼¥í¤ÇËä¤á¤ë */
-     broadcastAddr.sin_family = AF_INET;                /* ¥¤¥ó¥¿¡¼¥Í¥Ã¥È¥¢¥É¥ì¥¹¥Õ¥¡¥ß¥ê */
-     broadcastAddr.sin_addr.s_addr = htonl(INADDR_ANY); /* ¥ï¥¤¥ë¥É¥«¡¼¥É¤ò»ÈÍÑ */
-     broadcastAddr.sin_port = htons(broadcastPort);     /* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥ÈÍÑ¥İ¡¼¥È */
+     /* ãƒã‚¤ãƒ³ãƒ‰ã™ã‚‹æ§‹é€ ä½“ã®ä½œæˆ */
+     memset(&broadcastAddr, 0, sizeof(broadcastAddr));  /* æ§‹é€ ä½“ã‚’ã‚¼ãƒ­ã§åŸ‹ã‚ã‚‹ */
+     broadcastAddr.sin_family = AF_INET;                /* ã‚¤ãƒ³ã‚¿ãƒ¼ãƒãƒƒãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ãƒ•ã‚¡ãƒŸãƒª */
+     broadcastAddr.sin_addr.s_addr = htonl(INADDR_ANY); /* ãƒ¯ã‚¤ãƒ«ãƒ‰ã‚«ãƒ¼ãƒ‰ã‚’ä½¿ç”¨ */
+     broadcastAddr.sin_port = htons(broadcastPort);     /* ãƒ–ãƒ­ãƒ¼ãƒ‰ã‚­ãƒ£ã‚¹ãƒˆç”¨ãƒãƒ¼ãƒˆ */
 
-     /* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¤¹¤ë¥İ¡¼¥È¤Ø¤Î¥Ğ¥¤¥ó¥É */
+     /* ãƒ–ãƒ­ãƒ¼ãƒ‰ã‚­ãƒ£ã‚¹ãƒˆã™ã‚‹ãƒãƒ¼ãƒˆã¸ã®ãƒã‚¤ãƒ³ãƒ‰ */
      if (bind(sock, (struct sockaddr *) &broadcastAddr, sizeof(broadcastAddr)) < 0)
          DieWithError("bind() failed");
 
-     /* ¥Ç¡¼¥¿¥°¥é¥à¤ò¥µ¡¼¥Ğ¤«¤é1¤Ä¼õ¿® */
+     /* ãƒ‡ãƒ¼ã‚¿ã‚°ãƒ©ãƒ ã‚’ã‚µãƒ¼ãƒã‹ã‚‰1ã¤å—ä¿¡ */
      if ((recvStringLen = recvfrom(sock, recvString, MAXRECVSTRING, 0, NULL, 0)) < 0)
          DieWithError("recvfrom() failed");
 
      recvString[recvStringLen] = '\0';
-     printf("Received: %s\n", recvString);   /* ¼õ¿®¤·¤¿Ê¸»úÎó¤òÉ½¼¨ */
+     printf("Received: %s\n", recvString);   /* å—ä¿¡ã—ãŸæ–‡å­—åˆ—ã‚’è¡¨ç¤º */
 
      close(sock);
      exit(0);

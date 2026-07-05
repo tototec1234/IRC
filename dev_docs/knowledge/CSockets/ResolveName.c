@@ -1,9 +1,9 @@
-#include <stdio.h> /* fprintf()¤ËÉ¬Í× */
-#include <netdb.h> /* gethostbyname()¤ËÉ¬Í× */
+#include <stdio.h> /* fprintf()ã«å¿…è¦ */
+#include <netdb.h> /* gethostbyname()ã«å¿…è¦ */
 
 unsigned long ResolveName(char name[])
 {
-  struct hostent *host; /* ¥Û¥¹¥È¾ğÊó¤ò³ÊÇ¼¤¹¤ë¹½Â¤ÂÎ */
+  struct hostent *host; /* ãƒ›ã‚¹ãƒˆæƒ…å ±ã‚’æ ¼ç´ã™ã‚‹æ§‹é€ ä½“ */
 
   if ((host = gethostbyname(name)) == NULL)
   {
@@ -11,6 +11,6 @@ unsigned long ResolveName(char name[])
     exit(1);
   }
 
-  /* ¥Í¥Ã¥È¥ï¡¼¥¯¥Ğ¥¤¥È½ç¤ÇÉ½¤·¤¿¥Ğ¥¤¥Ê¥ê¤ÎIP¥¢¥É¥ì¥¹¤òÊÖ¤¹ */
+  /* ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒã‚¤ãƒˆé †ã§è¡¨ã—ãŸãƒã‚¤ãƒŠãƒªã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’è¿”ã™ */
   return *((unsigned long *)host->h_addr_list[0]);
 }

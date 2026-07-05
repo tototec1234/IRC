@@ -1,60 +1,60 @@
-#include <stdio.h> /* printf()¡¢fprintf()¤ËÉ¬Í× */
-#include <sys/socket.h> /* socket()¡¢connect()¡¢sendto()¡¢recvfrom()¤ËÉ¬Í× */
-#include <arpa/inet.h> /* sockaddr_in¡¢inet_addr()¤ËÉ¬Í× */
-#include <stdlib.h> /* atoi()¤ËÉ¬Í× */
-#include <string.h> /* memset()¤ËÉ¬Í× */
-#include <unistd.h> /* for close()¤ËÉ¬Í× */
+#include <stdio.h> /* printf()ã€fprintf()ã«å¿…è¦ */
+#include <sys/socket.h> /* socket()ã€connect()ã€sendto()ã€recvfrom()ã«å¿…è¦ */
+#include <arpa/inet.h> /* sockaddr_inã€inet_addr()ã«å¿…è¦ */
+#include <stdlib.h> /* atoi()ã«å¿…è¦ */
+#include <string.h> /* memset()ã«å¿…è¦ */
+#include <unistd.h> /* for close()ã«å¿…è¦ */
 
-#define ECHOMAX 255 /* ¥¨¥³¡¼Ê¸»úÎó¤ÎºÇÂçÄ¹ */
+#define ECHOMAX 255 /* ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ—ã®æœ€å¤§é•· */
 
-void DieWithError(char *errorMessage); /* ³°Éô¥¨¥é¡¼½èÍı´Ø¿ô */
+void DieWithError(char *errorMessage); /* å¤–éƒ¨ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
 
 int main(int argc, char *argv[])
 {
-  int sock; /* ¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-  struct sockaddr_in echoServAddr; /* ¥¨¥³¡¼¥µ¡¼¥Ğ¤Î¥¢¥É¥ì¥¹ */
-  struct sockaddr_in fromAddr; /* ¥¨¥³¡¼Á÷¿®¸µ¤Î¥¢¥É¥ì¥¹ */
-  unsigned short echoServPort; /* ¥¨¥³¡¼¥µ¡¼¥Ğ¤Î¥İ¡¼¥ÈÈÖ¹æ */
-  unsigned int fromSize; /* recvfrom()¤Î¥¢¥É¥ì¥¹¤ÎÆş½ĞÎÏ¥µ¥¤¥º */
-  char *servIP; /* ¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹ */
-  char *echoString; /* ¥¨¥³¡¼¥µ¡¼¥Ğ¤ØÁ÷¿®¤¹¤ëÊ¸»úÎó */
-  char echoBuffer[ECHOMAX+1]; /* ¥¨¥³¡¼Ê¸»úÎó¤Î¼õ¿®ÍÑ¥Ğ¥Ã¥Õ¥¡ */
-  int echoStringLen; /* ¥¨¥³¡¼Ê¸»úÎó¤ÎÄ¹¤µ */
-  int respStringLen; /* ¼õ¿®¤·¤¿±şÅú¤ÎÄ¹¤µ */
+  int sock; /* ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+  struct sockaddr_in echoServAddr; /* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã®ã‚¢ãƒ‰ãƒ¬ã‚¹ */
+  struct sockaddr_in fromAddr; /* ã‚¨ã‚³ãƒ¼é€ä¿¡å…ƒã®ã‚¢ãƒ‰ãƒ¬ã‚¹ */
+  unsigned short echoServPort; /* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå· */
+  unsigned int fromSize; /* recvfrom()ã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã®å…¥å‡ºåŠ›ã‚µã‚¤ã‚º */
+  char *servIP; /* ã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ */
+  char *echoString; /* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã¸é€ä¿¡ã™ã‚‹æ–‡å­—åˆ— */
+  char echoBuffer[ECHOMAX+1]; /* ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ—ã®å—ä¿¡ç”¨ãƒãƒƒãƒ•ã‚¡ */
+  int echoStringLen; /* ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ—ã®é•·ã• */
+  int respStringLen; /* å—ä¿¡ã—ãŸå¿œç­”ã®é•·ã• */
 
-  if ((argc < 3) || (argc > 4)) /* °ú¿ô¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+  if ((argc < 3) || (argc > 4)) /* å¼•æ•°ã®æ•°ãŒæ­£ã—ã„ã‹ç¢ºèª */
   {
     fprintf(stderr,"Usage: %s <Server IP> <Echo Word> [<Echo Fort>]\n", argv[0]);
     exit(1);
   }
 
-  servIP = argv[1]; /* 1¤ÄÌÜ¤Î°ú¿ô¡§¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹¡Êdotted quad¡Ë*/
-  echoString = argv[2]; /* 2¤ÄÌÜ¤Î°ú¿ô¡§¥¨¥³¡¼Ê¸»úÎó */
+  servIP = argv[1]; /* 1ã¤ç›®ã®å¼•æ•°ï¼šã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ï¼ˆdotted quadï¼‰*/
+  echoString = argv[2]; /* 2ã¤ç›®ã®å¼•æ•°ï¼šã‚¨ã‚³ãƒ¼æ–‡å­—åˆ— */
 
-  if ((echoStringLen = strlen(echoString)) > ECHOMAX) /* ÆşÎÏ¤·¤¿Ê¸»úÎó¤ÎÄ¹¤µ¤ò¥Á¥§¥Ã¥¯ */
+  if ((echoStringLen = strlen(echoString)) > ECHOMAX) /* å…¥åŠ›ã—ãŸæ–‡å­—åˆ—ã®é•·ã•ã‚’ãƒã‚§ãƒƒã‚¯ */
     DieWithError("Echo word too long");
 
   if (argc == 4)
-    echoServPort = atoi(argv[3]); /* »ØÄê¤Î¥İ¡¼¥ÈÈÖ¹æ¤¬¤¢¤ì¤Ğ»ÈÍÑ */
+    echoServPort = atoi(argv[3]); /* æŒ‡å®šã®ãƒãƒ¼ãƒˆç•ªå·ãŒã‚ã‚Œã°ä½¿ç”¨ */
   else
-    echoServPort = 7; /* 7¤Ï¥¨¥³¡¼¥µ¡¼¥Ó¥¹¤Îwell-known¥İ¡¼¥ÈÈÖ¹æ */
+    echoServPort = 7; /* 7ã¯ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒ“ã‚¹ã®well-knownãƒãƒ¼ãƒˆç•ªå· */
 
-  /* UDP¥Ç¡¼¥¿¥°¥é¥à¥½¥±¥Ã¥È¤ÎºîÀ® */
+  /* UDPãƒ‡ãƒ¼ã‚¿ã‚°ãƒ©ãƒ ã‚½ã‚±ãƒƒãƒˆã®ä½œæˆ */
   if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
     DieWithError("socket() failed");
 
-  /* ¥µ¡¼¥Ğ¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤ÎºîÀ® */
-  memset(&echoServAddr, 0, sizeof(echoServAddr)); /* ¹½Â¤ÂÎ¤Ë¥¼¥í¤òËä¤á¤ë */
-  echoServAddr.sin_family = AF_INET; /* ¥¤¥ó¥¿¡¼¥Í¥Ã¥È¥¢¥É¥ì¥¹¥Õ¥¡¥ß¥ê */
-  echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* ¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹ */
-  echoServAddr.sin_port = htons(echoServPort); /* ¥µ¡¼¥Ğ¤Î¥İ¡¼¥ÈÈÖ¹æ */
+  /* ã‚µãƒ¼ãƒã®ã‚¢ãƒ‰ãƒ¬ã‚¹æ§‹é€ ä½“ã®ä½œæˆ */
+  memset(&echoServAddr, 0, sizeof(echoServAddr)); /* æ§‹é€ ä½“ã«ã‚¼ãƒ­ã‚’åŸ‹ã‚ã‚‹ */
+  echoServAddr.sin_family = AF_INET; /* ã‚¤ãƒ³ã‚¿ãƒ¼ãƒãƒƒãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ãƒ•ã‚¡ãƒŸãƒª */
+  echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* ã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ */
+  echoServAddr.sin_port = htons(echoServPort); /* ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå· */
 
-  /* Ê¸»úÎó¤ò¥µ¡¼¥Ğ¤ËÁ÷¿® */
+  /* æ–‡å­—åˆ—ã‚’ã‚µãƒ¼ãƒã«é€ä¿¡ */
   if (sendto(sock, echoString, echoStringLen, 0, (struct sockaddr *)
          &echoServAddr, sizeof(echoServAddr)) != echoStringLen)
     DieWithError("sendto() sent a different   number of bytes than expected");
 
-  /* ±şÅú¤ò¼õ¿® */
+  /* å¿œç­”ã‚’å—ä¿¡ */
   fromSize = sizeof(fromAddr);
   if ((respStringLen = recvfrom(sock, echoBuffer, ECHOMAX, 0,
     (struct sockaddr *) &fromAddr, &fromSize)) != echoStringLen)
@@ -66,9 +66,9 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  /* ¼õ¿®¥Ç¡¼¥¿¤òNULLÊ¸»ú¤Ç½ªÃ¼¤µ¤»¤ë */
+  /* å—ä¿¡ãƒ‡ãƒ¼ã‚¿ã‚’NULLæ–‡å­—ã§çµ‚ç«¯ã•ã›ã‚‹ */
   echoBuffer[respStringLen] = '\0';
-  printf("Received: %s\n", echoBuffer); /* °ú¿ô¤Î¥¨¥³¡¼Ê¸»úÎó¤òÉ½¼¨ */
+  printf("Received: %s\n", echoBuffer); /* å¼•æ•°ã®ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ—ã‚’è¡¨ç¤º */
 
   close(sock);
   exit(0);

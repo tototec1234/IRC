@@ -1,28 +1,28 @@
-#include <stdio.h>  /* printf()¤ËÉ¬Í× */ 
-#include <signal.h> /* sigaction()¤ËÉ¬Í× */
-#include <unistd.h> /* pause()¤ËÉ¬Í× */
+#include <stdio.h>  /* printf()ã«å¿…è¦ */ 
+#include <signal.h> /* sigaction()ã«å¿…è¦ */
+#include <unistd.h> /* pause()ã«å¿…è¦ */
 
-void DieWithError(char *errorMessage);       /* ¥¨¥é¡¼½èÍı´Ø¿ô */
-void InterruptSignalHandler(int signalType); /* ³ä¤ê¹ş¤ß¥·¥°¥Ê¥ë½èÍı´Ø¿ô */
+void DieWithError(char *errorMessage);       /* ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
+void InterruptSignalHandler(int signalType); /* å‰²ã‚Šè¾¼ã¿ã‚·ã‚°ãƒŠãƒ«å‡¦ç†é–¢æ•° */
 
 int main(int argc, char *argv[])
 {
-    struct sigaction handler;        /* ¥·¥°¥Ê¥ë¥Ï¥ó¥É¥é¤ò»ØÄê¤¹¤ë¹½Â¤ÂÎ */
+    struct sigaction handler;        /* ã‚·ã‚°ãƒŠãƒ«ãƒãƒ³ãƒ‰ãƒ©ã‚’æŒ‡å®šã™ã‚‹æ§‹é€ ä½“ */
 
-    /* InterruptSignalHandler()¤ò¥Ï¥ó¥É¥é´Ø¿ô¤È¤·¤ÆÀßÄê */
+    /* InterruptSignalHandler()ã‚’ãƒãƒ³ãƒ‰ãƒ©é–¢æ•°ã¨ã—ã¦è¨­å®š */
     handler.sa_handler = InterruptSignalHandler;
-    /* Á´¥·¥°¥Ê¥ë¤ò¥Ş¥¹¥¯¤¹¤ë¥Ş¥¹¥¯¤òºîÀ® */
+    /* å…¨ã‚·ã‚°ãƒŠãƒ«ã‚’ãƒã‚¹ã‚¯ã™ã‚‹ãƒã‚¹ã‚¯ã‚’ä½œæˆ */
     if (sigfillset(&handler.sa_mask) < 0)
         DieWithError("sigfillset() failed");
-    /* ¥Õ¥é¥°¤Ê¤· */
+    /* ãƒ•ãƒ©ã‚°ãªã— */
     handler.sa_flags = 0;
 
-    /* ³ä¤ê¹ş¤ß¥·¥°¥Ê¥ë¤ËÂĞ¤¹¤ë½èÍı¤òÀßÄê */
+    /* å‰²ã‚Šè¾¼ã¿ã‚·ã‚°ãƒŠãƒ«ã«å¯¾ã™ã‚‹å‡¦ç†ã‚’è¨­å®š */
     if (sigaction(SIGINT, &handler, 0) < 0)
         DieWithError("sigaction() failed");
 
     for(;;)
-        pause(); /* ¥·¥°¥Ê¥ë¤ò¼õ¤±¼è¤ë¤Ş¤Ç¥×¥í¥°¥é¥à¤ò°ì»şÄä»ß */
+        pause(); /* ã‚·ã‚°ãƒŠãƒ«ã‚’å—ã‘å–ã‚‹ã¾ã§ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’ä¸€æ™‚åœæ­¢ */
 
      exit(0);
 }

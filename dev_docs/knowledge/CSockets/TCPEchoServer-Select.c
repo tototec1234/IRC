@@ -1,44 +1,44 @@
-#include "TCPEchoServer.h"  /* TCP�����������ФΥ��󥯥롼�ɥե����� */
-#include <sys/time.h>        /* timeval{}��ɬ�� */
-#include <fcntl.h>          /* fcntl()��ɬ�� */
+#include "TCPEchoServer.h"  /* TCPエコーサーバのインクルードファイル */
+#include <sys/time.h>        /* timeval{}に必要 */
+#include <fcntl.h>          /* fcntl()に必要 */
 
 int main(int argc, char *argv[])
 {
-     int *servSock;                   /* �����ФΥ����åȥǥ�������ץ� */
-     int maxDescriptor;               /* �����åȥǥ�������ץ��κ����� */
-     fd_set sockSet;                  /* select()���оݤȤʤ륽���åȥǥ�������ץ��Υ��å� */
-     long timeout;                    /* ���ޥ�ɥ饤�󤫤���ꤵ�줿�����ॢ���Ȥ��� */
-     struct timeval selTimeout;       /* select()�Υ����ॢ���� */
-     int running = 1;                 /* �����Ф�ư����Ǥ����1�������Ǥʤ����0 */
-     int noPorts;                     /* ���ޥ�ɥ饤�󤫤���ꤷ���ݡ��Ȥο� */
-     int port;                        /* �ݡ��Ȥ��������롼�פ��ѿ� */
-     unsigned short portNo;           /* �ºݤΥݡ����ֹ� */
+     int *servSock;                   /* サーバのソケットディスクリプタ */
+     int maxDescriptor;               /* ソケットディスクリプタの最大値 */
+     fd_set sockSet;                  /* select()の対象となるソケットディスクリプタのセット */
+     long timeout;                    /* コマンドラインから指定されたタイムアウトの値 */
+     struct timeval selTimeout;       /* select()のタイムアウト */
+     int running = 1;                 /* サーバが動作中であれば1、そうでなければ0 */
+     int noPorts;                     /* コマンドラインから指定したポートの数 */
+     int port;                        /* ポートを処理するループの変数 */
+     unsigned short portNo;           /* 実際のポート番号 */
 
-     if (argc < 3)      /* �����ο�����������Ĵ�٤� */
+     if (argc < 3)      /* 引数の数が正しいか調べる */
      {
          fprintf (stderr, "Usage:  %s <Timeout (secs.)> <Port 1> ... \n", argv[0]);
          exit(1);
      }
 
-     timeout = atol(argv[1]);        /* 1���ܤΰ����������ॢ���ȡ��á� */
-     noPorts = argc - 2;             /* �ݡ��Ȥο��ϡ������Υ�����ȡڴ����� argc���ͤǤ��ۤ���2����� */
+     timeout = atol(argv[1]);        /* 1つ目の引数：タイムアウト（秒） */
+     noPorts = argc - 2;             /* ポートの数は、引数のカウント【監訳注 argcの値です】から2を引く */
 
-     /* �忮��³�׵������륽���åȥꥹ�Ȥγ������ */
+     /* 着信接続要求を入れるソケットリストの割り当て */
      servSock = (int *) malloc(noPorts * sizeof(int));
 
-     /* select()�ǻ��Ѥ���maxDescriptor�ν���� */
+     /* select()で使用するmaxDescriptorの初期化 */
      maxDescriptor = -1;
 
-     /* �ݡ��ȡ�����ӥݡ��Ȥ�������륽���åȤΥꥹ�Ȥ���� */
+     /* ポート、およびポートを処理するソケットのリストを作成 */
      for (port = 0; port < noPorts; port++)
      {
-         /* �ݡ��Ȥ�ꥹ�Ȥ��ɲ� */
-         portNo = atoi(argv[port + 2]); /*�ǽ��2�Ĥΰ����򥹥��å� */
+         /* ポートをリストに追加 */
+         portNo = atoi(argv[port + 2]); /*最初の2つの引数をスキップ */
 
-         /* �ݡ��ȤΥ����åȤ���� */
+         /* ポートのソケットを作成 */
          servSock[port] = CreateTCPServerSocket(portNo);
 
-         /* �������ǥ�������ץ����ͤ����礫Ĵ�٤� */
+         /* 新しいディスクリプタの値が最大か調べる */
          if (servSock[port] > maxDescriptor)
             maxDescriptor = servSock[port];
      }
@@ -46,25 +46,25 @@ int main(int argc, char *argv[])
      printf("Starting server: Hit return to shutdown\n");
      while (running)
      {
-         /* �����åȥǥ�������ץ��Υ٥����򥼥���������ƥ����ФΥ����åȤ򥻥åȤ��� */
-         /* select()��¹Ԥ��뤿�Ӥ˥ꥻ�åȤ�ɬ�� */
+         /* ソケットディスクリプタのベクタをゼロ初期化してサーバのソケットをセットする */
+         /* select()を実行するたびにリセットが必要 */
          FD_ZERO(&sockSet);
-         /* �ǥ�������ץ��Υ٥����˥����ܡ��ɤ��ɲ� */
+         /* ディスクリプタのベクタにキーボードを追加 */
          FD_SET(STDIN_FILENO, &sockSet);
          for (port = 0; port < noPorts; port++)
              FD_SET(servSock[port], &sockSet);
 
-         /* �����ॢ���Ȥλ��� */
-         /* select()��¹Ԥ��뤿�Ӥ˥ꥻ�åȤ�ɬ�� */
-         selTimeout.tv_sec = timeout;       /* �����ॢ���ȡ��á� */
-         selTimeout.tv_usec = 0;            /* 0�ޥ�������*/
+         /* タイムアウトの指定 */
+         /* select()を実行するたびにリセットが必要 */
+         selTimeout.tv_sec = timeout;       /* タイムアウト（秒） */
+         selTimeout.tv_usec = 0;            /* 0マイクロ秒*/
 
-         /* �ǥ�������ץ������Ѳ�ǽ���ޤ��ϥ����ॢ���Ȥˤʤ�ޤǥץ������������� */
+         /* ディスクリプタが利用可能、またはタイムアウトになるまでプログラムを一時中断 */
          if (select(maxDescriptor + 1, &sockSet, NULL, NULL, &selTimeout) == 0)
              printf("No echo requests for %ld secs... Server still alive\n", timeout);
          else
          {
-             if (FD_ISSET(STDIN_FILENO, &sockSet)) /* �����ܡ��ɤΥ����å� */
+             if (FD_ISSET(STDIN_FILENO, &sockSet)) /* キーボードのチェック */
              {
                  printf("Shutting down server\n");
                  getchar();
@@ -80,11 +80,11 @@ int main(int argc, char *argv[])
        }
      }
 
-     /* �����åȤΥ������� */
+     /* ソケットのクローズ */
      for (port = 0; port < noPorts; port++)
          close(servSock[port]);
 
-     /* �����åȤΥꥹ�Ȥ���꤫����� */
+     /* ソケットのリストをメモリから解放 */
      free(servSock);
 
      exit(0);
