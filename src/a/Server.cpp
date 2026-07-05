@@ -44,8 +44,9 @@ Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw), _he
 	/* */
 	int opt = 1;
 	if (setsockopt(_listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+		const int err = errno;
 		close(_listenFd);
-		throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
+		throw std::runtime_error(std::string("setsockopt(SO_REUSEADDR) failed: ") + strerror(err));
 	}
 	
 	_setNonBlocking(_listenFd);		// ★追加: listen fd を non-blocking に
