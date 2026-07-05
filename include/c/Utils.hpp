@@ -12,4 +12,7 @@ struct IrcStringCompare {
   bool operator()(const std::string& a, const std::string& b) const;
 };
 
+bool isValidNickname(const std::string& name);
+bool isValidChannelName(const std::string& name);
+
 #endif

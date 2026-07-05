@@ -20,6 +20,7 @@ const char* ERR_NOSUCHNICK = "401";       // noSuchNick()
 const char* ERR_NOSUCHCHANNEL = "403";    // noSuchChannel()
 const char* ERR_CANNOTSENDTOCHAN = "404"; // cannotSendToChan()
 const char* ERR_UNKNOWNCOMMAND = "421";  // unknownCommand()
+const char* ERR_ERRONEUSNICKNAME = "432";  // erroneousNickname()
 const char* ERR_NICKNAMEINUSE = "433";  // nickInUse()
 const char* ERR_USERNOTINCHANNEL = "441"; // userNotInChannel()
 const char* ERR_NOTONCHANNEL = "442";     // notOnChannel()
@@ -81,6 +82,12 @@ std::string ReplyBuilder::alreadyRegistered(const Client& client) {
 
 std::string ReplyBuilder::passwordMismatch() {
   return numericReply(ERR_PASSWDMISMATCH, "*", "", "Password incorrect");
+}
+
+std::string ReplyBuilder::erroneousNickname(const Client& client,
+                                            const std::string& nick) {
+  return numericReply(ERR_ERRONEUSNICKNAME, replyTarget(client), nick,
+                      "Erroneous nickname");
 }
 
 std::string ReplyBuilder::nickInUse(const std::string& nick) {

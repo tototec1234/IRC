@@ -6,6 +6,7 @@
 #include "c/ChannelModes.hpp"
 #include "c/Client.hpp"
 #include "c/ServerState.hpp"
+#include "c/Utils.hpp"
 
 namespace {
 
@@ -228,6 +229,29 @@ void testRemoveClientCleanup() {
   (void)solo;
 }
 
+void testNameValidationHelpers() {
+  EXPECT_TRUE(isValidNickname("taro"));
+  EXPECT_TRUE(isValidNickname("nick-name"));
+  EXPECT_TRUE(isValidNickname("[abc]"));
+  EXPECT_TRUE(isValidNickname("abcdefghi"));
+  EXPECT_FALSE(isValidNickname(""));
+  EXPECT_FALSE(isValidNickname("#user"));
+  EXPECT_FALSE(isValidNickname("1user"));
+  EXPECT_FALSE(isValidNickname("nick,name"));
+  EXPECT_FALSE(isValidNickname("abcdefghij"));
+
+  EXPECT_TRUE(isValidChannelName("#room"));
+  EXPECT_TRUE(isValidChannelName("#room-name"));
+  EXPECT_TRUE(isValidChannelName("#[]"));
+  EXPECT_FALSE(isValidChannelName(""));
+  EXPECT_FALSE(isValidChannelName("#"));
+  EXPECT_FALSE(isValidChannelName("room"));
+  EXPECT_FALSE(isValidChannelName("+room"));
+  EXPECT_FALSE(isValidChannelName("#bad,name"));
+  EXPECT_FALSE(isValidChannelName("#bad:name"));
+  EXPECT_FALSE(isValidChannelName("#bad name"));
+}
+
 void runTest(const std::string& name, void (*test)()) {
   int failedBefore = g_failed;
   test();
@@ -247,6 +271,7 @@ int main() {
   runTest("server state membership", testServerStateMembership);
   runTest("invite cleanup", testInviteCleanup);
   runTest("remove client cleanup", testRemoveClientCleanup);
+  runTest("name validation helpers", testNameValidationHelpers);
 
   std::cout << "Assertions passed: " << g_passed << std::endl;
   if (g_failed != 0) {

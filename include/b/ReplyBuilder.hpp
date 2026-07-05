@@ -18,6 +18,8 @@ class ReplyBuilder {
                                     const std::string& command);
   static std::string alreadyRegistered(const Client& client);
   static std::string passwordMismatch();
+  static std::string erroneousNickname(const Client& client,
+                                       const std::string& nick);
   static std::string nickInUse(const std::string& nick);
   static std::string noSuchNick(const Client& client,
          		                const std::string& targetName);
