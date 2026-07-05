@@ -2,7 +2,7 @@
 
 > **用途:** tvaroux がルート `README.md`（英語）に統合するための素材
 > **作成:** 2026-07-05 / torinoue（本文は AI 生成。方針・事実・レビューは人間）
-> **状態:** 改訂版（§1–6）。英語版は AI 翻訳 → tvaroux がルート `README.md` に統合
+> **状態:** 改訂版（§1–7）。英語版は AI 翻訳 → tvaroux がルート `README.md` に統合
 > **参照:** [chapter5_readme_requirements.md](../docs/chapter5_readme_requirements.md)
 
 ---
