@@ -2,8 +2,7 @@
 #define SERVER_HPP
 
 #include "../AnsiColor.hpp"
-// #include <string.h>	// man 3 memset p41
-#include <cstring>
+#include <cstring>	// man 3 memset , strerror() 
 #include <string>
 #include <vector>
 #include <poll.h>
