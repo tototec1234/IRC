@@ -125,12 +125,12 @@ CommandResult ChannelCommandHandler::handleInvite(int fd, const Message& msg,
 
   const std::string& targetNick = msg.getSingleParam(0);
   const std::string& channelName = msg.getSingleParam(1);
-  if (!isValidChannelName(channelName)) {
-    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
-    return result;
-  }
   if (!isValidNickname(targetNick)) {
     result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));
+    return result;
+  }
+  if (!isValidChannelName(channelName)) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
     return result;
   }
   Client* targetClient = state.getClientByNick(targetNick);

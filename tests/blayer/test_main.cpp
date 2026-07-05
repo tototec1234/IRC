@@ -825,6 +825,8 @@ void testJoinBeforeRegistrationReturns451() {
 		ctx.dispatch(taro.fd, makeMessage("KICK", "#bad,name", hanako.nick));
 	CommandResult invite =
 		ctx.dispatch(taro.fd, makeMessage("INVITE", hanako.nick, "#bad,name"));
+	CommandResult invite_both_invalid =
+		ctx.dispatch(taro.fd, makeMessage("INVITE", "1bad", "#bad,name"));
 	CommandResult topic =
 		ctx.dispatch(taro.fd, makeMessage("TOPIC", "#bad,name", "topic"));
 	CommandResult mode =
@@ -836,6 +838,7 @@ void testJoinBeforeRegistrationReturns451() {
 	EXPECT_CONTAINS(invite.replies[0].message, " 403 ");
 	EXPECT_CONTAINS(topic.replies[0].message, " 403 ");
 	EXPECT_CONTAINS(mode.replies[0].message, " 403 ");
+	EXPECT_CONTAINS(invite_both_invalid.replies[0].message, " 401 ");
 	EXPECT_TRUE(ctx.state.getChannel("#bad,name") == NULL);
 	EXPECT_TRUE(ctx.state.getChannel("#valid")->hasMember(ctx.client(taro.fd)));
 	EXPECT_TRUE(ctx.state.getChannel("#valid")->hasMember(ctx.client(hanako.fd)));
