@@ -33,7 +33,7 @@ A層 ─complete line→ B層 ─CommandResult→ A層
 | 担当 | メンバー | 範囲 |
 |------|---------|------|
 | A | torinoue | Network / IO（Server, Connection） |
-| B | torinoue | Protocol / Command（Parser, Dispatcher, ReplyBuilder） |
+| B | tvaroux | Protocol / Command（Parser, Dispatcher, ReplyBuilder） |
 | C | tyamaoka | ServerState / ClientRegistry / Client / Channel / ChannelModes |
 
 ---
