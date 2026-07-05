@@ -15,4 +15,3 @@
 
 - 本一覧の「他指摘」は、samatsum 氏からの追加コメントが来次第、行と MD ファイルを増やす
 - 各 MD 完成後、GitHub Issue を起票 → 実装 PR を紐付ける（[workflow.md](../../workflow.md) §2）
-| 1 | 低（開発体験） | 終了直後に同一ポートを bind できない | [fix_bind_port_reuse.md](fix_bind_port_reuse.md) | #58 | #57 |
