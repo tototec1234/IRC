@@ -17,9 +17,6 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	// Server server(static_cast<int>(port), std::string(argv[2]));
-	// server.run();
-
 	try {
 		Server server(static_cast<int>(port), std::string(argv[2]));
 		server.run();
