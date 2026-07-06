@@ -41,6 +41,7 @@ class Server {
 		
 		void _disconnectClient(int fd);
 		void _removeFd(int fd);	
+		void _closeAllFds();
 
 		void _enqueueReplies(const CommandResult& result);
 		void _notifyAndDisconnect(int fd, const std::string& reason);
@@ -59,4 +60,3 @@ class Server {
 
 
 #endif
-
