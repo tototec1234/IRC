@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 
     for (processCt=0; processCt < processLimit; processCt++)
         /* 子プロセスのフォークとエラーの報告 */
-        if ((processID == fork()) < 0)
+        if ((processID = fork()) < 0)
             DieWithError("fork() failed");
         else if (processID == 0) /* 子プロセスの場合 */
             ProcessMain(servSock);
