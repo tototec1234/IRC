@@ -1,60 +1,60 @@
-#include "TCPEchoServer.h" /* TCPеие│б╝е╡б╝е╨д╬е╪е├е└е╒ебедеыдЄедеєепеыб╝е╔ */
-#include <pthread.h>      /* POSIXе╣еье├е╔д╦╔м═╫ */
+#include "TCPEchoServer.h" /* TCPуВиуВ│уГ╝уВ╡уГ╝уГРуБоуГШуГГуГАуГХуВбуВдуГлуВТуВдуГ│уВпуГлуГ╝уГЙ */
+#include <pthread.h>      /* POSIXуВ╣уГмуГГуГЙуБлх┐ЕшжБ */
 
-void *ThreadMain(void *arg);          /* е╣еье├е╔д╬еседеєе╫еэе░ещер */
+void *ThreadMain(void *arg);          /* уВ╣уГмуГГуГЙуБоуГбуВдуГ│уГЧуГнуВ░уГйуГа */
 
-/* епещедевеєе╚е╣еье├е╔д╦┼╧д╣░·┐Їд╬╣╜┬д┬╬ */
+/* уВпуГйуВдуВвуГ│уГИуВ╣уГмуГГуГЙуБлц╕буБЩх╝ХцХ░уБоцзЛщАаф╜У */
 struct ThreadArgs
 {
-int clntSock;                          /* епещедевеєе╚д╬е╜е▒е├е╚е╟еге╣епеъе╫е┐ */
+int clntSock;                          /* уВпуГйуВдуВвуГ│уГИуБоуВ╜уВ▒уГГуГИуГЗуВгуВ╣уВпуГкуГЧуВ┐ */
 };
 
 int main(int argc, char *argv[])
 {
-    int servSock;                    /* е╡б╝е╨д╬е╜е▒е├е╚е╟еге╣епеъе╫е┐ */
-    int clntSock;                    /* епещедевеєе╚д╬е╜е▒е├е╚е╟еге╣епеъе╫е┐ */
-    unsigned short echoServPort;     /* е╡б╝е╨д╬е▌б╝е╚ */
-    pthread_t threadID;              /* pthread_create()дм╩╓д╣е╣еье├е╔ID */
-    struct ThreadArgs *threadArgs;   /* е╣еье├е╔д╬░·┐Ї╣╜┬д┬╬д╪д╬е▌едеєе┐ */
+    int servSock;                    /* уВ╡уГ╝уГРуБоуВ╜уВ▒уГГуГИуГЗуВгуВ╣уВпуГкуГЧуВ┐ */
+    int clntSock;                    /* уВпуГйуВдуВвуГ│уГИуБоуВ╜уВ▒уГГуГИуГЗуВгуВ╣уВпуГкуГЧуВ┐ */
+    unsigned short echoServPort;     /* уВ╡уГ╝уГРуБоуГЭуГ╝уГИ */
+    pthread_t threadID;              /* pthread_create()уБМш┐ФуБЩуВ╣уГмуГГуГЙID */
+    struct ThreadArgs *threadArgs;   /* уВ╣уГмуГГуГЙуБох╝ХцХ░цзЛщАаф╜УуБ╕уБоуГЭуВдуГ│уВ┐ */
 
-    if (argc != 2)    /* ░·┐Їд╬┐Їдм└╡д╖дддл│╬╟з */
+    if (argc != 2)    /* х╝ХцХ░уБоцХ░уБМцнгуБЧуБДуБЛчв║шкН */
     {
         fprintf(stderr,"Usage: %s <SERVER PORT>\n", argv[0]);
         exit(1);
     }
 
-    echoServPort = atoi(argv[1]); /* 1д─╠▄д╬░·┐Їбз еэб╝елеые▌б╝е╚ */
+    echoServPort = atoi(argv[1]); /* 1уБдчЫоуБох╝ХцХ░я╝Ъ уГнуГ╝уВлуГлуГЭуГ╝уГИ */
 
     servSock = CreateTCPServerSocket(echoServPort);
 
-    for (;;) /* е╫еэе░ещердм╜к╬╗д╣дыд▐д╟╖лдъ╩╓д╖╝┬╣╘ */
+    for (;;) /* уГЧуГнуВ░уГйуГауБМч╡Вф║ЖуБЩуВЛуБ╛уБзч╣░уВКш┐ФуБЧхоЯшбМ */
     {
         clntSock = AcceptTCPConnection(servSock);
 
-        /* епещедевеєе╚░·┐Ї═╤д╦есетеъдЄ┐╖д╖дп│╬╩▌ */
+        /* уВпуГйуВдуВвуГ│уГИх╝ХцХ░чФиуБлуГбуГвуГкуВТцЦ░уБЧуБПчв║ф┐Э */
         if ((threadArgs = (struct ThreadArgs *) malloc(sizeof(struct ThreadArgs)))
                == NULL)
              DieWithError("malloc() failed");
         threadArgs -> clntSock = clntSock;
 
-        /* епещедевеєе╚е╣еье├е╔дЄ└╕└о */
+        /* уВпуГйуВдуВвуГ│уГИуВ╣уГмуГГуГЙуВТчФЯцИР */
         if (pthread_create(&threadID, NULL, ThreadMain, (void *) threadArgs) != 0)
             DieWithError("pthread_create() failed");
         printf("with thread %ld\n", (long int) threadID);
     }
-    /* д│д╬╔Ї╩мд╦д╧┼■├гд╖д╩дд */
+    /* уБУуБощГихИЖуБлуБпхИ░щБФуБЧуБкуБД */
 }
 
 void *ThreadMain(void *threadArgs)
 {
-    int clntSock; /* епещедевеєе╚└▄┬│═╤е╜е▒е├е╚е╟еге╣епеъе╫е┐ */
+    int clntSock; /* уВпуГйуВдуВвуГ│уГИцОеч╢ЪчФиуВ╜уВ▒уГГуГИуГЗуВгуВ╣уВпуГкуГЧуВ┐ */
 
-    /* ╠сдъ╗■д╦бве╣еье├е╔д╬еъе╜б╝е╣дЄ│фдъ┼Ўд╞▓Є╜№ */
+    /* цИ╗уВКцЩВуБлуАБуВ╣уГмуГГуГЙуБоуГкуВ╜уГ╝уВ╣уВТхЙ▓уВКх╜УуБжшзгщЩд */
     pthread_detach(pthread_self());
 
-    /* е╜е▒е├е╚д╬е╒ебедеые╟еге╣епеъе╫е┐дЄ░·┐Їдлдщ╝шдъ╜╨д╣ */
+    /* уВ╜уВ▒уГГуГИуБоуГХуВбуВдуГлуГЗуВгуВ╣уВпуГкуГЧуВ┐уВТх╝ХцХ░уБЛуВЙхПЦуВКхЗ║уБЩ */
     clntSock = ((struct ThreadArgs *) threadArgs) -> clntSock;
-    free(threadArgs);              /* ░·┐Їд╦│фдъ┼Ўд╞дщдьд╞ддд┐есетеъдЄ▓Є╩№ */
+    free(threadArgs);              /* х╝ХцХ░уБлхЙ▓уВКх╜УуБжуВЙуВМуБжуБДуБЯуГбуГвуГкуВТшзгцФ╛ */
 
     HandleTCPClient(clntSock);
 

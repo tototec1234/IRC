@@ -1,31 +1,31 @@
-#include <sys/socket.h> /* socket()¡¢bind()¡¢connect()¤ËÉ¬Í× */
-#include <arpa/inet.h>  /* sockaddr_in and inet_ntoa()¤ËÉ¬Í× */
-#include <string.h>     /* memset()¤ËÉ¬Í× */
+#include <sys/socket.h> /* socket()ã€bind()ã€connect()ã«å¿…è¦ */
+#include <arpa/inet.h>  /* sockaddr_in and inet_ntoa()ã«å¿…è¦ */
+#include <string.h>     /* memset()ã«å¿…è¦ */
 
-#define MAXPENDING 5    /* Ì¤½èÍı¤ÎÀÜÂ³Í×µá¤ÎºÇÂçÃÍ */
+#define MAXPENDING 5    /* æœªå‡¦ç†ã®æ¥ç¶šè¦æ±‚ã®æœ€å¤§å€¤ */
 
-void DieWithError(char *errorMessage); /* ¥¨¥é¡¼½èÍı´Ø¿ô */
+void DieWithError(char *errorMessage); /* ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
 
 int CreateTCPServerSocket(unsigned short port)
 {
-    int sock;                        /* ºîÀ®¤¹¤ë¥½¥±¥Ã¥È */
-    struct sockaddr_in echoServAddr; /* ¥í¡¼¥«¥ë¥¢¥É¥ì¥¹ */
+    int sock;                        /* ä½œæˆã™ã‚‹ã‚½ã‚±ãƒƒãƒˆ */
+    struct sockaddr_in echoServAddr; /* ãƒ­ãƒ¼ã‚«ãƒ«ã‚¢ãƒ‰ãƒ¬ã‚¹ */
 
-    /* Ãå¿®ÀÜÂ³Í×µá¤ËÂĞ¤¹¤ë¥½¥±¥Ã¥È¤òºîÀ® */
+    /* ç€ä¿¡æ¥ç¶šè¦æ±‚ã«å¯¾ã™ã‚‹ã‚½ã‚±ãƒƒãƒˆã‚’ä½œæˆ */
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         DieWithError("socket() failed");
 
-    /* ¥í¡¼¥«¥ë¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤òºîÀ® */
-    memset(&echoServAddr, 0, sizeof(echoServAddr));    /* ¹½Â¤ÂÎ¤ò¥¼¥í¤ÇËä¤á¤ë */
-    echoServAddr.sin_family = AF_INET;                /* ¥¤¥ó¥¿¡¼¥Í¥Ã¥È¥¢¥É¥ì¥¹¥Õ¥¡¥ß¥ê */
-    echoServAddr.sin_addr.s_addr = htonl(INADDR_ANY); /* ¥ï¥¤¥ë¥É¥«¡¼¥É¤ò»ÈÍÑ */
-    echoServAddr.sin_port = htons(port);              /* ¥í¡¼¥«¥ë¥İ¡¼¥È */
+    /* ãƒ­ãƒ¼ã‚«ãƒ«ã®ã‚¢ãƒ‰ãƒ¬ã‚¹æ§‹é€ ä½“ã‚’ä½œæˆ */
+    memset(&echoServAddr, 0, sizeof(echoServAddr));    /* æ§‹é€ ä½“ã‚’ã‚¼ãƒ­ã§åŸ‹ã‚ã‚‹ */
+    echoServAddr.sin_family = AF_INET;                /* ã‚¤ãƒ³ã‚¿ãƒ¼ãƒãƒƒãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ãƒ•ã‚¡ãƒŸãƒª */
+    echoServAddr.sin_addr.s_addr = htonl(INADDR_ANY); /* ãƒ¯ã‚¤ãƒ«ãƒ‰ã‚«ãƒ¼ãƒ‰ã‚’ä½¿ç”¨ */
+    echoServAddr.sin_port = htons(port);              /* ãƒ­ãƒ¼ã‚«ãƒ«ãƒãƒ¼ãƒˆ */
 
-    /* ¥í¡¼¥«¥ë¥¢¥É¥ì¥¹¤Ø¥Ğ¥¤¥ó¥É */
+    /* ãƒ­ãƒ¼ã‚«ãƒ«ã‚¢ãƒ‰ãƒ¬ã‚¹ã¸ãƒã‚¤ãƒ³ãƒ‰ */
     if (bind(sock, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0)
         DieWithError("bind() failed");
 
-    /* Ãå¿®ÀÜÂ³Í×µá¤Î¥ê¥¹¥óÃæ¤È¤¤¤¦¥Ş¡¼¥¯¤ò¥½¥±¥Ã¥È¤ËÉÕ¤±¤ë */
+    /* ç€ä¿¡æ¥ç¶šè¦æ±‚ã®ãƒªã‚¹ãƒ³ä¸­ã¨ã„ã†ãƒãƒ¼ã‚¯ã‚’ã‚½ã‚±ãƒƒãƒˆã«ä»˜ã‘ã‚‹ */
     if (listen(sock, MAXPENDING) < 0)
         DieWithError("listen() failed");
 

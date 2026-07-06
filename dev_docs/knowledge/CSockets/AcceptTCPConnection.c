@@ -1,24 +1,24 @@
-#include <stdio.h>      /* printf()¤ËÉ¬Í× */
-#include <sys/socket.h> /* accept()¤ËÉ¬Í× */
-#include <arpa/inet.h>  /* sockaddr_in¤Èinet_ntoa()¤ËÉ¬Í× */
+#include <stdio.h>      /* printf()ã«å¿…è¦ */
+#include <sys/socket.h> /* accept()ã«å¿…è¦ */
+#include <arpa/inet.h>  /* sockaddr_inã¨inet_ntoa()ã«å¿…è¦ */
 
-void DieWithError(char *errorMessage); /* ¥¨¥é¡¼½èÍı´Ø¿ô */
+void DieWithError(char *errorMessage); /* ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
 
 int AcceptTCPConnection(int servSock)
 {
-    int clntSock;                   /* ¥¯¥é¥¤¥¢¥ó¥È¤Î¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-    struct sockaddr_in echoClntAddr; /* ¥¯¥é¥¤¥¢¥ó¥È¤Î¥¢¥É¥ì¥¹ */
-    unsigned int clntLen;           /* ¥¯¥é¥¤¥¢¥ó¥È¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤ÎÄ¹¤µ */
+    int clntSock;                   /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+    struct sockaddr_in echoClntAddr; /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®ã‚¢ãƒ‰ãƒ¬ã‚¹ */
+    unsigned int clntLen;           /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®ã‚¢ãƒ‰ãƒ¬ã‚¹æ§‹é€ ä½“ã®é•·ã• */
 
-    /* Æş½ĞÎÏ¥Ñ¥é¥á¡¼¥¿¤Î¥µ¥¤¥º¤ò¥»¥Ã¥È */
+    /* å…¥å‡ºåŠ›ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®ã‚µã‚¤ã‚ºã‚’ã‚»ãƒƒãƒˆ */
     clntLen = sizeof(echoClntAddr);
 
-    /* ¥¯¥é¥¤¥¢¥ó¥È¤«¤é¤ÎÀÜÂ³Í×µá¤òÂÔ¤Ä */
+    /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã‹ã‚‰ã®æ¥ç¶šè¦æ±‚ã‚’å¾…ã¤ */
     if ((clntSock = accept(servSock, (struct sockaddr *) &echoClntAddr,
            &clntLen)) < 0)
         DieWithError("accept() failed");
 
-     /* clntSock¤Ï¥¯¥é¥¤¥¢¥ó¥È¤ËÀÜÂ³ºÑ¤ß */
+     /* clntSockã¯ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã«æ¥ç¶šæ¸ˆã¿ */
 
      printf ("Handling client %s\n", inet_ntoa(echoClntAddr.sin_addr));
 

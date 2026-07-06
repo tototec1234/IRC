@@ -1,87 +1,87 @@
-#include <stdio.h>      /* printf()¡¢fprintf()¤ËÉ¬Í× */
-#include <sys/socket.h> /* socket()¡¢connect()¡¢sendto()¡¢recvfrom()¤ËÉ¬Í× */
-#include <arpa/inet.h>  /* sockaddr_in¡¢inet_addr()¤ËÉ¬Í× */
-#include <stdlib.h>     /* atoi()¤ËÉ¬Í× */
-#include <string.h>     /* memset()¤ËÉ¬Í× */
-#include <unistd.h>     /* close()¤ËÉ¬Í× */
-#include <errno.h>      /* errno¡¢EINTR¤ËÉ¬Í× */
-#include <signal.h>     /* sigaction()¤ËÉ¬Í× */
+#include <stdio.h>      /* printf()ã€fprintf()ã«å¿…è¦ */
+#include <sys/socket.h> /* socket()ã€connect()ã€sendto()ã€recvfrom()ã«å¿…è¦ */
+#include <arpa/inet.h>  /* sockaddr_inã€inet_addr()ã«å¿…è¦ */
+#include <stdlib.h>     /* atoi()ã«å¿…è¦ */
+#include <string.h>     /* memset()ã«å¿…è¦ */
+#include <unistd.h>     /* close()ã«å¿…è¦ */
+#include <errno.h>      /* errnoã€EINTRã«å¿…è¦ */
+#include <signal.h>     /* sigaction()ã«å¿…è¦ */
 
-#define ECHOMAX        255    /* ¥¨¥³¡¼Ê¸»úÎó¤ÎºÇÂçÄ¹ */
-#define TIMEOUT_SECS   2      /* ºÆÁ÷¿®¤Ş¤Ç¤ÎÉÃ¿ô */
-#define MAXTRIES       5      /* ºÇÂç»î¹Ô²ó¿ô */
+#define ECHOMAX        255    /* ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ—ã®æœ€å¤§é•· */
+#define TIMEOUT_SECS   2      /* å†é€ä¿¡ã¾ã§ã®ç§’æ•° */
+#define MAXTRIES       5      /* æœ€å¤§è©¦è¡Œå›æ•° */
 
-int tries=0;   /* Á÷¿®²ó¿ô¤Î¥«¥¦¥ó¥¿¡Ê¥·¥°¥Ê¥ë¥Ï¥ó¥É¥é¤«¤é¤Î¥¢¥¯¥»¥¹ÍÑ¡¢¥°¥í¡¼¥Ğ¥ë¡Ë */
+int tries=0;   /* é€ä¿¡å›æ•°ã®ã‚«ã‚¦ãƒ³ã‚¿ï¼ˆã‚·ã‚°ãƒŠãƒ«ãƒãƒ³ãƒ‰ãƒ©ã‹ã‚‰ã®ã‚¢ã‚¯ã‚»ã‚¹ç”¨ã€ã‚°ãƒ­ãƒ¼ãƒãƒ«ï¼‰ */
 
-void DieWithfrror(char *errorMessage);   /* ¥¨¥é¡¼½èÍı´Ø¿ô */
-void CatchAlarm(int ignored);            /* SIGALRM¤Î¥Ï¥ó¥É¥é */
+void DieWithError(char *errorMessage);   /* ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
+void CatchAlarm(int ignored);            /* SIGALRMã®ãƒãƒ³ãƒ‰ãƒ© */
 
 int main(int argc, char *argv[])
 {
-    int sock;                       /* ¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-    struct sockaddr_in echoServAddr; /* ¥¨¥³¡¼¥µ¡¼¥Ğ¤Î¥¢¥É¥ì¥¹ */
-    struct sockaddr_in fromAddr;     /* ¥¨¥³¡¼Á÷¿®¸µ¤Î¥¢¥É¥ì¥¹ */
-    unsigned short echoServPort;    /* ¥¨¥³¡¼¥µ¡¼¥Ğ¤Î¥İ¡¼¥ÈÈÖ¹æ */
-    unsigned int fromSize;        /* recvfrom()¤Î¥¢¥É¥ì¥¹¤ÎÆş½ĞÎÏ¥µ¥¤¥º */
-    struct sigaction myAction;      /* ¥·¥°¥Ê¥ë¥Ï¥ó¥É¥é¤ÎÀßÄêÍÑ */
-    char *servIP;                   /* ¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹ */
-    char *echoString;               /* ¥¨¥³¡¼¥µ¡¼¥Ğ¤ØÁ÷¿®¤¹¤ëÊ¸»úÎó */
-    char echoBuffer[ECHOMAX+1];     /* ¥¨¥³¡¼Ê¸»úÎó¤Î¼õ¿®¥Ğ¥Ã¥Õ¥¡ */
-    int echoStringLen;              /* ¥¨¥³¡¼Ê¸»úÎó¤ÎÄ¹¤µ */
-    int respStringLen;              /* ¼õ¿®¥Ç¡¼¥¿¥°¥é¥à¤ÎÄ¹¤µ */
+    int sock;                       /* ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+    struct sockaddr_in echoServAddr; /* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã®ã‚¢ãƒ‰ãƒ¬ã‚¹ */
+    struct sockaddr_in fromAddr;     /* ã‚¨ã‚³ãƒ¼é€ä¿¡å…ƒã®ã‚¢ãƒ‰ãƒ¬ã‚¹ */
+    unsigned short echoServPort;    /* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå· */
+    unsigned int fromSize;        /* recvfrom()ã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã®å…¥å‡ºåŠ›ã‚µã‚¤ã‚º */
+    struct sigaction myAction;      /* ã‚·ã‚°ãƒŠãƒ«ãƒãƒ³ãƒ‰ãƒ©ã®è¨­å®šç”¨ */
+    char *servIP;                   /* ã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ */
+    char *echoString;               /* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã¸é€ä¿¡ã™ã‚‹æ–‡å­—åˆ— */
+    char echoBuffer[ECHOMAX+1];     /* ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ—ã®å—ä¿¡ãƒãƒƒãƒ•ã‚¡ */
+    int echoStringLen;              /* ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ—ã®é•·ã• */
+    int respStringLen;              /* å—ä¿¡ãƒ‡ãƒ¼ã‚¿ã‚°ãƒ©ãƒ ã®é•·ã• */
    
-    if ((argc < 3) || (argc > 4))   /* °ú¿ô¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+    if ((argc < 3) || (argc > 4))   /* å¼•æ•°ã®æ•°ãŒæ­£ã—ã„ã‹ç¢ºèª */
     {
         fprintf(stderr,"Usage: %s <Server IP> <Echo Word> [<Echo Port>]\n", argv[0]);
         exit(1);
     }
    
-    servIP = argv[1];           /* 1¤ÄÌÜ¤Î°ú¿ô¡§ ¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹¡Ê¥É¥Ã¥È¶èÀÚ¤ê10¿ÊÉ½µ­¡Ë */
-    echoString = argv[2];       /* 2¤ÄÌÜ¤Î°ú¿ô¡§ ¥¨¥³¡¼Ê¸»úÎó */
+    servIP = argv[1];           /* 1ã¤ç›®ã®å¼•æ•°ï¼š ã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ï¼ˆãƒ‰ãƒƒãƒˆåŒºåˆ‡ã‚Š10é€²è¡¨è¨˜ï¼‰ */
+    echoString = argv[2];       /* 2ã¤ç›®ã®å¼•æ•°ï¼š ã‚¨ã‚³ãƒ¼æ–‡å­—åˆ— */
    
     if ((echoStringLen = strlen(echoString)) > ECHOMAX)
 
     DieWithError("Echo word too long");
    
     if (argc == 4)
-        echoServPort = atoi(argv[3]); /* »ØÄê¤Î¥İ¡¼¥ÈÈÖ¹æ¤¬¤¢¤ì¤Ğ»ÈÍÑ */
+        echoServPort = atoi(argv[3]); /* æŒ‡å®šã®ãƒãƒ¼ãƒˆç•ªå·ãŒã‚ã‚Œã°ä½¿ç”¨ */
     else
-        echoServPort = 7; /* ¥¨¥³¡¼¥µ¡¼¥Ó¥¹¤Îwell-knownÈÖ¹æ */
+        echoServPort = 7; /* ã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒ“ã‚¹ã®well-knownç•ªå· */
    
-    /* ¥Ù¥¹¥È¥¨¥Õ¥©¡¼¥È·¿UDP¥Ç¡¼¥¿¥°¥é¥à¥½¥±¥Ã¥È¤òºîÀ® */
+    /* ãƒ™ã‚¹ãƒˆã‚¨ãƒ•ã‚©ãƒ¼ãƒˆå‹UDPãƒ‡ãƒ¼ã‚¿ã‚°ãƒ©ãƒ ã‚½ã‚±ãƒƒãƒˆã‚’ä½œæˆ */
     if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
         DieWithError("socket() failed");
    
-    /* ¥¢¥é¡¼¥à¥·¥°¥Ê¥ëÍÑ¥·¥°¥Ê¥ë¥Ï¥ó¥É¥é¤Î¥»¥Ã¥È */
+    /* ã‚¢ãƒ©ãƒ¼ãƒ ã‚·ã‚°ãƒŠãƒ«ç”¨ã‚·ã‚°ãƒŠãƒ«ãƒãƒ³ãƒ‰ãƒ©ã®ã‚»ãƒƒãƒˆ */
     myAction.sa_handler = CatchAlarm;
-    if (sigfillset(&myAction.sa_mask) < 0) /* ¥Ï¥ó¥É¥éÆâ¤Ç¤Ï¤¹¤Ù¤Æ¤ò¥Ö¥í¥Ã¥¯ */
+    if (sigfillset(&myAction.sa_mask) < 0) /* ãƒãƒ³ãƒ‰ãƒ©å†…ã§ã¯ã™ã¹ã¦ã‚’ãƒ–ãƒ­ãƒƒã‚¯ */
     DieWithError("sigfillset() failed");
     myAction.sa_flags = 0;
    
     if (sigaction(SIGALRM, &myAction, 0) < 0)
         DieWithError("sigaction() failed for SIGALRM");
    
-    /* ¥µ¡¼¥Ğ¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤òºîÀ® */
-    memset(&echoServAddr, 0, sizeof(echoServAddr));  /* ¹½Â¤ÂÎ¤ò¥¼¥í¤ÇËä¤á¤ë */
+    /* ã‚µãƒ¼ãƒã®ã‚¢ãƒ‰ãƒ¬ã‚¹æ§‹é€ ä½“ã‚’ä½œæˆ */
+    memset(&echoServAddr, 0, sizeof(echoServAddr));  /* æ§‹é€ ä½“ã‚’ã‚¼ãƒ­ã§åŸ‹ã‚ã‚‹ */
 
     echoServAddr.sin_family = AF_INET;
-    echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* ¥µ¡¼¥Ğ¤ÎIP¥¢¥É¥ì¥¹ */
-    echoServAddr.sin_port = htons(echoServPort);       /* ¥µ¡¼¥Ğ¤Î¥İ¡¼¥ÈÈÖ¹æ */
+    echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* ã‚µãƒ¼ãƒã®IPã‚¢ãƒ‰ãƒ¬ã‚¹ */
+    echoServAddr.sin_port = htons(echoServPort);       /* ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå· */
    
-    /* Ê¸»úÎó¤ò¥µ¡¼¥Ğ¤ËÁ÷¿® */
+    /* æ–‡å­—åˆ—ã‚’ã‚µãƒ¼ãƒã«é€ä¿¡ */
     if (sendto(sock, echoString, echoStringLen, 0, (struct sockaddr *)
                &echoServAddr, sizeof(echoServAddr)) != echoStringLen)
         DieWithError("sendto() sent a different number of bytes than expected");
    
-    /* ±şÅú¤ò¼õ¿® */
+    /* å¿œç­”ã‚’å—ä¿¡ */
    
     fromSize = sizeof(fromAddr);
-    alarm(TIMEOUT_SECS);        /* ¥¿¥¤¥à¥¢¥¦¥È»ş´Ö¤òÀßÄê */
+    alarm(TIMEOUT_SECS);        /* ã‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒˆæ™‚é–“ã‚’è¨­å®š */
     while ((respStringLen = recvfrom(sock, echoBuffer, ECHOMAX, 0,
            (struct sockaddr *) &fromAddr, &fromSize)) < 0)
-        if (errno == EINTR)     /* ¥¢¥é¡¼¥à¤Î½ªÎ» */
+        if (errno == EINTR)     /* ã‚¢ãƒ©ãƒ¼ãƒ ã®çµ‚äº† */
         {
-            if (tries < MAXTRIES) /* tries¤Ï¥·¥°¥Ê¥ë¥Ï¥ó¥É¥éÆâ¤Ç¥¤¥ó¥¯¥ê¥á¥ó¥È */
+            if (tries < MAXTRIES) /* triesã¯ã‚·ã‚°ãƒŠãƒ«ãƒãƒ³ãƒ‰ãƒ©å†…ã§ã‚¤ãƒ³ã‚¯ãƒªãƒ¡ãƒ³ãƒˆ */
             {
                 printf("timed out, %d more tries...\n", MAXTRIES-tries);
                 if (sendto(sock, echoString, echoStringLen, 0, (struct sockaddr *)
@@ -95,18 +95,18 @@ int main(int argc, char *argv[])
          else
              DieWithError("recvfrom() failed");
    
-    /* recvfrom()¤¬²¿¤«¤ò¼õ¿®¤·¤¿¤é¡¢¥¿¥¤¥à¥¢¥¦¥È¤ò¥­¥ã¥ó¥»¥ë */
+    /* recvfrom()ãŒä½•ã‹ã‚’å—ä¿¡ã—ãŸã‚‰ã€ã‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒˆã‚’ã‚­ãƒ£ãƒ³ã‚»ãƒ« */
     alarm(0);
    
-    /* ¼õ¿®¥Ç¡¼¥¿¤òNULLÊ¸»ú¤Ç½ªÃ¼¤µ¤»¤ë */
+    /* å—ä¿¡ãƒ‡ãƒ¼ã‚¿ã‚’NULLæ–‡å­—ã§çµ‚ç«¯ã•ã›ã‚‹ */
     echoBuffer[respStringLen] = '\0';
-    printf("Received: %s\n", echoBuffer);  /* ¼õ¿®¥Ç¡¼¥¿¤òÉ½¼¨ */
+    printf("Received: %s\n", echoBuffer);  /* å—ä¿¡ãƒ‡ãƒ¼ã‚¿ã‚’è¡¨ç¤º */
     
      close(sock);
      exit(0);
 }
 
-void CatchAlarm(int ignored)    /* SIGALRM¤Î¥Ï¥ó¥É¥é */
+void CatchAlarm(int ignored)    /* SIGALRMã®ãƒãƒ³ãƒ‰ãƒ© */
 {
     tries += 1;
 }

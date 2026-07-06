@@ -1,57 +1,57 @@
-#include <stdio.h>      /* printf()¤Èfprintf()¤ËÉ¬Í× */
-#include <sys/socket.h> /* socket()¤Èbind()¤ËÉ¬Í× */
-#include <arpa/inet.h>  /* sockaddr_in¤ËÉ¬Í× */
-#include <stdlib.h>     /* atoi()¤ËÉ¬Í× */
-#include <string.h>     /* memset()¤ËÉ¬Í× */
-#include <unistd.h>     /* close()¤ËÉ¬Í× */
+ï»¿#include <stdio.h>      /* printf()ï¿½ï¿½fprintf()ï¿½ï¿½É¬ï¿½ï¿½ */
+#include <sys/socket.h> /* socket()ï¿½ï¿½bind()ï¿½ï¿½É¬ï¿½ï¿½ */
+#include <arpa/inet.h>  /* sockaddr_inï¿½ï¿½É¬ï¿½ï¿½ */
+#include <stdlib.h>     /* atoi()ï¿½ï¿½É¬ï¿½ï¿½ */
+#include <string.h>     /* memset()ï¿½ï¿½É¬ï¿½ï¿½ */
+#include <unistd.h>     /* close()ï¿½ï¿½É¬ï¿½ï¿½ */
 
-void DieWithError(char *errorMessage); /* ³°Éô¥¨¥é¡¼½èÍý´Ø¿ô */
+void DieWithError(char *errorMessage); /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é¡¼ï¿½ï¿½ï¿½ï¿½ï¿½Ø¿ï¿½ */
 
 int main(int argc, char *argv[])
  {
-     int sock;                         /* ¥½¥±¥Ã¥È */
-     struct sockaddr_in broadcastAddr; /* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¥¢¥É¥ì¥¹ */
-     char *broadcastIP;                /* IP¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¥¢¥É¥ì¥¹ */
-     unsigned short broadcastPort;     /* ¥µ¡¼¥Ð¤Î¥Ý¡¼¥È */
-     char *sendString;                 /* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¤¹¤ëÊ¸»úÎó */
-     int broadcastPermission;          /* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¤òÍ­¸ú¤Ë¤¹¤ë¥½¥±¥Ã¥È¥ª¥×¥·¥ç¥ó */
-     unsigned int sendStringLen;       /* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¤¹¤ëÊ¸»úÎó¤ÎÄ¹¤µ */
+     int sock;                         /* ï¿½ï¿½ï¿½ï¿½ï¿½Ã¥ï¿½ */
+     struct sockaddr_in broadcastAddr; /* ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¥ï¿½ï¿½É¥ì¥¹ */
+     char *broadcastIP;                /* IPï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¥ï¿½ï¿½É¥ì¥¹ */
+     unsigned short broadcastPort;     /* ï¿½ï¿½ï¿½ï¿½ï¿½Ð¤Î¥Ý¡ï¿½ï¿½ï¿½ */
+     char *sendString;                 /* ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¤ï¿½ï¿½ï¿½Ê¸ï¿½ï¿½ï¿½ï¿½ */
+     int broadcastPermission;          /* ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¤ï¿½Í­ï¿½ï¿½ï¿½Ë¤ï¿½ï¿½ë¥½ï¿½ï¿½ï¿½Ã¥È¥ï¿½ï¿½×¥ï¿½ï¿½ï¿½ï¿½ */
+     unsigned int sendStringLen;       /* ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¤ï¿½ï¿½ï¿½Ê¸ï¿½ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½ï¿½ */
 
-     if (argc < 4)                     /* ¥Ñ¥é¥á¡¼¥¿¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+     if (argc < 4)                     /* ï¿½Ñ¥ï¿½á¡¼ï¿½ï¿½ï¿½Î¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç§ */
      {
          fprintf(stderr,"Usage: %s <IP Address> <Port> <Send String>\n", argv[0]);
          exit(1);
      }
 
-     broadcastIP = argv[1];           /* 1¤ÄÌÜ¤Î°ú¿ô¡§¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¤¹¤ëIP¥¢¥É¥ì¥¹ */
-     broadcastPort = atoi(argv[2]);   /* 2¤ÄÌÜ¤Î°ú¿ô¡§¥Ö¥í¡¼¥É¥­¥ã¥¹¥ÈÍÑ¥Ý¡¼¥È */
-     sendString = argv[3] ;           /* 3¤ÄÌÜ¤Î°ú¿ô¡§¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¤¹¤ëÊ¸»úÎó */
+     broadcastIP = argv[1];           /* 1ï¿½ï¿½ï¿½Ü¤Î°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¤ï¿½ï¿½ï¿½IPï¿½ï¿½ï¿½É¥ì¥¹ */
+     broadcastPort = atoi(argv[2]);   /* 2ï¿½ï¿½ï¿½Ü¤Î°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½ï¿½ï¿½Ñ¥Ý¡ï¿½ï¿½ï¿½ */
+     sendString = argv[3] ;           /* 3ï¿½ï¿½ï¿½Ü¤Î°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¤ï¿½ï¿½ï¿½Ê¸ï¿½ï¿½ï¿½ï¿½ */
 
-     /* ¥Ç¡¼¥¿¥°¥é¥à¤òÁ÷¼õ¿®¤¹¤ë¥½¥±¥Ã¥È¤òºîÀ® */
+     /* ï¿½Ç¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë¥½ï¿½ï¿½ï¿½Ã¥È¤ï¿½ï¿½ï¿½ï¿½ */
      if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
          DieWithError("socket() failed");
 
-     /* ¥½¥±¥Ã¥È¤ò¥Ö¥í¡¼¥É¥­¥ã¥¹¥È²ÄÇ½¤ËÀßÄê */
+     /* ï¿½ï¿½ï¿½ï¿½ï¿½Ã¥È¤ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È²ï¿½Ç½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
      broadcastPermission = 1;
      if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (void *) &broadcastPermission,
            sizeof(broadcastPermission)) < 0)
          DieWithError("setsockopt() failed");
 
-     /* ¥í¡¼¥«¥ë¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤òºîÀ® */
-     memset(&broadcastAddr, 0, sizeof(broadcastAddr));    /* ¹½Â¤ÂÎ¤ò¥¼¥í¤ÇËä¤á¤ë */
-     broadcastAddr.sin_family = AF_INET;                  /* ¥¤¥ó¥¿¡¼¥Í¥Ã¥È¥¢¥É¥ì¥¹¥Õ¥¡¥ß¥ê */
-     broadcastAddr.sin_addr.s_addr = inet_addr(broadcastIP);/* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥ÈIP¥¢¥É¥ì¥¹ */
-     broadcastAddr.sin_port = htons(broadcastPort);          /* ¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¥Ý¡¼¥È */
+     /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¥ï¿½ï¿½É¥ì¥¹ï¿½ï¿½Â¤ï¿½Î¤ï¿½ï¿½ï¿½ï¿½ */
+     memset(&broadcastAddr, 0, sizeof(broadcastAddr));    /* ï¿½ï¿½Â¤ï¿½Î¤ò¥¼¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+     broadcastAddr.sin_family = AF_INET;                  /* ï¿½ï¿½ï¿½ó¥¿¡ï¿½ï¿½Í¥Ã¥È¥ï¿½ï¿½É¥ì¥¹ï¿½Õ¥ï¿½ï¿½ß¥ï¿½ */
+     broadcastAddr.sin_addr.s_addr = inet_addr(broadcastIP);/* ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½ï¿½IPï¿½ï¿½ï¿½É¥ì¥¹ */
+     broadcastAddr.sin_port = htons(broadcastPort);          /* ï¿½Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¥Ý¡ï¿½ï¿½ï¿½ */
 
-     sendStringLen = strlen(sendString);  /* sendString¤ÎÄ¹¤µ¤òÄ´¤Ù¤ë */
-     for (;;) /* ¥×¥í¥°¥é¥à¤¬½ªÎ»¤¹¤ë¤Þ¤Ç·«¤êÊÖ¤·¼Â¹Ô */
+     sendStringLen = strlen(sendString);  /* sendStringï¿½ï¿½Ä¹ï¿½ï¿½ï¿½ï¿½Ä´ï¿½Ù¤ï¿½ */
+     for (;;) /* ï¿½×¥ï¿½ï¿½ï¿½ï¿½ï¿½à¤¬ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½Þ¤Ç·ï¿½ï¿½ï¿½ï¿½Ö¤ï¿½ï¿½Â¹ï¿½ */
      {
-         /* sendString¤Î¥Ç¡¼¥¿¥°¥é¥à¤ò¥¯¥é¥¤¥¢¥ó¥È¤Ø3ÉÃ¤´¤È¤Ë¥Ö¥í¡¼¥É¥­¥ã¥¹¥È¤¹¤ë*/
+         /* sendStringï¿½Î¥Ç¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ò¥¯¥é¥¤ï¿½ï¿½ï¿½ï¿½È¤ï¿½3ï¿½Ã¤ï¿½ï¿½È¤Ë¥Ö¥ï¿½ï¿½ï¿½ï¿½É¥ï¿½ï¿½ã¥¹ï¿½È¤ï¿½ï¿½ï¿½*/
          if (sendto(sock, sendString, sendStringLen, 0, (struct sockaddr *)
                &broadcastAddr, sizeof(broadcastAddr)) != sendStringLen)
              DieWithError("sendto() sent a different number of bytes than expected");
 
-         sleep(3);  /* ¥Í¥Ã¥È¥ï¡¼¥¯¤¬¤¤¤Ã¤Ñ¤¤¤Ë¤Ê¤ë¤Î¤òËÉ¤° */
+         sleep(3);  /* ï¿½Í¥Ã¥È¥ï¡¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¤Ñ¤ï¿½ï¿½Ë¤Ê¤ï¿½Î¤ï¿½ï¿½É¤ï¿½ */
       }
-      /* ¤³¤ÎÉôÊ¬¤Ë¤ÏÅþÃ£¤·¤Ê¤¤ */
+      /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¬ï¿½Ë¤ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½Ê¤ï¿½ */
  }

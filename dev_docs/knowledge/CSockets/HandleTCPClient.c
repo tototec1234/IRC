@@ -1,31 +1,31 @@
-#include <stdio.h>  /* printf()бвfprintf()д╦╔м═╫ */
-#include <sys/socket.h> /* recv()бвsend()д╦╔м═╫ */
-#include <unistd.h> /* close()д╦╔м═╫ */
+#include <stdio.h>  /* printf()уАБfprintf()уБлх┐ЕшжБ */
+#include <sys/socket.h> /* recv()уАБsend()уБлх┐ЕшжБ */
+#include <unistd.h> /* close()уБлх┐ЕшжБ */
 
-#define RCVBUFSIZE 32 /* ╝ї┐ое╨е├е╒ебд╬е╡еде║ */
+#define RCVBUFSIZE 32 /* хПЧф┐буГРуГГуГХуВбуБоуВ╡уВдуВ║ */
 
-void DieWithError(char *errorMessage);  /* еиещб╝╜ш═¤┤╪┐Ї */
+void DieWithError(char *errorMessage);  /* уВиуГйуГ╝хЗжчРЖщЦвцХ░ */
 
 void HandleTCPClient(int clntSocket)
 {
-  char echoBuffer[RCVBUFSIZE];  /* еие│б╝╩╕╗·╬єд╬е╨е├е╒еб */
-  int recvMsgSize;  /* ╝ї┐оесе├е╗б╝е╕д╬е╡еде║ */
+  char echoBuffer[RCVBUFSIZE];  /* уВиуВ│уГ╝цЦЗхнЧхИЧуБоуГРуГГуГХуВб */
+  int recvMsgSize;  /* хПЧф┐буГбуГГуВ╗уГ╝уВ╕уБоуВ╡уВдуВ║ */
 
-  /* епещедевеєе╚длдщд╬╝ї┐оесе├е╗б╝е╕ */
+  /* уВпуГйуВдуВвуГ│уГИуБЛуВЙуБохПЧф┐буГбуГГуВ╗уГ╝уВ╕ */
   if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0)
     DieWithError("recv() failed");
 
-  /* ╝ї┐од╖д┐╩╕╗·╬єдЄ┴ў┐од╖бв┼╛┴ўдм╜к╬╗д╖д╞ддд╩д▒дьд╨╝бдЄ╝ї┐од╣ды */
-  while (recvMsgSize > 0) /* е╝еэд╧┼╛┴ўд╬╜к╬╗дЄ░╒╠гд╣ды */
+  /* хПЧф┐буБЧуБЯцЦЗхнЧхИЧуВТщАБф┐буБЧуАБш╗вщАБуБМч╡Вф║ЖуБЧуБжуБДуБкуБСуВМуБ░цмбуВТхПЧф┐буБЩуВЛ */
+  while (recvMsgSize > 0) /* уВ╝уГнуБпш╗вщАБуБоч╡Вф║ЖуВТцДПхС│уБЩуВЛ */
   {
-    /* есе├е╗б╝е╕дЄепещедевеєе╚д╦еие│б╝е╨е├епд╣ды */
+    /* уГбуГГуВ╗уГ╝уВ╕уВТуВпуГйуВдуВвуГ│уГИуБлуВиуВ│уГ╝уГРуГГуВпуБЩуВЛ */
     if (send(clntSocket, echoBuffer, recvMsgSize, 0) != recvMsgSize)
       DieWithError("send() failed");
 
-    /* ╝ї┐од╣дые╟б╝е┐дм╗─д├д╞ддд╩дддл│╬╟зд╣ды */
+    /* хПЧф┐буБЩуВЛуГЗуГ╝уВ┐уБМцоЛуБгуБжуБДуБкуБДуБЛчв║шкНуБЩуВЛ */
     if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0)
       DieWithError("recv() failed");
   }
 
-  close(clntSocket);  /* епещедевеєе╚е╜е▒е├е╚дЄепеэб╝е║д╣ды */
+  close(clntSocket);  /* уВпуГйуВдуВвуГ│уГИуВ╜уВ▒уГГуГИуВТуВпуГнуГ╝уВ║уБЩуВЛ */
 }

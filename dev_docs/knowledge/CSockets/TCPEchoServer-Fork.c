@@ -1,52 +1,52 @@
-#include "TCPEchoServer.h"  /* TCP¥¨¥³¡¼¥µ¡¼¥Ğ¤Î¥Ø¥Ã¥À¥Õ¥¡¥¤¥ë¤ò¥¤¥ó¥¯¥ë¡¼¥É */
-#include <sys/wait.h>       /* waitpid()¤ËÉ¬Í× */
+#include "TCPEchoServer.h"  /* TCPã‚¨ã‚³ãƒ¼ã‚µãƒ¼ãƒã®ãƒ˜ãƒƒãƒ€ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ã‚¤ãƒ³ã‚¯ãƒ«ãƒ¼ãƒ‰ */
+#include <sys/wait.h>       /* waitpid()ã«å¿…è¦ */
 
 int main(int argc, char *argv[])
 {
-    int servSock;                     /* ¥µ¡¼¥Ğ¤Î¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-    int clntSock;                     /* ¥¯¥é¥¤¥¢¥ó¥È¤Î¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-    unsigned short echoServPort;      /* ¥µ¡¼¥Ğ¤Î¥İ¡¼¥ÈÈÖ¹æ */
-    pid_t processID;                  /* fork()¤¬ÊÖ¤¹¥×¥í¥»¥¹ID */
-  unsigned int childProcCount = 0;   /* »Ò¥×¥í¥»¥¹¤Î¿ô */
+    int servSock;                     /* ã‚µãƒ¼ãƒã®ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+    int clntSock;                     /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+    unsigned short echoServPort;      /* ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå· */
+    pid_t processID;                  /* fork()ãŒè¿”ã™ãƒ—ãƒ­ã‚»ã‚¹ID */
+  unsigned int childProcCount = 0;   /* å­ãƒ—ãƒ­ã‚»ã‚¹ã®æ•° */
 
-  if (argc != 2)    /* °ú¿ô¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+  if (argc != 2)    /* å¼•æ•°ã®æ•°ãŒæ­£ã—ã„ã‹ç¢ºèª */
   {
       fprintf(stderr, "Usage: %s <Server Port>", argv[0]);
       exit(1);
   }
 
-  echoServPort = atoi(argv[1]); /* 1¤ÄÌÜ¤Î°ú¿ô¡§ ¥í¡¼¥«¥ë¥İ¡¼¥È */
+  echoServPort = atoi(argv[1]); /* 1ã¤ç›®ã®å¼•æ•°ï¼š ãƒ­ãƒ¼ã‚«ãƒ«ãƒãƒ¼ãƒˆ */
 
   servSock = CreateTCPServerSocket(echoServPort);
 
-  for (;;) /* ½èÍı¤ò·«¤êÊÖ¤·¼Â¹Ô */
+  for (;;) /* å‡¦ç†ã‚’ç¹°ã‚Šè¿”ã—å®Ÿè¡Œ */
   {
       clntSock = AcceptTCPConnection(servSock);
-      /* »Ò¥×¥í¥»¥¹¤Î¥Õ¥©¡¼¥¯¤È¥¨¥é¡¼¤òÊó¹ğ */
+      /* å­ãƒ—ãƒ­ã‚»ã‚¹ã®ãƒ•ã‚©ãƒ¼ã‚¯ã¨ã‚¨ãƒ©ãƒ¼ã‚’å ±å‘Š */
      if ((processID = fork()) < 0)
          DieWithError("fork() failed");
-     else if (processID == 0) /* »Ò¥×¥í¥»¥¹¤Î¾ì¹ç */
+     else if (processID == 0) /* å­ãƒ—ãƒ­ã‚»ã‚¹ã®å ´åˆ */
     {
-         close(servSock);   /* ÂÔ¤Á¼õ¤±Ãæ¤Î¥½¥±¥Ã¥È¤ò»Ò¥×¥í¥»¥¹¤¬¥¯¥í¡¼¥º */
+         close(servSock);   /* å¾…ã¡å—ã‘ä¸­ã®ã‚½ã‚±ãƒƒãƒˆã‚’å­ãƒ—ãƒ­ã‚»ã‚¹ãŒã‚¯ãƒ­ãƒ¼ã‚º */
          HandleTCPClient(clntSock);
 
-         exit(0);           /* »Ò¥×¥í¥»¥¹¤ò½ªÎ» */
+         exit(0);           /* å­ãƒ—ãƒ­ã‚»ã‚¹ã‚’çµ‚äº† */
     }
 
     printf("with child process: %d\n", (int) processID);
-    close(clntSock);       /* »Ò¤Î¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿¤ò¿Æ¤¬¥¯¥í¡¼¥º */
-    childProcCount++;      /* Ì¤²ó¼ı¤Î»Ò¥×¥í¥»¥¹¤Î¿ô¤ò¥¤¥ó¥¯¥ê¥á¥ó¥È */
+    close(clntSock);       /* å­ã®ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ã‚’è¦ªãŒã‚¯ãƒ­ãƒ¼ã‚º */
+    childProcCount++;      /* æœªå›åã®å­ãƒ—ãƒ­ã‚»ã‚¹ã®æ•°ã‚’ã‚¤ãƒ³ã‚¯ãƒªãƒ¡ãƒ³ãƒˆ */
 
-    while (childProcCount) /* Á´¥¾¥ó¥Ó¤ò¥¯¥ê¡¼¥ó¥¢¥Ã¥× */
+    while (childProcCount) /* å…¨ã‚¾ãƒ³ãƒ“ã‚’ã‚¯ãƒªãƒ¼ãƒ³ã‚¢ãƒƒãƒ— */
     {
-        processID = waitpid((pid_t) -1, NULL, WNOHANG); /* ¥Î¥ó¥Ö¥í¥Ã¥­¥ó¥°¤Ç¼Â¹Ô */
-        if (processID < 0) /* waitpid()¤Î¥¨¥é¡¼¤ò³ÎÇ§ */
+        processID = waitpid((pid_t) -1, NULL, WNOHANG); /* ãƒãƒ³ãƒ–ãƒ­ãƒƒã‚­ãƒ³ã‚°ã§å®Ÿè¡Œ */
+        if (processID < 0) /* waitpid()ã®ã‚¨ãƒ©ãƒ¼ã‚’ç¢ºèª */
             DieWithError("waitpid() failed");
-        else if (processID == 0)  /* ¥¾¥ó¥Ó¤¬Â¸ºß¤·¤Ê¤¤ */
+        else if (processID == 0)  /* ã‚¾ãƒ³ãƒ“ãŒå­˜åœ¨ã—ãªã„ */
             break;
         else
-            childProcCount--;  /* »Ò¥×¥í¥»¥¹¤ò²ó¼ı */
+            childProcCount--;  /* å­ãƒ—ãƒ­ã‚»ã‚¹ã‚’å›å */
     }
   }
-  /* ¤³¤ÎÉôÊ¬¤Ë¤ÏÅşÃ£¤·¤Ê¤¤ */
+  /* ã“ã®éƒ¨åˆ†ã«ã¯åˆ°é”ã—ãªã„ */
 }

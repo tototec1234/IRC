@@ -1,26 +1,26 @@
-#include <stdio.h> /* printf()¤Èfprintf()¤ËÉ¬Í× */
-#include <netinet/in.h> /* htons()¤ËÉ¬Í× */
-#include <netdb.h> /* getservbyname()¤ËÉ¬Í× */
-#include <stdlib.h> /* atoi()¤ËÉ¬Í× */
+#include <stdio.h> /* printf()ã¨fprintf()ã«å¿…è¦ */
+#include <netinet/in.h> /* htons()ã«å¿…è¦ */
+#include <netdb.h> /* getservbyname()ã«å¿…è¦ */
+#include <stdlib.h> /* atoi()ã«å¿…è¦ */
 
 unsigned short ResolveService(char service[], char protocol[])
 {
-  struct servent *serv; /* ¥µ¡¼¥Ó¥¹¾ğÊó¤ò³ÊÇ¼¤¹¤ë¹½Â¤ÂÎ */
-  unsigned short port; /* Ìá¤êÃÍ¤È¤Ê¤ë¥İ¡¼¥È */
+  struct servent *serv; /* ã‚µãƒ¼ãƒ“ã‚¹æƒ…å ±ã‚’æ ¼ç´ã™ã‚‹æ§‹é€ ä½“ */
+  unsigned short port; /* æˆ»ã‚Šå€¤ã¨ãªã‚‹ãƒãƒ¼ãƒˆ */
 
-  if ((port = atoi(service)) == 0) /* ¥İ¡¼¥È¤Ï¿ôÃÍ¤«¡© */
+  if ((port = atoi(service)) == 0) /* ãƒãƒ¼ãƒˆã¯æ•°å€¤ã‹ï¼Ÿ */
   {
-    /* ¿ôÃÍ¤Ç¤Ï¤Ê¤¤¡£Ì¾Á°¤È²ò¼á¤·¤Æ¸¡º÷¤·¤Æ¤ß¤ë */
+    /* æ•°å€¤ã§ã¯ãªã„ã€‚åå‰ã¨è§£é‡ˆã—ã¦æ¤œç´¢ã—ã¦ã¿ã‚‹ */
     if ((serv = getservbyname(service, protocol)) == NULL)
     {
       fprintf(stderr, "getservbyname() failed");
       exit(1);
     }
     else
-      port = serv->s_port; /* Ì¾Á°¤«¤é¥İ¡¼¥È¡Ê¥Í¥Ã¥È¥ï¡¼¥¯¥Ğ¥¤¥È½ç¡Ë¤¬¸«¤Ä¤«¤ë */
+      port = serv->s_port; /* åå‰ã‹ã‚‰ãƒãƒ¼ãƒˆï¼ˆãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒã‚¤ãƒˆé †ï¼‰ãŒè¦‹ã¤ã‹ã‚‹ */
   }
   else
-    port = htons(port); /* port¤ò¥Í¥Ã¥È¥ï¡¼¥¯¥Ğ¥¤¥È½ç¤ËÊÑ´¹¤¹¤ë */
+    port = htons(port); /* portã‚’ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒã‚¤ãƒˆé †ã«å¤‰æ›ã™ã‚‹ */
 
   return port;
 }

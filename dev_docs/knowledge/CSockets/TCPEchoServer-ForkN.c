@@ -1,42 +1,42 @@
 #include "TCPEchoServer.h"
 
 
-void ProcessMain(int servSock);     /* ¥×¥í¥»¥¹¤Î¥á¥¤¥ó¥×¥í¥°¥é¥à */
+void ProcessMain(int servSock);     /* ãƒ—ãƒ­ã‚»ã‚¹ã®ãƒ¡ã‚¤ãƒ³ãƒ—ãƒ­ã‚°ãƒ©ãƒ  */
 
 int main(int argc, char *argv[])
 {
-    int servSock;                  /* ¥µ¡¼¥Ğ¤Î¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-    unsigned short echoServPort;   /* ¥µ¡¼¥Ğ¤Î¥İ¡¼¥È */
-    pid_t processID;               /* ¥×¥í¥»¥¹ID */
-    unsigned int processLimit;      /* ºîÀ®¤¹¤ë»Ò¥×¥í¥»¥¹¤Î¿ô */
-    unsigned int processCt;         /* ¥×¥í¥»¥¹¤Î¥«¥¦¥ó¥¿ */
+    int servSock;                  /* ã‚µãƒ¼ãƒã®ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+    unsigned short echoServPort;   /* ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆ */
+    pid_t processID;               /* ãƒ—ãƒ­ã‚»ã‚¹ID */
+    unsigned int processLimit;      /* ä½œæˆã™ã‚‹å­ãƒ—ãƒ­ã‚»ã‚¹ã®æ•° */
+    unsigned int processCt;         /* ãƒ—ãƒ­ã‚»ã‚¹ã®ã‚«ã‚¦ãƒ³ã‚¿ */
 
-    if (argc != 3)       /* °ú¿ô¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+    if (argc != 3)       /* å¼•æ•°ã®æ•°ãŒæ­£ã—ã„ã‹ç¢ºèª */
     {
         fprintf (stderr, "Ussage: %s <SERVER PORT> <FORK LIMIT>\n", argv[0]);
         exit(1);
     }
 
-    echoServPort = atoi(argv[1]); /* 1¤ÄÌÜ¤Î°ú¿ô¡§¡¡¥í¡¼¥«¥ë¥İ¡¼¥È */
-    processLimit = atoi(argv[2]); /* 2¤ÄÌÜ¤Î°ú¿ô¡§¡¡»Ò¥×¥í¥»¥¹¤Î¿ô */
+    echoServPort = atoi(argv[1]); /* 1ã¤ç›®ã®å¼•æ•°ï¼šã€€ãƒ­ãƒ¼ã‚«ãƒ«ãƒãƒ¼ãƒˆ */
+    processLimit = atoi(argv[2]); /* 2ã¤ç›®ã®å¼•æ•°ï¼šã€€å­ãƒ—ãƒ­ã‚»ã‚¹ã®æ•° */
 
     servSock = CreateTCPServerSocket(echoServPort);
 
     for (processCt=0; processCt < processLimit; processCt++)
-        /* »Ò¥×¥í¥»¥¹¤Î¥Õ¥©¡¼¥¯¤È¥¨¥é¡¼¤ÎÊó¹ğ */
-        if ((processID == fork()) < 0)
+        /* å­ãƒ—ãƒ­ã‚»ã‚¹ã®ãƒ•ã‚©ãƒ¼ã‚¯ã¨ã‚¨ãƒ©ãƒ¼ã®å ±å‘Š */
+        if ((processID = fork()) < 0)
             DieWithError("fork() failed");
-        else if (processID == 0) /* »Ò¥×¥í¥»¥¹¤Î¾ì¹ç */
+        else if (processID == 0) /* å­ãƒ—ãƒ­ã‚»ã‚¹ã®å ´åˆ */
             ProcessMain(servSock);
 
-    exit(0);  /* »Ò¥×¥í¥»¥¹¤Î½èÍı¤òÂ³¹Ô */
+    exit(0);  /* å­ãƒ—ãƒ­ã‚»ã‚¹ã®å‡¦ç†ã‚’ç¶šè¡Œ */
 }
 
 void ProcessMain(int servSock)
 {
-    int clntSock;                  /* ¥¯¥é¥¤¥¢¥ó¥È¤¬ÀÜÂ³¤¹¤ë¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
+    int clntSock;                  /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆãŒæ¥ç¶šã™ã‚‹ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
 
-    for (;;) /* ½èÍı¤ò·«¤êÊÖ¤· */
+    for (;;) /* å‡¦ç†ã‚’ç¹°ã‚Šè¿”ã— */
     {
         clntSock = AcceptTCPConnection(servSock);
         printf("with child process: %d\n", (unsigned int) getpid());

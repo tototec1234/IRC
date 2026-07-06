@@ -1,67 +1,67 @@
-#include <stdio.h>  /* printf()¡¢fprintf()¤ËÉ¬Í× */
-#include <sys/socket.h> /* socket()¡¢bind()¡¢connect()¤ËÉ¬Í× */
-#include <arpa/inet.h> /* sockaddr_in¡¢inet_ntoa()¤ËÉ¬Í× */
-#include <stdlib.h> /* atoi()¤ËÉ¬Í× */
-#include <string.h> /* memset()¤ËÉ¬Í× */
-#include <unistd.h> /* close()¤ËÉ¬Í× */
+#include <stdio.h>  /* printf()ã€fprintf()ã«å¿…è¦ */
+#include <sys/socket.h> /* socket()ã€bind()ã€connect()ã«å¿…è¦ */
+#include <arpa/inet.h> /* sockaddr_inã€inet_ntoa()ã«å¿…è¦ */
+#include <stdlib.h> /* atoi()ã«å¿…è¦ */
+#include <string.h> /* memset()ã«å¿…è¦ */
+#include <unistd.h> /* close()ã«å¿…è¦ */
 
-#define MAXPENDING 5 /* Æ±»ş¤Ë¥­¥å¡¼²ÄÇ½¤ÊÀÜÂ³Í×µá¤ÎºÇÂç¿ô */
-#define RCVBUFSIZE 32 /* ¼õ¿®¥Ğ¥Ã¥Õ¥¡¤Î¥µ¥¤¥º */
+#define MAXPENDING 5 /* åŒæ™‚ã«ã‚­ãƒ¥ãƒ¼å¯èƒ½ãªæ¥ç¶šè¦æ±‚ã®æœ€å¤§æ•° */
+#define RCVBUFSIZE 32 /* å—ä¿¡ãƒãƒƒãƒ•ã‚¡ã®ã‚µã‚¤ã‚º */
 
-void DieWithError(char *errorMessage); /* ¥¨¥é¡¼½èÍı´Ø¿ô */
-void HandleTCPClient(int clntSocket); /* TCP¥¯¥é¥¤¥¢¥ó¥È½èÍı´Ø¿ô */
+void DieWithError(char *errorMessage); /* ã‚¨ãƒ©ãƒ¼å‡¦ç†é–¢æ•° */
+void HandleTCPClient(int clntSocket); /* TCPã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆå‡¦ç†é–¢æ•° */
 
 int main(int argc, char *argv[])
 {
-  int servSock; /* ¥µ¡¼¥Ğ¤Î¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-  int clntSock; /* ¥¯¥é¥¤¥¢¥ó¥È¤Î¥½¥±¥Ã¥È¥Ç¥£¥¹¥¯¥ê¥×¥¿ */
-  struct sockaddr_in echoServAddr;  /* ¥í¡¼¥«¥ë¥¢¥É¥ì¥¹ */
-  struct sockaddr_in echoClntAddr;  /* ¥¯¥é¥¤¥¢¥ó¥È¥¢¥É¥ì¥¹ */
-  unsigned short echoServPort;  /* ¥µ¡¼¥Ğ¥İ¡¼¥È */
-  unsigned int clntLen; /* ¥¯¥é¥¤¥¢¥ó¥È¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤ÎÄ¹¤µ */
+  int servSock; /* ã‚µãƒ¼ãƒã®ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+  int clntSock; /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®ã‚½ã‚±ãƒƒãƒˆãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ */
+  struct sockaddr_in echoServAddr;  /* ãƒ­ãƒ¼ã‚«ãƒ«ã‚¢ãƒ‰ãƒ¬ã‚¹ */
+  struct sockaddr_in echoClntAddr;  /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ */
+  unsigned short echoServPort;  /* ã‚µãƒ¼ãƒãƒãƒ¼ãƒˆ */
+  unsigned int clntLen; /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®ã‚¢ãƒ‰ãƒ¬ã‚¹æ§‹é€ ä½“ã®é•·ã• */
 
-  if (argc != 2)  /* °ú¿ô¤Î¿ô¤¬Àµ¤·¤¤¤«³ÎÇ§ */
+  if (argc != 2)  /* å¼•æ•°ã®æ•°ãŒæ­£ã—ã„ã‹ç¢ºèª */
   {
     fprintf(stderr, "Usage: %s <Server Port>\n", argv[0]);
     exit(1);
   }
 
-  echoServPort = atoi(argv[1]); /* 1¤ÄÌÜ¤Î°ú¿ô¡§¥í¡¼¥«¥ë¥İ¡¼¥È */
+  echoServPort = atoi(argv[1]); /* 1ã¤ç›®ã®å¼•æ•°ï¼šãƒ­ãƒ¼ã‚«ãƒ«ãƒãƒ¼ãƒˆ */
 
-  /* Ãå¿®ÀÜÂ³ÍÑ¤Î¥½¥±¥Ã¥È¤òºîÀ® */
+  /* ç€ä¿¡æ¥ç¶šç”¨ã®ã‚½ã‚±ãƒƒãƒˆã‚’ä½œæˆ */
   if ((servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     DieWithError("socket() failed");
 
-  /* ¥í¡¼¥«¥ë¤Î¥¢¥É¥ì¥¹¹½Â¤ÂÎ¤òºîÀ® */
-  memset(&echoServAddr, 0, sizeof(echoServAddr)); /* ¹½Â¤ÂÎ¤ò¥¼¥í¤ÇËä¤á¤ë */
-  echoServAddr.sin_family = AF_INET;  /* ¥¤¥ó¥¿¡¼¥Í¥Ã¥È¥¢¥É¥ì¥¹¥Õ¥¡¥ß¥ê */
-  echoServAddr.sin_addr.s_addr = htonl(INADDR_ANY); /* ¥ï¥¤¥ë¥É¥«¡¼¥É¤ò»ÈÍÑ */
-  echoServAddr.sin_port = htons(echoServPort);  /* ¥í¡¼¥«¥ë¥İ¡¼¥È */
+  /* ãƒ­ãƒ¼ã‚«ãƒ«ã®ã‚¢ãƒ‰ãƒ¬ã‚¹æ§‹é€ ä½“ã‚’ä½œæˆ */
+  memset(&echoServAddr, 0, sizeof(echoServAddr)); /* æ§‹é€ ä½“ã‚’ã‚¼ãƒ­ã§åŸ‹ã‚ã‚‹ */
+  echoServAddr.sin_family = AF_INET;  /* ã‚¤ãƒ³ã‚¿ãƒ¼ãƒãƒƒãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ãƒ•ã‚¡ãƒŸãƒª */
+  echoServAddr.sin_addr.s_addr = htonl(INADDR_ANY); /* ãƒ¯ã‚¤ãƒ«ãƒ‰ã‚«ãƒ¼ãƒ‰ã‚’ä½¿ç”¨ */
+  echoServAddr.sin_port = htons(echoServPort);  /* ãƒ­ãƒ¼ã‚«ãƒ«ãƒãƒ¼ãƒˆ */
 
 
-  /* ¥í¡¼¥«¥ë¥¢¥É¥ì¥¹¤Ø¥Ğ¥¤¥ó¥É */
+  /* ãƒ­ãƒ¼ã‚«ãƒ«ã‚¢ãƒ‰ãƒ¬ã‚¹ã¸ãƒã‚¤ãƒ³ãƒ‰ */
   if (bind(servSock, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0)
     DieWithError("bind() failed");
 
-  /* Ãå¿®ÀÜÂ³Í×µá¤Î¥ê¥¹¥ó¾õÂÖ¤È¤¤¤¦¥Ş¡¼¥¯¤ò¥½¥±¥Ã¥È¤ËÉÕ¤±¤ë */
+  /* ç€ä¿¡æ¥ç¶šè¦æ±‚ã®ãƒªã‚¹ãƒ³çŠ¶æ…‹ã¨ã„ã†ãƒãƒ¼ã‚¯ã‚’ã‚½ã‚±ãƒƒãƒˆã«ä»˜ã‘ã‚‹ */
   if (listen(servSock, MAXPENDING) < 0)
     DieWithError("listen() failed");
 
-  for (;;)  /* ±Ê±ó¤Ë¼Â¹Ô */
+  for (;;)  /* æ°¸é ã«å®Ÿè¡Œ */
   {
-    /* Æş½ĞÎÏ¥Ñ¥é¥á¡¼¥¿¤Î¥µ¥¤¥º¤ò¥»¥Ã¥È */
+    /* å…¥å‡ºåŠ›ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®ã‚µã‚¤ã‚ºã‚’ã‚»ãƒƒãƒˆ */
     clntLen = sizeof(echoClntAddr);
 
-    /* ¥¯¥é¥¤¥¢¥ó¥È¤«¤é¤ÎÀÜÂ³Í×µá¤òÂÔµ¡ */
+    /* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã‹ã‚‰ã®æ¥ç¶šè¦æ±‚ã‚’å¾…æ©Ÿ */
     if ((clntSock = accept(servSock, (struct sockaddr *) &echoClntAddr,
                  &clntLen)) < 0)
       DieWithError("accept() failed");
 
-    /* clntSock¤Ï¥¯¥é¥¤¥¢¥ó¥È¤ËÀÜÂ³ºÑ¤ß */
+    /* clntSockã¯ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã«æ¥ç¶šæ¸ˆã¿ */
 
     printf("Handling client %s\n", inet_ntoa(echoClntAddr.sin_addr));
 
     HandleTCPClient(clntSock);
   }
-  /* ¤³¤ÎÉôÊ¬¤Ë¤ÏÅşÃ£¤·¤Ê¤¤ */
+  /* ã“ã®éƒ¨åˆ†ã«ã¯åˆ°é”ã—ãªã„ */
 }
