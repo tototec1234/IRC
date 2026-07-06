@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 
   if ((argc < 3) || (argc > 4)) /* 引数の数が正しいか確認 */
   {
-    fprintf(stderr,"Usage: %s <Server IP> <Echo Word> [<Echo Fort>]\n", argv[0]);
+    fprintf(stderr,"Usage: %s <Server IP> <Echo Word> [<Echo Port>]\n", argv[0]);
     exit(1);
   }
 
