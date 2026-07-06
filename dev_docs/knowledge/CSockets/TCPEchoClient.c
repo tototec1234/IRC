@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 			DieWithError("recv() failed or connection closed prematurely");
 		totalBytesRcvd += bytesRcvd;	/* 総バイト数の集計 */
 		echoBuffer[bytesRcvd] = '\0' ;	/* 文字列の終了 */
-		printf(echoBuffer);	/* エコーバッファの表示 */
+		printf("%s", echoBuffer);	/* エコーバッファの表示 */
 	}
 
 	printf("\n");	/* 最後の改行を出力 */
