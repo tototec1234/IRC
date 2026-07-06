@@ -41,7 +41,8 @@ Server::Server(int port, const std::string& pw) : _listenFd(-1), _state(pw), _he
 	if (_listenFd < 0)
 		throw std::runtime_error("socket() failed");
 
-	/* */
+	/*　Allow immediate re-bind on quick restart (e.g., TIME_WAIT) */
+	/* （Ctrl+Cなどで）急に再起動した際、TIME_WAIT状態であってもすぐに同じポートを再利用できるようにする */
 	int opt = 1;
 	if (setsockopt(_listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
 		const int err = errno;
