@@ -1,7 +1,7 @@
 NAME        = ircserv
 
 CXX         = c++
-CXXFLAGS    = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS    = -Wall -Wextra -Werror -std=c++98 -pedantic
 
 
 # デフォルト: A_LAYER_DEBUG あり（チーム開発用）

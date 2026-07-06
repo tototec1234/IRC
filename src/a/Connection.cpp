@@ -1,43 +1,43 @@
 #include "a/Connection.hpp"
-#include <string>
-#include <sys/socket.h>   // recv
 
-Connection::Connection(int fd) : _fd(fd) , _nlPos(std::string::npos){}
+#include <sys/socket.h>  // recv
+
+#include <string>
+
+Connection::Connection(int fd) : _fd(fd), _nlPos(std::string::npos) {}
 Connection::~Connection() {}
 int Connection::getFd() const { return _fd; }
 
 // イシュー #21 の#6: 先頭行(最初の '\n' まで／'\n' が無ければバッファ全体)が
 //	512 バイトを超えていたら true。判定のみ。切断・出力は Server 側。
-#include <algorithm>   // std::min（cpp ファイル先頭に追加）
+#include <algorithm>  // std::min（cpp ファイル先頭に追加）
 
 bool Connection::isLineTooLong() const {
-	const size_t	max_ok	= 512;										// CRLF込みの生で512 までは許容
+  const size_t max_ok = 512;  // CRLF込みの生で512 までは許容
 
-	// まだ上限を超えていない未完了行は「長すぎ」ではない
+  // まだ上限を超えていない未完了行は「長すぎ」ではない
 
- 	if (_recvBuffer.size() <= max_ok)
- 		return false;
+  if (_recvBuffer.size() <= max_ok) return false;
 
-	size_t			scan_end = std::min(_recvBuffer.size(), max_ok);	// ここまで見れば判定できる
-	for (size_t i = 0; i < scan_end; ++i) {
-		if (_recvBuffer[i] == '\n')
-			return false;
-	}
-	return true;
+  size_t scan_end =
+      std::min(_recvBuffer.size(), max_ok);  // ここまで見れば判定できる
+  for (size_t i = 0; i < scan_end; ++i) {
+    if (_recvBuffer[i] == '\n') return false;
+  }
+  return true;
 }
 /*
-python3 -c "import sys; sys.stdout.buffer.write(b'A'*512); print('\r\n')" | nc localhost 6667
-↑これは当然OK
+python3 -c "import sys; sys.stdout.buffer.write(b'A'*512); print('\r\n')" | nc
+localhost 6667 ↑これは当然OK
 
-python3 -c "import sys; sys.stdout.buffer.write(b'A'*513); print('\r\n')" | nc localhost 6667
-↑これは当然OUT
+python3 -c "import sys; sys.stdout.buffer.write(b'A'*513); print('\r\n')" | nc
+localhost 6667 ↑これは当然OUT
 
 しかし
-python3 -c "import sys; sys.stdout.buffer.write(b'A'*513); print('\n')" | nc localhost 6667
-↑これも通してしまう　\r　の１文字分甘い
+python3 -c "import sys; sys.stdout.buffer.write(b'A'*513); print('\n')" | nc
+localhost 6667 ↑これも通してしまう　\r　の１文字分甘い
 
 */
-
 
 // ─────────────────────────────────────────────────────────────
 // bircd(lesson3.5): client_read.c の read_and_store() に対応。
@@ -54,41 +54,40 @@ python3 -c "import sys; sys.stdout.buffer.write(b'A'*513); print('\n')" | nc loc
 //     呼び出し側(Server, Phase6)に委ねる（recv と切断処理の責務分離）
 // ─────────────────────────────────────────────────────────────
 bool Connection::readFromSocket() {
-	char buf[buf_size + 1]; // マクロはcppライクでない、、、
-	ssize_t n = recv(_fd, buf, sizeof(buf), 0);
-	if (n == 0)
-		return false;
-	if (n < 0)
-		return false; /* n<0: bircd と同様に切断。
-					poll 駆動 1 イベント 1 recv では EAGAIN 分岐は不要
-					(errno_and_nonblocking_42_policy.md §4) */
-	_recvBuffer.append(buf, n);
-	return true;
+  char buf[buf_size + 1];  // マクロはcppライクでない、、、
+  ssize_t n = recv(_fd, buf, sizeof(buf), 0);
+  if (n == 0) return false;
+  if (n < 0)
+    return false; /* n<0: bircd と同様に切断。
+                            poll 駆動 1 イベント 1 recv では EAGAIN 分岐は不要
+                            (errno_and_nonblocking_42_policy.md §4) */
+  _recvBuffer.append(buf, n);
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────
 // 修正版: \r\n または \n 単独のどちらでも行の完了とみなす
 // ─────────────────────────────────────────────────────────────
 bool Connection::hasCompleteLine() const {
-	_nlPos = _recvBuffer.find("\n");
-	return _nlPos != std::string::npos ;
+  _nlPos = _recvBuffer.find("\n");
+  return _nlPos != std::string::npos;
 }
 
 // ─────────────────────────────────────────────────────────────
 // 修正版: \n を基準に切り出し、直前に \r があれば取り除く
 // ─────────────────────────────────────────────────────────────
 std::string Connection::popLine() {
-	size_t n_pos = _nlPos;
-	
-	size_t len = n_pos;
-	if (n_pos > 0 && _recvBuffer[n_pos -1] == '\r'){
-		len--;
-	}
+  size_t n_pos = _nlPos;
 
-	std::string line = _recvBuffer.substr(0, len);
-	_recvBuffer.erase(0, n_pos + 1);
-	_nlPos = std::string::npos ;	// 使い終わったら無効化
-	return line;
+  size_t len = n_pos;
+  if (n_pos > 0 && _recvBuffer[n_pos - 1] == '\r') {
+    len--;
+  }
+
+  std::string line = _recvBuffer.substr(0, len);
+  _recvBuffer.erase(0, n_pos + 1);
+  _nlPos = std::string::npos;  // 使い終わったら無効化
+  return line;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -99,23 +98,21 @@ std::string Connection::popLine() {
 //   ft_memmove(buf_write, buf_write+sent, ...);  ← 送信済みを前詰め
 // A層の違い:
 //   - buf_write(固定長)+buf_write_len → std::string(_sendBuffer)（長さ内包）
-//   - writeToSocket は send 専念で bool 返却。切断は呼び出し側(_handleWrite→Server)
+//   - writeToSocket は send 専念で bool
+//   返却。切断は呼び出し側(_handleWrite→Server)
 //   - 1回の POLLOUT イベントにつき send 1回（残りは次の POLLOUT で）
 // ─────────────────────────────────────────────────────────────
-void Connection::bufferSend(const std::string& msg) {
-	_sendBuffer += msg;
-}
+void Connection::bufferSend(const std::string& msg) { _sendBuffer += msg; }
 
 bool Connection::hasPendingOutput() const {
-	return !_sendBuffer.empty();				// 中身があるとき true
+  return !_sendBuffer.empty();  // 中身があるとき true
 }
 
 bool Connection::writeToSocket() {
-	if (_sendBuffer.empty())
-		return true;							// bircd: buf_write_len==0 return
-	ssize_t sent = send(_fd, _sendBuffer.c_str(), _sendBuffer.size(), 0);
-	if (sent <= 0)
-		return false;  // bircd: sent<=0 → 切断（EAGAIN 分岐は足さない §4）
-	_sendBuffer.erase(0, sent);					// bircd: ft_memmove で前詰め
-	return true;
+  if (_sendBuffer.empty()) return true;  // bircd: buf_write_len==0 return
+  ssize_t sent = send(_fd, _sendBuffer.c_str(), _sendBuffer.size(), 0);
+  if (sent <= 0)
+    return false;  // bircd: sent<=0 → 切断（EAGAIN 分岐は足さない §4）
+  _sendBuffer.erase(0, sent);  // bircd: ft_memmove で前詰め
+  return true;
 }

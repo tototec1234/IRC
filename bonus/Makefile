@@ -1,7 +1,7 @@
 NAME        = ircbot
 
 CXX         = c++
-CXXFLAGS    = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS    = -Wall -Wextra -Werror -std=c++98 -pedantic
 INCLUDES    = -I. -I../include
 
 SRCS        = main.cpp \

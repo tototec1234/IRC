@@ -35,7 +35,7 @@ bool isChannelStringChar(char c) {
   }
   return c != ' ' && c != ',' && c != ':';
 }
-};  // namespace
+}  // namespace
 
 bool IrcStringCompare::operator()(const std::string& a,
                                   const std::string& b) const {
