@@ -62,6 +62,10 @@ class ReplyBuilder {
                                     const std::string& command);
   static std::string unknownMode(const Client& client,
                                  const std::string& modeToken);
+  static std::string invalidModeParam(const Client& client,
+                                      const std::string& ChannelName,
+                                      const std::string& modeToken,
+                                      const std::string& modeArg);
 
 
 

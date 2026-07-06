@@ -34,6 +34,7 @@ const char* ERR_UNKNOWNMODE = "472";      // unknownMode()
 const char* ERR_INVITEONLYCHAN = "473";   // inviteOnlyChan()
 const char* ERR_BADCHANNELKEY = "475";    // badChannelKey()
 const char* ERR_CHANOPRIVSNEEDED = "482"; // chanOpPrivsNeeded()
+const char* ERR_INVALIDMODEPARAM = "696"; // invalidModeParam()
 
 std::string replyTarget(const Client& client) {
   if (client.getNick().empty()) {
@@ -288,6 +289,15 @@ std::string ReplyBuilder::unknownMode(const Client& client,
                                       const std::string& modeToken) {
   return numericReply(ERR_UNKNOWNMODE, replyTarget(client), modeToken,
                       "is unknown mode char to me");
+}
+
+std::string ReplyBuilder::invalidModeParam(const Client& client,
+                                           const std::string& ChannelName,
+                                           const std::string& modeToken,
+                                           const std::string& modeArg) {
+  return numericReply(ERR_INVALIDMODEPARAM, replyTarget(client),
+                      ChannelName + " " + modeToken + " " + modeArg,
+                      "Invalid mode parameter");
 }
 
 std::string ReplyBuilder::kick(const std::string& client,

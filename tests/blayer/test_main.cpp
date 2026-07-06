@@ -742,9 +742,37 @@ void testJoinBeforeRegistrationReturns451() {
 	EXPECT_CONTAINS(deopResult.replies[0].message, " 461 ");
   }
 
-  void testModeQueryReturns324WithModesAndArgs() {
+  void expectInvalidLimitRejected(const std::string& modeArg) {
 	TestContext ctx;
 	TestClient taro = ctx.registerClient(87, "taro");
+	TestClient hanako = ctx.registerClient(88, "hanako");
+	ctx.join(taro.fd, "#modelimit");
+	ctx.join(hanako.fd, "#modelimit");
+	Channel* channel = ctx.state.getChannel("#modelimit");
+	ctx.dispatch(taro.fd, makeMessage("MODE", "#modelimit", "+l", "10"));
+
+	CommandResult result =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#modelimit", "+l", modeArg));
+
+	EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+	EXPECT_EQ(taro.fd, result.replies[0].fd);
+	EXPECT_CONTAINS(result.replies[0].message, " 696 ");
+	EXPECT_CONTAINS(result.replies[0].message, "Invalid mode parameter");
+	EXPECT_TRUE(result.replies[0].message.find(" MODE #modelimit +l ") ==
+				std::string::npos);
+	EXPECT_EQ(10, channel->getModes().getLimit());
+  }
+
+  void testModeInvalidLimitReturns696WithoutBroadcastOrMutation() {
+	expectInvalidLimitRejected("0");
+	expectInvalidLimitRejected("abc");
+	expectInvalidLimitRejected("-2");
+	expectInvalidLimitRejected("2147483648");
+  }
+
+  void testModeQueryReturns324WithModesAndArgs() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(89, "taro");
 	ctx.join(taro.fd, "#modequery");
 	ctx.dispatch(taro.fd, makeMessage("MODE", "#modequery", "+i"));
 	ctx.dispatch(taro.fd, makeMessage("MODE", "#modequery", "+t"));
@@ -762,8 +790,8 @@ void testJoinBeforeRegistrationReturns451() {
 
   void testJoinFullChannelReturns471WithoutAddingClient() {
 	TestContext ctx;
-	TestClient taro = ctx.registerClient(88, "taro");
-	TestClient hanako = ctx.registerClient(89, "hanako");
+	TestClient taro = ctx.registerClient(90, "taro");
+	TestClient hanako = ctx.registerClient(91, "hanako");
 	ctx.join(taro.fd, "#full");
 	ctx.dispatch(taro.fd, makeMessage("MODE", "#full", "+l", "1"));
 
@@ -777,7 +805,7 @@ void testJoinBeforeRegistrationReturns451() {
 
   void testJoinKeyedChannelReturns475UntilKeyMatches() {
 	TestContext ctx;
-	TestClient taro = ctx.registerClient(90, "taro");
+	TestClient taro = ctx.registerClient(92, "taro");
 	TestClient hanako = ctx.registerClient(91, "hanako");
 	ctx.join(taro.fd, "#keyed");
 	ctx.dispatch(taro.fd, makeMessage("MODE", "#keyed", "+k", "secret"));
@@ -1094,6 +1122,8 @@ int main() {
 			testModeCompoundTokensReturnErrorWithoutMutation);
   runTest("mode missing arguments return 461",
 			testModeMissingArgumentsReturn461);
+  runTest("mode invalid limit returns 696 without broadcast or mutation",
+			testModeInvalidLimitReturns696WithoutBroadcastOrMutation);
   runTest("mode query returns 324 with modes and args",
 			testModeQueryReturns324WithModesAndArgs);
   runTest("join full channel returns 471 without adding client",
