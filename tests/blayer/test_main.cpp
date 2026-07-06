@@ -321,6 +321,49 @@ void testNickConflictReturnsNumeric() {
   EXPECT_TRUE(ctx.client(hanako.fd)->getNick().empty());
 }
 
+void testInvalidNicknamesReturn432WithoutUpdatingState() {
+  TestContext ctx;
+  TestClient taro = ctx.addClient(32);
+  ctx.dispatch(taro.fd, makeMessage("PASS", "pw"));
+
+  const char* invalidNicks[] = {
+      "#user", "1user", "", "bad,name", "abcdefghij"};
+  for (size_t i = 0; i < sizeof(invalidNicks) / sizeof(invalidNicks[0]);
+       ++i) {
+    CommandResult result =
+        ctx.dispatch(taro.fd, makeMessage("NICK", invalidNicks[i]));
+
+    EXPECT_EQ(static_cast<size_t>(1), result.replies.size());
+    EXPECT_CONTAINS(result.replies[0].message, " 432 ");
+    EXPECT_TRUE(ctx.client(taro.fd)->getNick().empty());
+    EXPECT_TRUE(ctx.state.getClientByNick(invalidNicks[i]) == NULL);
+  }
+}
+
+void testValidNicknameBoundariesAreAccepted() {
+  TestContext ctx;
+  TestClient first = ctx.addClient(33);
+  TestClient second = ctx.addClient(34);
+  TestClient third = ctx.addClient(35);
+  ctx.dispatch(first.fd, makeMessage("PASS", "pw"));
+  ctx.dispatch(second.fd, makeMessage("PASS", "pw"));
+  ctx.dispatch(third.fd, makeMessage("PASS", "pw"));
+
+  CommandResult firstResult =
+      ctx.dispatch(first.fd, makeMessage("NICK", "abcdefghi"));
+  CommandResult secondResult =
+      ctx.dispatch(second.fd, makeMessage("NICK", "[abc]"));
+  CommandResult thirdResult =
+      ctx.dispatch(third.fd, makeMessage("NICK", "nick-name"));
+
+  EXPECT_EQ(static_cast<size_t>(0), firstResult.replies.size());
+  EXPECT_EQ(static_cast<size_t>(0), secondResult.replies.size());
+  EXPECT_EQ(static_cast<size_t>(0), thirdResult.replies.size());
+  EXPECT_TRUE(ctx.state.getClientByNick("abcdefghi") == ctx.client(first.fd));
+  EXPECT_TRUE(ctx.state.getClientByNick("[abc]") == ctx.client(second.fd));
+  EXPECT_TRUE(ctx.state.getClientByNick("nick-name") == ctx.client(third.fd));
+}
+
 void testNotRegisteredReplyFormat() {
   TestContext ctx;
   TestClient taro = ctx.addClient(40);
@@ -753,6 +796,94 @@ void testJoinBeforeRegistrationReturns451() {
 							 ":hanako!user@client.example JOIN #keyed");
   }
 
+  void testInvalidJoinChannelReturns403WithoutCreatingChannel() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(92, "taro");
+
+	CommandResult noPrefix = ctx.join(taro.fd, "channel");
+	CommandResult comma = ctx.join(taro.fd, "#bad,name");
+
+	EXPECT_EQ(static_cast<size_t>(1), noPrefix.replies.size());
+	EXPECT_CONTAINS(noPrefix.replies[0].message, " 403 ");
+	EXPECT_TRUE(ctx.state.getChannel("channel") == NULL);
+	EXPECT_EQ(static_cast<size_t>(1), comma.replies.size());
+	EXPECT_CONTAINS(comma.replies[0].message, " 403 ");
+	EXPECT_TRUE(ctx.state.getChannel("#bad,name") == NULL);
+  }
+
+  void testInvalidChannelNamesReturn403AcrossChannelCommands() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(93, "taro");
+	TestClient hanako = ctx.registerClient(94, "hanako");
+	ctx.join(taro.fd, "#valid");
+	ctx.join(hanako.fd, "#valid");
+
+	CommandResult part = ctx.dispatch(taro.fd, makeMessage("PART", "valid"));
+	CommandResult privmsg =
+		ctx.dispatch(taro.fd, makeMessage("PRIVMSG", "#bad,name", "hello"));
+	CommandResult kick =
+		ctx.dispatch(taro.fd, makeMessage("KICK", "#bad,name", hanako.nick));
+	CommandResult invite =
+		ctx.dispatch(taro.fd, makeMessage("INVITE", hanako.nick, "#bad,name"));
+	CommandResult invite_both_invalid =
+		ctx.dispatch(taro.fd, makeMessage("INVITE", "1bad", "#bad,name"));
+	CommandResult topic =
+		ctx.dispatch(taro.fd, makeMessage("TOPIC", "#bad,name", "topic"));
+	CommandResult mode =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#bad,name", "+i"));
+
+	EXPECT_CONTAINS(part.replies[0].message, " 403 ");
+	EXPECT_CONTAINS(privmsg.replies[0].message, " 403 ");
+	EXPECT_CONTAINS(kick.replies[0].message, " 403 ");
+	EXPECT_CONTAINS(invite.replies[0].message, " 403 ");
+	EXPECT_CONTAINS(topic.replies[0].message, " 403 ");
+	EXPECT_CONTAINS(mode.replies[0].message, " 403 ");
+	EXPECT_CONTAINS(invite_both_invalid.replies[0].message, " 401 ");
+	EXPECT_TRUE(ctx.state.getChannel("#bad,name") == NULL);
+	EXPECT_TRUE(ctx.state.getChannel("#valid")->hasMember(ctx.client(taro.fd)));
+	EXPECT_TRUE(ctx.state.getChannel("#valid")->hasMember(ctx.client(hanako.fd)));
+  }
+
+  void testNoticeToInvalidTargetReturnsNoReplyAndNoMutation() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(95, "taro");
+	ctx.join(taro.fd, "#valid");
+
+	CommandResult invalidChannel =
+		ctx.dispatch(taro.fd, makeMessage("NOTICE", "#bad,name", "hello"));
+	CommandResult invalidNick =
+		ctx.dispatch(taro.fd, makeMessage("NOTICE", "1bad", "hello"));
+
+	EXPECT_EQ(static_cast<size_t>(0), invalidChannel.replies.size());
+	EXPECT_EQ(static_cast<size_t>(0), invalidNick.replies.size());
+	EXPECT_TRUE(ctx.state.getChannel("#bad,name") == NULL);
+	EXPECT_TRUE(ctx.state.getClientByNick("1bad") == NULL);
+  }
+
+  void testInvalidNickOperandsReturn401() {
+	TestContext ctx;
+	TestClient taro = ctx.registerClient(96, "taro");
+	TestClient hanako = ctx.registerClient(97, "hanako");
+	ctx.join(taro.fd, "#ops");
+	ctx.join(hanako.fd, "#ops");
+
+	CommandResult kick =
+		ctx.dispatch(taro.fd, makeMessage("KICK", "#ops", "#bad"));
+	CommandResult invite =
+		ctx.dispatch(taro.fd, makeMessage("INVITE", "#bad", "#ops"));
+	CommandResult mode =
+		ctx.dispatch(taro.fd, makeMessage("MODE", "#ops", "+o", "#bad"));
+	CommandResult privmsg =
+		ctx.dispatch(taro.fd, makeMessage("PRIVMSG", "1bad", "hello"));
+
+	EXPECT_CONTAINS(kick.replies[0].message, " 401 ");
+	EXPECT_CONTAINS(invite.replies[0].message, " 401 ");
+	EXPECT_CONTAINS(mode.replies[0].message, " 401 ");
+	EXPECT_CONTAINS(privmsg.replies[0].message, " 401 ");
+	EXPECT_TRUE(ctx.state.getClientByNick("#bad") == NULL);
+	EXPECT_TRUE(ctx.state.getClientByNick("1bad") == NULL);
+  }
+
   void testConnectionHealthMonitorGeneratesPingAndTimesOut() {
 	ConnectionHealthMonitor monitor(10);
 
@@ -911,6 +1042,10 @@ int main() {
   runTest("nick before pass is rejected", testNickBeforePassIsRejected);
   runTest("user before pass is rejected", testUserBeforePassIsRejected);
   runTest("nick conflict returns numeric", testNickConflictReturnsNumeric);
+  runTest("invalid nicknames return 432 without updating state",
+		  testInvalidNicknamesReturn432WithoutUpdatingState);
+  runTest("valid nickname boundaries are accepted",
+		  testValidNicknameBoundariesAreAccepted);
 
   runTest("not registered reply format", testNotRegisteredReplyFormat);
 
@@ -965,6 +1100,14 @@ int main() {
 			testJoinFullChannelReturns471WithoutAddingClient);
   runTest("join keyed channel returns 475 until key matches",
 			testJoinKeyedChannelReturns475UntilKeyMatches);
+  runTest("invalid join channel returns 403 without creating channel",
+			testInvalidJoinChannelReturns403WithoutCreatingChannel);
+  runTest("invalid channel names return 403 across channel commands",
+			testInvalidChannelNamesReturn403AcrossChannelCommands);
+  runTest("notice to invalid target returns no reply and no mutation",
+			testNoticeToInvalidTargetReturnsNoReplyAndNoMutation);
+  runTest("invalid nick operands return 401",
+			testInvalidNickOperandsReturn401);
   runTest("connection health monitor generates ping and times out",
 			testConnectionHealthMonitorGeneratesPingAndTimesOut);
   runTest("connection health monitor pong matching",

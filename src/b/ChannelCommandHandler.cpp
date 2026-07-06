@@ -4,6 +4,7 @@
 #include "c/Channel.hpp"
 #include "c/Client.hpp"
 #include "c/ServerState.hpp"
+#include "c/Utils.hpp"
 #include <climits>
 #include <cstdlib>
 #include <cerrno>
@@ -66,6 +67,10 @@ CommandResult ChannelCommandHandler::handleKick(int fd, const Message& msg,
 
   const std::string& channelName = msg.getSingleParam(0);
   const std::string& targetNick = msg.getSingleParam(1);
+  if (!isValidChannelName(channelName)) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
+    return result;
+  }
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
     result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
@@ -80,6 +85,10 @@ CommandResult ChannelCommandHandler::handleKick(int fd, const Message& msg,
     return result;
   }
 
+  if (!isValidNickname(targetNick)) {
+    result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));
+    return result;
+  }
   Client* targetClient = state.getClientByNick(targetNick);
   if (!targetClient) {
     result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));
@@ -116,6 +125,14 @@ CommandResult ChannelCommandHandler::handleInvite(int fd, const Message& msg,
 
   const std::string& targetNick = msg.getSingleParam(0);
   const std::string& channelName = msg.getSingleParam(1);
+  if (!isValidNickname(targetNick)) {
+    result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));
+    return result;
+  }
+  if (!isValidChannelName(channelName)) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
+    return result;
+  }
   Client* targetClient = state.getClientByNick(targetNick);
   if (!targetClient) {
     result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));
@@ -164,6 +181,10 @@ CommandResult ChannelCommandHandler::handleTopic(int fd, const Message& msg,
   }
 
   const std::string& channelName = msg.getSingleParam(0);
+  if (!isValidChannelName(channelName)) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
+    return result;
+  }
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
     result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
@@ -212,6 +233,10 @@ CommandResult ChannelCommandHandler::handleMode(int fd, const Message& msg,
   }
 
   const std::string& channelName = msg.getSingleParam(0);
+  if (!isValidChannelName(channelName)) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
+    return result;
+  }
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
     result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
@@ -299,6 +324,10 @@ CommandResult ChannelCommandHandler::applyOperatorMode(
   }
 
   const std::string& targetNick = msg.getSingleParam(2);
+  if (!isValidNickname(targetNick)) {
+    result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));
+    return result;
+  }
   Client* targetClient = state.getClientByNick(targetNick);
   if (!targetClient) {
     result.addReply(fd, ReplyBuilder::noSuchNick(client, targetNick));

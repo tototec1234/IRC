@@ -1,16 +1,10 @@
 #include "b/CommandDispatcher.hpp"
 #include "b/ReplyBuilder.hpp"
 #include "c/ServerState.hpp"
+#include "c/Utils.hpp"
 #include "lifecycle/ConnectionHealthMonitor.hpp"
 #include <iterator>
-// #include <type_traits>　c++11 なぜまぎれこんでる？
 #include <vector>
-
-// #include "CommandDispatcher.hpp"
-
-// #include "Client.hpp"
-// #include "ReplyBuilder.hpp"
-// #include "ServerState.hpp"
 
 CommandDispatcher::CommandDispatcher() {}
 
@@ -114,11 +108,11 @@ CommandResult CommandDispatcher::handleNick(int fd, const Message& msg,
     result.addReply(fd, ReplyBuilder::needMoreParams(client, "NICK"));
     return result;
   }
-//   if (!client->isPassOk()) {
-//     result.addReply(fd, ReplyBuilder::passwordMismatch());
-//     return result;
-//   }
   const std::string& nick = msg.getSingleParam(0);
+  if (!isValidNickname(nick)) {
+    result.addReply(fd, ReplyBuilder::erroneousNickname(client, nick));
+    return result;
+  }
   if (!state.updateNick(client, nick)) {
     result.addReply(fd, ReplyBuilder::nickInUse(nick));
     return result;
@@ -134,10 +128,6 @@ CommandResult CommandDispatcher::handleUser(int fd, const Message& msg,
     result.addReply(fd, ReplyBuilder::needMoreParams(client, "USER"));
     return result;
   }
-//   if (!client->isPassOk()) {
-//     result.addReply(fd, ReplyBuilder::passwordMismatch());
-//     return result;
-//   }
   if (client.isRegistered()) {
     result.addReply(fd, ReplyBuilder::alreadyRegistered(client));
     return result;
@@ -153,12 +143,7 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
                                             ServerState& state,
                                             Client& client) {
   CommandResult result;
-//   if (!client->isPassOk()) {
-//     result.addReply(fd, ReplyBuilder::passwordMismatch());
-//     return result;
-//   }
   if (!client.isRegistered()) {
-    // result.addReply(fd, ReplyBuilder::alreadyRegistered(*client));
     result.addReply(fd, ReplyBuilder::noRegistered(client));
     return result;
   }
@@ -167,6 +152,10 @@ CommandResult CommandDispatcher::handleJoin(int fd, const Message& msg,
     return result;
   }
   const std::string channelName = msg.getSingleParam(0);
+  if (!isValidChannelName(channelName)) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
+    return result;
+  }
 
   Channel *channel = state.getChannel(channelName);
   if (channel && !channel->hasMember(&client)) {
@@ -214,10 +203,6 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
                                             ServerState& state,
                                             Client& client) {
   CommandResult result;
-//   if (!client->isPassOk()) {
-//     result.addReply(fd, ReplyBuilder::passwordMismatch());
-//     return result;
-//   }
   if (!client.isRegistered()) {
     result.addReply(fd, ReplyBuilder::noRegistered(client));
     return result;
@@ -228,6 +213,10 @@ CommandResult CommandDispatcher::handlePart(int fd, const Message& msg,
   }
 
   const std::string channelName = msg.getSingleParam(0);
+  if (!isValidChannelName(channelName)) {
+    result.addReply(fd, ReplyBuilder::noSuchChannel(client, channelName));
+    return result;
+  }
   Channel* channel = state.getChannel(channelName);
   if (!channel) {
 
@@ -282,6 +271,20 @@ CommandResult CommandDispatcher::handleTextMessage(int fd, const Message& msg,
   const std::string& targetName = msg.getSingleParam(0);
   const std::string& text   = msg.getSingleParam(1);
 
+  if (!targetName.empty() && targetName[0] == '#') {
+    if (!isValidChannelName(targetName)) {
+      if (replyOnError) {
+        result.addReply(fd, ReplyBuilder::noSuchChannel(client, targetName));
+      }
+      return result;
+    }
+  } else if (!isValidNickname(targetName)) {
+    if (replyOnError) {
+      result.addReply(fd, ReplyBuilder::noSuchNick(client, targetName));
+    }
+    return result;
+  }
+
   std::string message;
   if (command == "NOTICE") {
     message =
@@ -291,7 +294,7 @@ CommandResult CommandDispatcher::handleTextMessage(int fd, const Message& msg,
         ReplyBuilder::privmsg(client.getFullPrefix(), command, targetName, text);
   }
 
-  if (targetName.empty() || targetName[0] == '#') {
+  if (targetName[0] == '#') {
       Channel* channel = state.getChannel(targetName);
       if (!channel) {
       if (replyOnError) {
