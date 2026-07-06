@@ -56,8 +56,7 @@ void DieWithError(char *errorMessage); /* 外部エラー処理関数 */
      /* サーバからデータグラムを1つ受信 */
      if ((recvStringLen = recvfrom(sock, recvString, MAXRECVSTRING, 0, NULL, 0)) < 0)
          DieWithError("recvfrom() failed");
-
-     recvString[recvStringLen] =
+     recvString[recvStringLen] = '\0';
      printf("Received: %s\n", recvString);     /* 受信した文字列の表示 */
 
      close(sock);
