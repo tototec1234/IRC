@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <unistd.h>  // close()
 
-#include <cerrno>   // accept() 失敗ログ用 (errno / strerror)
+#include <cerrno>   // accept() 失敗ログ用 (errno / std::strerror)
 #include <csignal>  // signal, SIGPIPE, SIG_IGN
 #include <cstring>
 #include <iostream>
@@ -35,24 +35,32 @@ static void _handleShutdownSignal(int signo) {
 
 static bool _isShutdownRequested() { return g_shutdownRequested != 0; }
 
+void* ft_memset(void* dst, int c, size_t len) {
+  unsigned char* ptr;
+
+  ptr = (unsigned char*)dst;
+  while (len--) *ptr++ = (unsigned char)c;
+  return (dst);
+}
+
 static void _installSignalHandlers() {
   struct sigaction action;
-  memset(&action, 0, sizeof(action));
+  ft_memset(&action, 0, sizeof(action));
   action.sa_handler = _handleShutdownSignal;
   sigemptyset(&action.sa_mask);
   action.sa_flags = 0;
   if (sigaction(SIGINT, &action, NULL) < 0)
     throw std::runtime_error(std::string("sigaction(SIGINT) failed: ") +
-                             strerror(errno));
+                             std::strerror(errno));
 
   struct sigaction ignoreAction;
-  memset(&ignoreAction, 0, sizeof(ignoreAction));
+  ft_memset(&ignoreAction, 0, sizeof(ignoreAction));
   ignoreAction.sa_handler = SIG_IGN;
   sigemptyset(&ignoreAction.sa_mask);
   ignoreAction.sa_flags = 0;
   if (sigaction(SIGPIPE, &ignoreAction, NULL) < 0)
     throw std::runtime_error(std::string("sigaction(SIGPIPE) failed: ") +
-                             strerror(errno));
+                             std::strerror(errno));
 }
 
 Server::Server(int port, const std::string& pw)
@@ -77,13 +85,13 @@ Server::Server(int port, const std::string& pw)
     const int err = errno;
     close(_listenFd);
     throw std::runtime_error(std::string("setsockopt(SO_REUSEADDR) failed: ") +
-                             strerror(err));
+                             std::strerror(err));
   }
 
   _setNonBlocking(_listenFd);  // ★追加: listen fd を non-blocking に
 
   /*　ローカルのアドレス構造体を作成　*/
-  memset(&servAddr, 0, sizeof(servAddr));
+  ft_memset(&servAddr, 0, sizeof(servAddr));
   servAddr.sin_family = AF_INET;
   servAddr.sin_addr.s_addr = INADDR_ANY;
   servAddr.sin_port = htons(port);
@@ -92,7 +100,8 @@ Server::Server(int port, const std::string& pw)
   if (bind(_listenFd, (struct sockaddr*)&servAddr, sizeof(servAddr)) < 0) {
     close(_listenFd);
     // throw std::runtime_error("bind() 失敗");
-    throw std::runtime_error(std::string("bind() 失敗: ") + strerror(errno));
+    throw std::runtime_error(std::string("bind() 失敗: ") +
+                             std::strerror(errno));
   }
 
   /* 	listen	p42 「接続要求をリスん中」というマークをソケットにつける」*/
@@ -152,7 +161,7 @@ void Server::run() {
         continue;
       }
       throw std::runtime_error(std::string("poll() failed: ") +
-                               strerror(errno));
+                               std::strerror(errno));
     }
     if (_isShutdownRequested()) break;
 
@@ -277,8 +286,8 @@ void Server::_acceptClient() {
   csin_len = sizeof(csin);
   cs = accept(_listenFd, (struct sockaddr*)&csin, &csin_len);
   if (cs < 0) {
-    std::cerr << RED_COLOR << "accept() 失敗" << strerror(errno) << RESET_COLOR
-              << std::endl;
+    std::cerr << RED_COLOR << "accept() 失敗" << std::strerror(errno)
+              << RESET_COLOR << std::endl;
     return;  // （→ accept は 1 回 1 fd なので return で十分）
   }
   // accept 成功後（cs が有効）
