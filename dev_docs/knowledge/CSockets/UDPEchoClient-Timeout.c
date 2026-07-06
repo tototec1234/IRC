@@ -13,7 +13,7 @@
 
 int tries=0;   /* 送信回数のカウンタ（シグナルハンドラからのアクセス用、グローバル） */
 
-void DieWithfrror(char *errorMessage);   /* エラー処理関数 */
+void DieWithError(char *errorMessage);   /* エラー処理関数 */
 void CatchAlarm(int ignored);            /* SIGALRMのハンドラ */
 
 int main(int argc, char *argv[])
