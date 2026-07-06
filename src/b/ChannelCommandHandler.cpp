@@ -294,7 +294,8 @@ CommandResult ChannelCommandHandler::handleMode(int fd, const Message& msg,
       }
       modeArg = msg.getSingleParam(2);
       if (!parsePositiveLimit(modeArg, limit)) {
-        result.addReply(fd, ReplyBuilder::unknownMode(client, modeToken));
+        result.addReply(fd, ReplyBuilder::invalidModeParam(
+                                client, channelName, modeToken, modeArg));
         return result;
       }
       channel->getModes().setLimit(limit);
@@ -360,7 +361,7 @@ void ChannelCommandHandler::addRepliesToMembers(
 
 bool ChannelCommandHandler::parsePositiveLimit(const std::string& value,
                                                int& limit) const {
-  if (value.empty() || value[0] == '-') {
+  if (value.empty()) {
     return false;
   }
 
@@ -368,7 +369,7 @@ bool ChannelCommandHandler::parsePositiveLimit(const std::string& value,
   errno = 0;
   long parsed = std::strtol(value.c_str(), &end, 10);
 
-  if (*end != '\0' || errno == ERANGE || parsed > INT_MAX) {
+  if (*end != '\0' || errno == ERANGE || parsed < 1 || parsed > INT_MAX) {
     return false;
   }
 
