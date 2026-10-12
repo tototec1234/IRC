@@ -37,6 +37,7 @@
 | listen fd | グローバル変数 `g_sockfd`（初期値 -1）。`fatal()` から閉じるため |
 | `listen` の backlog | 10。配布 `main.c` と同じ値 |
 | 編集するマシン | Mac。Linux は確認用 |
+| シェル | 以後の学習はすべて bash で行う。Mac も校舎の Linux も、ターミナルを開いたら最初に `bash` と打つ。Mac は bash 3.2、Linux は bash 5 系だが、練習で使う機能（ジョブ制御、リダイレクト、`$?`）は同じに動く |
 | コード内の根拠の書き方 | URL は書かない（試験のマシンはネットに繋がらない）。`man 2 bind の RETURN VALUE` のように、試験のマシンで引ける形で書く |
 | 校舎の Linux | gcc 10.5（Ubuntu 22.04）、OpenBSD netcat（`-N` あり）、valgrind あり、man あり |
 
@@ -44,7 +45,9 @@
 
 ## Spike 記録
 
-### zsh では `2>&1 >/dev/null |` で標準エラーだけを取り出せない
+### `2>&1 >/dev/null |` の結果は zsh と bash で違う
+
+**目的:** 標準エラーに出たバイトだけを `od -c` で見る。
 
 **コマンド:**
 
@@ -52,18 +55,51 @@
 ./mini_serv 8081 2>&1 >/dev/null | od -c
 ```
 
-**結果:** `od -c` に、標準エラーの `Fatal error\n` に続いて、標準出力の `printf` の行（`Socket successfully created..` など）も出た。
+**結果:**
+
+| シェル | 結果 |
+|--------|------|
+| zsh（Mac、`exam06_miniserv/` で実行） | 標準エラーの `Fatal error\n` に続いて、標準出力の `printf` の行（`Socket successfully created..` など）も出た |
+| bash 3.2（Mac、1 回目は `IRC_torinoue/` で実行） | `bash: ./mini_serv: No such file or directory\n` が出た。実行したディレクトリに `mini_serv` が無かった。bash が書いたエラーは標準エラーなので、`2>&1` で標準エラーがパイプへ届くことだけは確かめられた |
+| bash 3.2（Mac、2 回目は `exam06_miniserv/` で実行） | `Fatal error\n` の 12 バイトだけが出た。標準出力はパイプに混ざらない（下の「bash での確認」） |
 
 **解説:**
-- zsh は既定で `MULTIOS` オプションが有効である。標準出力に `>/dev/null` と `|` の両方を書くと、標準出力は `/dev/null` とパイプの両方へ送られる。bash ではこうならない。
+- 1 つのコマンドで、リダイレクトは左から順に処理される。`2>&1` は「標準エラーを、今の標準出力の行き先（パイプ）にする」。続く `>/dev/null` は「標準出力を `/dev/null` にする」。bash では、標準エラーだけがパイプへ流れる。
+- zsh は既定で `MULTIOS` オプションが有効である。標準出力に `>/dev/null` と `|` の両方を書くと、zsh は標準出力を `/dev/null` とパイプの両方へ送る（`man zshmisc` の MULTIOS）。そのため、標準出力の行も `od` に届いた。zsh でも `unsetopt multios` を実行すれば、bash と同じ結果になる。
 - `Fatal error` が `printf` の行より先に出たのは、パイプへの標準出力は `exit` までバッファに溜まり、標準エラーはすぐに書かれるためである。
-- 標準エラーと標準出力は、ファイルに分けて確かめる。
+- 校舎の Linux のログインシェルは zsh（プロンプトが `%`）である。試験のマシンでは `bash` も使える。
+
+**試験での決め方:** シェルの違いを気にしなくて済むように、ファイルに分けて確かめる。この形は zsh でも bash でも同じ結果になる。
 
 ```bash
 ./mini_serv 8081 >out.txt 2>err.txt; echo "exit=$?"
 od -c err.txt
 od -c out.txt
 ```
+
+**bash での確認（Mac の bash 3.2、`bircd/exam06_miniserv/` で実行）:**
+
+```text
+bash-3.2$ ./mini_serv 8081 &
+[1] 38116
+bash-3.2$ ./mini_serv 8081 &
+[2] 38307
+bash-3.2$ bash -c './mini_serv 8081 2>&1 >/dev/null | od -c'
+Socket successfully created..
+socket bind failed...
+Fatal error
+/* 段階 3 以降: 開いている fd と確保したメモリをここで片づける */0000000    F   a   t   a   l       e   r   r   o   r  \n
+0000014
+[2]+  Exit 1                  ./mini_serv 8081
+bash-3.2$ kill %1
+```
+
+- `od -c` に届いたのは `Fatal error\n` の 12 バイトだけだった。bash では標準出力がパイプに混ざらない。上の説明と一致した。
+- `od` の前の 4 行は、2 回目の `./mini_serv 8081 &`（ジョブ [2]）の出力である。ポートが使用中なので `Fatal error` で終わり、標準出力と標準エラーがそのまま端末に出た。`[2]+ Exit 1` がその終了である。
+- ダミーの `printf` の文字列が `Fatal error` より後に出たのは、末尾に `\n` が無く、`exit` まで書き出されなかったためである。
+- `kill` は成功しても何も表示しない。止まったかどうかは `jobs` と `lsof -nP -iTCP:8081 -sTCP:LISTEN` で確かめる。
+- 確かめた結果: 次のプロンプトで `[1]+ Terminated: 15 ./mini_serv 8081` が出た（15 は SIGTERM）。`jobs` と `lsof` の出力は空だった。
+- もう一度同じ手順を行い、`od -c` には `Fatal error\n` だけが届いた。直前の `Socket successfully created..` と `Socket successfully binded..` は、バックグラウンドのジョブ [1] が端末に書いた行である。
 
 ---
 
