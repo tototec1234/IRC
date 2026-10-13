@@ -1,0 +1,28 @@
+取得日: 2026-10-13T18:43:59+09:00
+取得元: 校舎の Linux の /usr/share/man と /usr/include
+uname: Linux 6.8.0-138-generic x86_64
+manpages-dev: 5.10-1ubuntu1
+--- .TH 行 ---
+linux_ref/man/man2/accept.2:.TH ACCEPT 2 2020-04-11 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/bind.2:.TH BIND 2 2020-11-01 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/close.2:.TH CLOSE 2 2020-06-09 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/listen.2:.TH LISTEN 2 2020-06-09 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/recv.2:.TH RECV 2 2020-11-01 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/select.2:.TH SELECT 2 2020-11-01 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/select_tut.2:.TH SELECT_TUT 2 2020-04-11 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/send.2:.TH SEND 2 2020-11-01 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/socket.2:.TH SOCKET 2 2020-06-09 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man2/write.2:.TH WRITE 2 2019-10-10 "Linux" "Linux Programmer's Manual"
+linux_ref/man/man7/ip.7:.TH IP  7 2020-11-01 "Linux" "Linux Programmer's Manual"
+--- sha256 ---
+a760b3e74a854790487a53024c9f465cb4f843117b752adb693bde87839e708c  linux_ref/man/man2/accept.2
+3228d0bddc56eb59e37818d69e273e17bd8347c9d1660b7e4d171fd729813bdd  linux_ref/man/man2/bind.2
+730d1925775f97379b624d1fff35f879595d78791fa371bf6459a4508d29fad5  linux_ref/man/man2/close.2
+5ff630eed9ac3545dcb096da950cd41dc0541279d5fc24f72d10a5f596a927e3  linux_ref/man/man2/listen.2
+9ff23ffc06678cb5d9f150f5c13d5a8488b47818bcbdc40e9550d79086330a3d  linux_ref/man/man2/recv.2
+c02879ceb5f1af5850d184ce1baf48ac6c0b0b771c117eeef90d0a48585ea149  linux_ref/man/man2/select.2
+0232587a32426c163eaa71fab00cc5737d289950fa682fd187e60c50c0888a93  linux_ref/man/man2/select_tut.2
+ea76eba2bc42ed61094a87616bba29d63a9f3ee8d562f77e8bd7402a8ac5d471  linux_ref/man/man2/send.2
+e5fc9a107a88f3a4cba3dc710c5d95816ced2f4e831df63a215e05b7780cccfa  linux_ref/man/man2/socket.2
+4f673f7b656da2e36a5356dd17fb6c8261b92e7c43fca098130ce578656db64f  linux_ref/man/man2/write.2
+e59963f428d662311ec9aadf96ea75c2f36a5a89e177fb6d2c422cce15b794e3  linux_ref/man/man7/ip.7
