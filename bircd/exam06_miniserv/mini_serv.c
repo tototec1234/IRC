@@ -55,7 +55,7 @@ int	main(int argc, char **argv)
 	g_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (g_sockfd == -1)
 		fatal();
-	printf("Socket successfully created..\n"); // デバッグ出力、課題提出時にはコメントアウト、以下、Printfは全てその扱い
+	// printf("Socket successfully created..\n"); // デバッグ出力、課題提出時にはコメントアウト、以下、Printfは全てその扱い
 	bzero(&servaddr, sizeof(servaddr));
 	// assign IP, PORT
 	servaddr.sin_family = AF_INET;
@@ -63,16 +63,10 @@ int	main(int argc, char **argv)
 	servaddr.sin_port = htons(portnbr);
 
 	// Binding newly created socket to given IP and verification 
-	if ((bind(g_sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) { 
-		printf("socket bind failed...\n"); // デバッグ出力、課題提出時にはコメントアウト
+	if ((bind(g_sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr))) != 0)
 		fatal();
-	} else
-	printf("Socket successfully binded..\n"); // デバッグ出力、課題提出時にはコメントアウト
 	if (listen(g_sockfd, 10) != 0) // maxpendingの値が10なのは、試験問題に添付されるはずのmain.cの82行目が根拠
-	{
-		printf("cannot listen\n"); // デバッグ出力、課題提出時にはコメントアウト
 		fatal();
-	}
 
 	FD_ZERO(&g_active);
 	FD_SET(g_sockfd, &g_active);
@@ -104,10 +98,6 @@ int	main(int argc, char **argv)
 		}
 
 	}
-
-
-
-
 	return (0);
 }
 
