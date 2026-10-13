@@ -9,3 +9,5 @@ commit_comment.txt
 yon_ni_subjects/
 ircserv
 *.a
+a.out
+bircd/exam06_miniserv/mini_serv
